@@ -11,7 +11,6 @@ import './personal_parsian_dark_fix.css';
 import {buildStandaloneDocumentExport,downloadStandaloneBlob} from './standalone_invoice_export.js';
 import {buildParsianKarmaDocumentExport} from './parsian_karma_invoice_export.js';
 import AccountingTopRibbon from './accounting_top_ribbon.jsx';
-import ReleaseUpdateSettings from './release_update_settings.jsx';
 import ParsianRawArchiveExplorer from './parsian_raw_archive_explorer.jsx';
 import PersonalParsianInvoices from './personal_parsian_invoices.jsx';
 import PersonalParsianDashboard from './personal_parsian_dashboard.jsx';
