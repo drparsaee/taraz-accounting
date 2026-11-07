@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="30" fill="#165356"/><g fill="none" stroke="#f7e9af" stroke-linejoin="round" stroke-linecap="round" stroke-width="6"><path d="M64 29v73M27 48h74M39 50l-13 30h27L39 50Zm50 0-13 30h27L89 50Z"/><path d="M46 101h36"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340.16 340.16" role="img" aria-labelledby="taraz-icon-title">
+  <title id="taraz-icon-title">Taraz</title>
+  <defs>
+    <linearGradient id="taraz-background" x1="170.08" y1="340.16" x2="170.08" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0c1a31"/>
+      <stop offset="1" stop-color="#1d375d"/>
+    </linearGradient>
+    <filter id="taraz-shadow" x="35" y="78" width="274" height="218" filterUnits="userSpaceOnUse">
+      <feOffset dx="2.83" dy="2.83"/>
+      <feGaussianBlur result="blur" stdDeviation="2.83"/>
+      <feFlood flood-color="#000" flood-opacity=".65"/>
+      <feComposite in2="blur" operator="in"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="340.16" height="340.16" rx="42.52" fill="url(#taraz-background)"/>
+  <g filter="url(#taraz-shadow)">
+    <!-- The T is one continuous geometric mark, with a beveled cap and dimensional stem. -->
+    <path fill="#6094f0" d="M66 94h208c11 0 18 8 18 19v13c0 10-7 17-18 17h-76v111c0 16-10 26-26 26h-7c-16 0-26-10-26-26V143H66c-11 0-18-7-18-17v-13c0-11 7-19 18-19Z"/>
+    <path fill="#f7fcff" d="M66 94h208c10 0 17 7 18 17l-19 14H67l-19-14c1-10 8-17 18-17Z"/>
+    <path fill="#4f6793" d="M174 143h24v111c0 15-10 25-26 26h-4v-23l6-8V143Z"/>
+    <path fill="#67f0cb" d="M186 143h12v111c0 13-7 22-19 25l-5-21 12-11V143Z"/>
+    <path fill="#67f0cb" d="M139 247v7c0 16 10 26 26 26h7c3 0 6-.4 9-1l-8-22-12 5-22-15Z"/>
+    <path fill="#4f6793" d="M274 125h-76v18h76c11 0 18-7 18-17v-13l-18 12Z"/>
+    <path fill="#67f0cb" d="M256 94h18c10 0 17 7 18 17l-19 14h-27l19-14-9-17Z"/>
+  </g>
+</svg>

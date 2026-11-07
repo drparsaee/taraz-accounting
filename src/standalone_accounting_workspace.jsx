@@ -15,6 +15,7 @@ import AccountingTopRibbon from './accounting_top_ribbon.jsx';
 import ParsianRawArchiveExplorer from './parsian_raw_archive_explorer.jsx';
 import PersonalParsianInvoices from './personal_parsian_invoices.jsx';
 import PersonalParsianDashboard from './personal_parsian_dashboard.jsx';
+import TarazHomeCommand from './taraz_home_command.jsx';
 import PersonalParsianCompany from './personal_parsian_company.jsx';
 import PersonalParsianExtended from './personal_parsian_extended.jsx';
 import PersonalParsianBankMovements from './personal_parsian_bank_movements.jsx';
@@ -1817,15 +1818,17 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             </Panel>}
           </>}
           {tab==='overview'&&<>
-            <PersonalParsianDashboard api={api} view={view} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} onNavigate={()=>setTab('parties')}/>
-            <p className="ppd-context-note">{'\u0645\u0627\u0646\u062f\u0647 \u0647\u0631 \u0634\u062e\u0635 \u0627\u0632 \u062f\u0641\u062a\u0631 \u06a9\u0644 \u062e\u0648\u0627\u0646\u062f\u0647 \u0645\u06cc\u200c\u0634\u0648\u062f. \u0648\u0636\u0639\u06cc\u062a \u062a\u0633\u0648\u06cc\u0647 \u0647\u0631 \u0641\u0627\u06a9\u062a\u0648\u0631 \u0642\u062f\u06cc\u0645\u06cc \u0645\u0633\u062a\u0642\u0644 \u0627\u0633\u062a \u0648 \u0627\u0632 \u0645\u0627\u0646\u062f\u0647 \u0627\u0634\u062e\u0627\u0635 \u0642\u0627\u0628\u0644 \u0627\u0633\u062a\u0646\u0628\u0627\u0637 \u0646\u06cc\u0633\u062a.'}</p>
-            <AccountingVitreaHome api={api} fiscalYear={fiscalYear} view={view} currency={ledgerCurrency} today={today}
-              canDraft={canManage||canDraft} canSettle={canManage} disabled={busy||pendingRetry}
-              preferenceKey={snapshot?.currentUser?.username&&
-                typeof view?.companyWorkspaceId==='string'&&
-                /^[a-f0-9]{32}$/.test(view.companyWorkspaceId)?
-                snapshot.currentUser.username+'|'+view.companyWorkspaceId:''}
-              onNavigate={gotoTab} onNewInvoice={openQuickInvoice}/>
+            <TarazHomeCommand api={api} view={view} fiscalYear={fiscalYear} referenceDate={today}
+              onFiscalYearChange={setFiscalYear} onNavigate={gotoTab}
+              onNewInvoice={openQuickInvoice} canDraft={canManage||canDraft}
+              disabled={busy||pendingRetry||state.loading}/>
+            <details className="sac-vtr-management-details">
+              <summary>تحلیل پیشرفته عملیات و یادآورهای حسابداری</summary>
+              <AccountingVitreaHome api={api} fiscalYear={fiscalYear} view={view}
+                currency={ledgerCurrency} today={today} canDraft={canManage||canDraft}
+                canSettle={canManage} disabled={busy||pendingRetry}
+                onNavigate={gotoTab} onNewInvoice={openQuickInvoice}/>
+            </details>
             <details className="sac-vtr-management-details"><summary>گزارش‌های تحلیلی و یادآورهای مدیریتی</summary>
               <AccountingManagementDashboard view={view} currency={ledgerCurrency}
                 onNavigate={gotoTab}/>

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "desktop:dev": "python native_app.py",
-    "build": "python scripts/sync_font.py && vite build",
+    "build": "vite build",
     "dist": "npm run dist:rc",
     "dist:rc": "python -B scripts/build_integrated_v122.py --webview2 release/.madar-inno-prereq/MicrosoftEdgeWebView2RuntimeInstallerX64.exe",
     "test": "python -B tools/safe_test_runner.py"
