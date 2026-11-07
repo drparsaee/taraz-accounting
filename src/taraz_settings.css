@@ -1,0 +1,126 @@
+/* Settings: restrained rows, explicit actions, existing host remains authoritative. */
+.taraz-settings {
+  --ts-bg:var(--sac-paper,#fff);
+  --ts-text:var(--sac-text,#202f43);
+  --ts-muted:var(--sac-muted,#5c6b80);
+  --ts-border:var(--sac-line,#dce4ed);
+  --ts-soft:var(--vs-hover,#7189b413);
+  color:var(--ts-text);
+  width:100%;max-width:1180px;margin:0 auto 32px;
+  font-family:var(--madar-ui-font,inherit);
+}
+.taraz-settings-heading{margin:0 0 26px}
+.taraz-settings-heading>span,.taraz-settings-section-title>span{
+  text-transform:uppercase;letter-spacing:1.1px;font-size:11px;font-weight:700;color:#75a9df;
+}
+.taraz-settings-heading h2{font-size:24px;line-height:1.4;margin:7px 0 3px;color:var(--ts-text)}
+.taraz-settings-heading p,.taraz-settings-section-title p{color:var(--ts-muted);margin:5px 0;line-height:1.8;font-size:12px}
+.taraz-settings-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:27px;align-items:start}
+.taraz-settings-tabs{display:grid;gap:5px;position:sticky;top:0}
+.sac-root .taraz-settings-tabs button:not(.sac-primary){
+  border:1px solid transparent;background:transparent;color:var(--ts-muted);
+  display:flex;align-items:center;gap:11px;min-height:45px;
+  width:100%;padding:11px 13px;border-radius:10px;text-align:right;font-size:12px;
+}
+.taraz-settings-tabs button>span{flex:1}
+.sac-root .taraz-settings-tabs button.active:not(.sac-primary){
+  background:var(--ts-bg);color:var(--ts-text);border-color:var(--ts-border);font-weight:800;
+  box-shadow:inset -3px 0 #78aef3;
+}
+.taraz-settings-content{min-width:0;display:grid;gap:20px}
+.taraz-settings-section{background:var(--ts-bg);border:1px solid var(--ts-border);
+  border-radius:17px;overflow:hidden;box-shadow:0 3px 18px #07172608;min-width:0}
+.taraz-settings-section-title{padding:21px 24px 16px}
+.taraz-settings-section-title h3{margin:6px 0;font-size:17px;line-height:1.4;color:var(--ts-text)}
+.taraz-settings-row{display:flex;align-items:center;justify-content:space-between;
+  gap:18px;min-height:80px;padding:16px 24px;border-top:1px solid var(--ts-border)}
+.taraz-settings-row-text{flex:1;min-width:170px}
+.taraz-settings-row-text strong{display:block;color:var(--ts-text);font-size:13px;line-height:1.7}
+.taraz-settings-row-text p{font-size:11px;color:var(--ts-muted);margin:4px 0 0;line-height:1.8}
+.taraz-settings-row-control{display:flex;align-items:center;justify-content:flex-end;
+  flex-wrap:wrap;gap:8px;max-width:62%;min-width:0}
+.taraz-settings-choice{display:inline-flex;align-items:stretch;flex-wrap:wrap;gap:4px;padding:4px;
+  border-radius:11px;border:1px solid var(--ts-border);background:var(--ts-soft)}
+.sac-root .taraz-settings-choice button:not(.sac-primary){
+  min-height:36px;min-width:56px;white-space:nowrap;display:inline-flex;
+  align-items:center;justify-content:center;gap:5px;border:1px solid transparent;
+  color:var(--ts-muted);background:transparent;padding:7px 10px;
+  border-radius:8px;font-size:11px;box-shadow:none}
+.sac-root .taraz-settings-choice button.selected:not(.sac-primary){
+  border-color:#75a7e9;background:#7faef02b;color:var(--ts-text);font-weight:800}
+.taraz-settings-status{display:inline-flex;padding:7px 12px;border:1px solid;
+  border-radius:22px;font-size:11px;line-height:1.6;max-width:100%;overflow-wrap:anywhere}
+.taraz-settings-status.ok{border-color:#5ca99999;color:#279c8c;background:#2c977018}
+.taraz-settings-status.muted{border-color:var(--ts-border);color:var(--ts-muted);background:var(--ts-soft)}
+.sac-root button.taraz-settings-action:not(.sac-primary){display:inline-flex;align-items:center;
+  justify-content:center;gap:7px;color:#fff;background:#2b609b;border:1px solid #477ebc;
+  min-height:41px;border-radius:10px;font-size:12px;font-weight:750}
+.taraz-settings-identity{overflow-wrap:anywhere;font-size:12px;direction:auto}
+.taraz-settings-check{display:inline-flex;align-items:center;gap:9px;font-size:11px;
+  color:var(--ts-text);line-height:1.8;cursor:pointer;text-align:right}
+.taraz-settings-check input{width:18px!important;height:18px!important;flex:none;accent-color:#3a92b7}
+.taraz-settings-connection-summary{display:flex;flex-wrap:wrap;gap:10px;
+  padding:12px 24px;background:var(--ts-soft);border-top:1px solid var(--ts-border);font-size:11px}
+.taraz-settings-connection-summary span{color:var(--ts-muted)}
+.taraz-settings-connection-summary strong{color:var(--ts-text)}
+.taraz-settings-request{margin:12px 24px;border:1px solid var(--ts-border);border-radius:11px;
+  padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.taraz-settings-request strong{display:block;font-size:12px;color:var(--ts-text)}
+.taraz-settings-request small{display:block;color:var(--ts-muted);font-size:11px;
+  margin-top:5px;overflow-wrap:anywhere}
+.taraz-settings-request-actions{display:flex;gap:7px;flex-wrap:wrap}
+.taraz-settings-message{margin:12px 24px;border:1px solid #67bba2;background:#348b7022;
+  border-radius:9px;padding:11px;color:var(--ts-text);font-size:12px}
+.taraz-settings-message.error{border-color:#d88c8c;background:#c86e6e20}
+.taraz-settings-review{margin:14px 24px;padding:16px;border:1px solid #75a7e9;
+  border-radius:11px;background:#729cda17;color:var(--ts-text)}
+.taraz-settings-review strong{font-size:13px}
+.taraz-settings-review p,.taraz-settings-privacy,.taraz-settings-muted{
+  font-size:12px;line-height:1.9;color:var(--ts-muted)}
+.taraz-settings-review>div{display:flex;gap:8px}
+.taraz-settings-muted{padding:12px 24px}
+.taraz-settings-privacy{display:flex;gap:8px;align-items:start;border-top:1px solid var(--ts-border);
+  padding:14px 24px;margin:0}
+.taraz-settings-privacy svg{flex:none;margin-top:4px}
+.taraz-settings :is(button,input,select):focus-visible{outline:3px solid #93c9f8;outline-offset:2px}
+
+/* Actual accounting surface preferences; distinct values visibly change the entire workspace. */
+:root[data-taraz-font="estedad"]{--madar-ui-font:"Estedad Variable",Vazirmatn,Tahoma,sans-serif}
+:root[data-taraz-font="vazirmatn"]{--madar-ui-font:Vazirmatn,"Estedad Variable",Tahoma,sans-serif}
+:root[data-taraz-font="tahoma"]{--madar-ui-font:Tahoma,"Segoe UI",sans-serif}
+:root[data-taraz-font] .sac-root.taraz-vt-app,
+:root[data-taraz-font] .sac-root.taraz-vt-app :is(button,input,select,textarea){
+  font-family:var(--madar-ui-font)!important}
+:root[data-taraz-size="compact"] .sac-root.taraz-vt-app>.sac-main{zoom:.90}
+:root[data-taraz-size="large"] .sac-root.taraz-vt-app>.sac-main{zoom:1.10}
+:root[data-taraz-size="compact"] .sac-root.taraz-vt-app>.taraz-vt-shell{zoom:.94}
+:root[data-taraz-size="large"] .sac-root.taraz-vt-app>.taraz-vt-shell{zoom:1.07}
+:root[data-taraz-width="compact"] .sac-root.taraz-vt-app .sac-body{padding-inline:clamp(25px,7vw,110px)}
+:root[data-taraz-width="wide"] .sac-root.taraz-vt-app .sac-body{padding-inline:clamp(12px,1.5vw,24px)}
+:root[data-taraz-width="compact"] .sac-root.taraz-vt-app .sac-body>div,
+:root[data-taraz-width="compact"] .sac-root.taraz-vt-app .sac-body>section{max-width:1030px;margin-inline:auto}
+:root[data-taraz-width="wide"] .sac-root.taraz-vt-app .sac-body>div,
+:root[data-taraz-width="wide"] .sac-root.taraz-vt-app .sac-body>section{max-width:100%}
+:root[data-taraz-motion="reduce"] .sac-root.taraz-vt-app *,
+:root[data-taraz-motion="reduce"] .sac-root.taraz-vt-app *::before,
+:root[data-taraz-motion="reduce"] .sac-root.taraz-vt-app *::after{
+  animation:none!important;scroll-behavior:auto!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){
+  :root:not([data-taraz-motion="full"]) .sac-root.taraz-vt-app *,
+  :root:not([data-taraz-motion="full"]) .sac-root.taraz-vt-app *::before,
+  :root:not([data-taraz-motion="full"]) .sac-root.taraz-vt-app *::after{
+    animation:none!important;scroll-behavior:auto!important;transition:none!important}
+}
+@media(max-width:950px){.taraz-settings-layout{grid-template-columns:1fr;gap:14px}
+  .taraz-settings-tabs{display:flex;position:static;overflow:auto;gap:5px}
+  .sac-root .taraz-settings-tabs button:not(.sac-primary){white-space:nowrap;width:auto;flex:none}
+  .taraz-settings-row{align-items:flex-start;flex-direction:column}
+  .taraz-settings-row-control{max-width:100%;justify-content:flex-start}
+}
+@media(max-width:550px){.taraz-settings-heading{margin-bottom:15px}
+  .taraz-settings-section-title,.taraz-settings-row{padding:15px}
+  .taraz-settings-choice{width:100%}
+  .sac-root .taraz-settings-choice button:not(.sac-primary){flex:1}
+  .taraz-settings-request{margin:10px 15px;align-items:start;flex-direction:column}
+  .taraz-settings-connection-summary{padding:10px 15px}
+}

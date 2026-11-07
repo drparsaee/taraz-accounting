@@ -3,6 +3,8 @@ import {ArrowRight,Building2,FilePlus2,Landmark,Menu,Printer,
   RefreshCw,Search,Settings2,ShieldCheck,Users,Wallet,FileText,Layers3,
   Sun,Moon,X,CheckCircle2,ChevronLeft,BookOpen,ReceiptText} from 'lucide-react';
 import AccountingGlobalSearch from './accounting_global_search.jsx';
+import {readTarazSettings,saveTarazSettings,applyTarazSettings}
+  from './taraz_settings_preferences.js';
 import {ACCOUNTING_PRIMARY_SECTIONS,accountingVisibleSections,
   buildAccountingSearchIndex} from './accounting_nav_search.js';
 import './accounting_navigation_shell.css';
@@ -44,6 +46,23 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
   const searchButtonRef=React.useRef(null);
   const visible=React.useMemo(()=>accountingVisibleSections(sections,role,sectionAccess),
     [sections,role,sectionAccess]);
+  React.useEffect(()=>{
+    const sync=()=>{
+      const settings=readTarazSettings();
+      applyTarazSettings(settings);
+      setTheme(document.documentElement.dataset.theme==='light'?'light':'dark');
+    };
+    sync();
+    const media=globalThis.matchMedia?.('(prefers-color-scheme: dark)');
+    media?.addEventListener?.('change',sync);
+    globalThis.addEventListener?.('taraz-settings-change',sync);
+    globalThis.addEventListener?.('storage',sync);
+    return()=>{
+      media?.removeEventListener?.('change',sync);
+      globalThis.removeEventListener?.('taraz-settings-change',sync);
+      globalThis.removeEventListener?.('storage',sync);
+    };
+  },[]);
   const labels=React.useMemo(()=>new Map(visible),[visible]);
   const index=React.useMemo(()=>buildAccountingSearchIndex({
     sections:visible,view:typeof onSearchSelect==='function'?searchView:null,
@@ -106,8 +125,7 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
   };
   const toggleTheme=()=>{
     const next=theme==='dark'?'light':'dark';
-    document.documentElement.dataset.theme=next;
-    try{window.localStorage.setItem('taraz-ui-theme',next);}catch(_error){/* ephemeral preference */ }
+    saveTarazSettings({...readTarazSettings(),theme:next});
     setTheme(next);
   };
   const closeMenu=()=>{setMoreOpen(false);menuButtonRef.current?.focus();};

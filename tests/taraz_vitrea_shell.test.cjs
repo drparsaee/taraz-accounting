@@ -30,8 +30,8 @@ test('Search, quick actions and theme control have functional callbacks',()=>{
     'data-accounting-action="theme"','data-accounting-action="search"']){
     assert.ok(nav.includes(hook),hook);
   }
-  assert.match(nav,/window\.localStorage\.setItem\('taraz-ui-theme',next\)/);
-  assert.match(nav,/document\.documentElement\.dataset\.theme=next/);
+  assert.match(nav,/saveTarazSettings\(/);
+  assert.match(nav,/applyTarazSettings\(/);
   assert.match(nav,/onClick=\{toggleTheme\}/);
 });
 

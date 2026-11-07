@@ -2,7 +2,7 @@ import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,ArrowRight,BookOpen,Building2,Download,FileText,Landmark,Layers3,
   Plus,RefreshCw,Settings2,ShieldAlert,TrendingUp,Users,Wallet} from 'lucide-react';
 import './standalone_accounting_workspace.css';
-import TarazIntegrationPanel from './taraz_integration_panel.jsx';
+import TarazSettings from './taraz_settings.jsx';
 import './standalone_accounting_ux20.css';
 import './accounting_density.css';
 import './accounting_vitrea.css';
@@ -1578,10 +1578,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             بازیابی با همان شناسه عملیات</button>
         </div>}
         {!view&&!state.loading&&<Empty>اطلاعات قابل اتکایی از میزبان دریافت نشده است. سند یا مبلغ نمایشی ساخته نمی‌شود.</Empty>}
-        {tab==='settings'&&<Panel title="تنظیمات حسابداری"
-          description="نسخه حسابداری تراز، مستقل از به‌روزرسانی‌های مدار مدیریت کار.">
-          <p>تراز ۱.۰.۰؛ به‌روزرسانی خودکار مستقل هنوز ارائه نشده است. این بخش هیچ ارتباطی با انتشار مدار ندارد.</p>
-        </Panel>}
+        {tab==='settings'&&<TarazSettings api={api} currentUser={snapshot?.currentUser}
+          canAdmin={canAdmin} canManage={canManage} onManageUsers={onManageUsers}/>}
         {view&&<>
           {tab==='proforma'&&<>
             <Panel title="پیش‌فاکتورهای فروش مستقل"
@@ -3310,7 +3308,6 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
           </>}
         </>}
       </div>
-      <TarazIntegrationPanel api={api}/>
       <footer className="sac-footer"><span>تراز · حسابداری مستقل مبتنی بر {unitLabel}</span>
         <span>نسخه داده میزبان: <code dir="ltr">{snapshot?.revision??'خوانده نشده'}</code></span></footer>
     </div>
