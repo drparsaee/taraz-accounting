@@ -1,0 +1,14 @@
+.pcsv-panel{border:1px solid var(--sac-border,rgba(120,145,160,.3));border-radius:14px;padding:18px;margin:14px 0;display:grid;gap:15px;background:var(--sac-surface,transparent)}
+.pcsv-panel header h3{margin:0 0 6px;font-size:1.1rem}.pcsv-panel header p{margin:0;opacity:.8}
+.pcsv-config,.pcsv-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.pcsv-panel label{display:grid;gap:5px;font-size:.9rem;min-width:0}
+.pcsv-panel input:not([type=checkbox]),.pcsv-panel textarea,.pcsv-panel select{width:100%;min-height:37px;border-radius:8px;border:1px solid rgba(130,145,160,.45);padding:7px 9px;background:var(--sac-input-bg,var(--sac-surface,#fff));color:inherit;font:inherit}
+.pcsv-panel button{border-radius:8px;border:1px solid rgba(130,145,160,.5);padding:9px 13px;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.pcsv-panel button:disabled{opacity:.5;cursor:not-allowed}
+.pcsv-dataset{border:1px solid rgba(130,145,160,.3);border-radius:10px;padding:13px;display:grid;gap:12px;min-width:0}
+.pcsv-dataset legend{font-weight:700;padding:0 6px}.pcsv-file{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.pcsv-file span{overflow-wrap:anywhere}
+.pcsv-extras{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.pcsv-extras label{display:flex;gap:7px;align-items:center}.pcsv-extras input{margin:0}
+.pcsv-panel textarea{resize:vertical}.pcsv-expectations summary{cursor:pointer}
+.pcsv-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pcsv-actions button{font-weight:700}.pcsv-actions small{opacity:.75}
+.pcsv-error{color:#b42318}.pcsv-result{border-top:1px solid rgba(130,145,160,.4);padding-top:12px}.pcsv-result h4{margin:0}.pcsv-stats{display:flex;gap:12px;flex-wrap:wrap}.pcsv-result ul{padding-inline-start:22px}
+.pcsv-samples{border-bottom:1px solid rgba(130,145,160,.25);padding:8px 0}.pcsv-samples summary{cursor:pointer}.pcsv-samples dl{display:grid;grid-template-columns:minmax(85px,1fr) 3fr;gap:5px 12px;border-bottom:1px solid rgba(130,145,160,.18);padding-bottom:7px}.pcsv-samples dt{opacity:.7}.pcsv-samples dd{margin:0;overflow-wrap:anywhere}

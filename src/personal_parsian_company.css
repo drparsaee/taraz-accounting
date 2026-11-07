@@ -1,0 +1,10 @@
+﻿.ppc-root{direction:rtl;padding:19px;margin:12px 0 19px;border-radius:14px;background:#f9fcfa;border:1px solid #bfd4ca;color:#1a3b35}
+.ppc-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:16px}
+.ppc-head h2{font-size:19px;margin:0 0 4px}.ppc-head p{font-size:12px;color:#536e66;margin:0}
+.ppc-year{border-radius:30px;padding:6px 11px;background:#dceee4;font-size:11px;color:#23634d}
+.ppc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}
+.ppc-pair{margin:0;border:1px solid #ddeae4;border-radius:10px;background:#fff;padding:11px}
+.ppc-pair dt{font-size:11px;color:#607d73}.ppc-pair dd{margin:5px 0 0;font-size:13px;overflow-wrap:anywhere;line-height:1.8;text-align:right}
+.ppc-name{grid-column:1/-1}.ppc-name dd{color:#8a562d}
+.ppc-note{margin-top:13px;font-size:12px;line-height:2;border-radius:9px;background:#f4eee3;color:#6c542f;padding:10px 12px}
+.ppc-error{color:#97452f}@media(max-width:630px){.ppc-grid{grid-template-columns:1fr}}

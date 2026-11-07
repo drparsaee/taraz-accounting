@@ -1,0 +1,78 @@
+/* The caption layer lives outside the React root. React retains exclusive
+   ownership of every field and of every child in every form label. */
+.madar-fl-layer { position: fixed; inset: 0; z-index: 999; pointer-events: none; }
+
+.madar-fl-caption {
+  position: fixed;
+  z-index: 2;
+  box-sizing: border-box;
+  top: var(--madar-fl-mid-y, 20px);
+  right: var(--madar-fl-right, 10px);
+  max-width: var(--madar-fl-width, 90%);
+  padding: 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  direction: rtl;
+  text-align: right;
+  transform: translateY(-50%);
+  transform-origin: right center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--madar-fl-quiet, #74859a);
+  /* A fixed caption must track a scrolled input in the same paint. Animating
+     top makes it trail behind rows in nested scroll containers. */
+  transition: font-size 100ms ease, color 100ms ease;
+}
+
+.madar-fl-caption.madar-fl-raised {
+  top: var(--madar-fl-top-y, 8px);
+  font-size: 10px;
+  color: var(--madar-fl-accent, #476fb5);
+}
+
+.madar-fl-caption.madar-fl-invalid { color: #ae3447; }
+.madar-fl-caption.madar-fl-disabled { opacity: .65; }
+
+/* Preserve space for both the caption and a typed value or chosen option. */
+:is(input, textarea, select).madar-fl-control {
+  box-sizing: border-box;
+  padding-top: 16px !important;
+  padding-bottom: 3px !important;
+  min-height: 38px;
+  font-size: var(--madar-fl-control-font, 12px) !important;
+}
+
+.madar-fl-control:not(:focus)::placeholder { color: transparent !important; }
+.madar-fl-control:focus::placeholder { opacity: .5; }
+
+/* Wrapped native <label> text is preserved for AT and click behavior. The
+   visual caption lives inside the field, so we collapse only simple labels. */
+label.madar-fl-native-label {
+  gap: 0 !important;
+  font-size: 0 !important;
+}
+
+label.madar-fl-native-label > .madar-fl-original-caption {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+:root[data-theme="dark"] .madar-fl-caption {
+  --madar-fl-quiet: #aabbd0;
+  --madar-fl-accent: #a2c2ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .madar-fl-caption { transition: none; }
+}

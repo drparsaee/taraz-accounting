@@ -1,0 +1,25 @@
+.pra-root{direction:rtl;border:1px solid #d9e3e8;border-radius:13px;background:#fff;
+  box-shadow:0 3px 12px #253e4a0b;padding:16px;margin:18px 0;color:#253d49}
+.pra-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pra-head h3{font-size:16px;margin:0 0 4px}.pra-head p,.pra-source{font-size:12px;color:#607983;margin:4px 0 12px}
+.pra-head label{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:700}
+.pra-root select,.pra-root input{border:1px solid #cadcde;border-radius:8px;padding:8px 10px;background:#fff;color:#183942;font:inherit}
+.pra-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:16px}
+.pra-tables{background:#f6f9f9;border:1px solid #dde9e7;border-radius:10px;padding:10px}
+.pra-tables input{width:100%;box-sizing:border-box}.pra-table-list{max-height:510px;overflow:auto;margin-top:10px}
+.pra-table-list button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
+  padding:8px 7px;margin-bottom:3px;border:0;border-radius:6px;background:none;text-align:left;
+  font:inherit;font-size:11px;color:#37555e;cursor:pointer}
+.pra-table-list button.selected{background:#d5f0e9;font-weight:700;color:#0b615c}
+.pra-table-list small{color:#758b92}.pra-records{min-width:0;max-height:610px;overflow:auto}
+.pra-records h4{margin:0 0 8px;direction:ltr;text-align:right;font-size:14px}
+.pra-records>p{font-size:12px;color:#627e84}
+.pra-record{border:1px solid #dfe9e9;border-radius:8px;margin:5px 0;background:#fbfdfd}
+.pra-record summary{cursor:pointer;font-size:12px;font-weight:700;padding:9px 11px}
+.pra-record dl{display:grid;grid-template-columns:150px minmax(0,1fr);margin:0;padding:12px;gap:5px 10px;
+  border-top:1px solid #e0eaeb;font-size:11px;overflow-wrap:anywhere}
+.pra-record dt{color:#58747b}.pra-record dd{margin:0;white-space:pre-wrap;color:#243942}
+.pra-pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:12px}
+.pra-pagination button{padding:8px 12px;border:1px solid #cde2df;background:#e9f6f2;border-radius:8px;cursor:pointer}
+.pra-pagination button:disabled{opacity:.4;cursor:default}.pra-error{color:#a02f36!important}
+@media(max-width:840px){.pra-layout{grid-template-columns:1fr}.pra-table-list{max-height:210px}}

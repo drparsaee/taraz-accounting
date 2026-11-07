@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <link rel="icon" type="image/svg+xml" href="./taraz-icon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="./favicon.ico" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <title>تراز | حسابداری مستقل</title>
+  </head>
+  <body>
+    <div id="startup-diagnostic" role="alert" hidden
+      style="direction:rtl;position:fixed;z-index:100000;inset:18px auto auto 18px;max-width:560px;
+      background:#fff1ec;color:#873d2f;border:2px solid #e9b9a6;padding:16px;
+      border-radius:12px;font:14px Tahoma,sans-serif">
+      بارگذاری رابط حسابداری با خطا روبه‌رو شد. دفتر مالی دست‌نخورده مانده است.
+      <button onclick="location.reload()" style="margin-right:12px">بارگذاری مجدد</button>
+    </div>
+    <div id="root"><main dir="rtl" style="font:16px Tahoma,sans-serif;padding:40px;color:#2b4f55">
+      در حال بازکردن حسابداری مدار... اگر این پیام باقی ماند، بارگذاری رابط کامل نشده است.
+    </main></div>
+    <script>
+      window.addEventListener('error',function(){
+        var box=document.getElementById('startup-diagnostic');
+        if(box)box.hidden=false;
+      });
+      window.addEventListener('unhandledrejection',function(){
+        var box=document.getElementById('startup-diagnostic');
+        if(box)box.hidden=false;
+      });
+    </script>
+    <script type="module" src="/src/standalone_main.jsx"></script>
+  </body>
+</html>

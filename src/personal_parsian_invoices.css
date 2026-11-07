@@ -1,0 +1,32 @@
+﻿.ppi-root{margin:14px 0 20px;padding:20px;border:1px solid #cddad7;border-radius:15px;background:#f9fbfa;color:#203c40;direction:rtl;font-family:inherit}
+.ppi-heading{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ppi-heading h3{font-size:17px;margin:0}
+.ppi-heading p,.ppi-subtle{font-size:12px;color:#607a79;margin:5px 0}
+.ppi-counter{background:#c9ebcf;color:#135649;padding:5px 14px;border-radius:30px;font-weight:700;white-space:nowrap}
+.ppi-note{margin:12px 0;padding:10px 14px;border-radius:11px;border:1px solid #bfd8d2;background:#eef8f5;font-size:13px}
+.ppi-error{border-color:#d77a63;color:#8c3f31}
+.ppi-controls{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.ppi-controls input,.ppi-controls select{padding:9px 11px;min-height:36px;background:white;color:#183539;border:1px solid #baccc9;border-radius:9px;font:inherit}
+.ppi-controls input{flex:1;min-width:230px}
+.ppi-table-wrap{overflow:auto;max-height:560px;border:1px solid #d8e3df;border-radius:10px}
+.ppi-table{border-collapse:collapse;font:inherit;width:100%;min-width:700px;font-size:12px}
+.ppi-table th,.ppi-table td{padding:10px;border-bottom:1px solid #e1eae7;text-align:right;white-space:nowrap}
+.ppi-table thead th{position:sticky;top:0;background:#e6f0ee;color:#385e5b;z-index:1}
+.ppi-table button,.ppi-pagination button{padding:6px 10px;border-radius:8px;border:1px solid #b5cbc5;background:white;color:#215b53;cursor:pointer;font:inherit}
+.ppi-table button:hover,.ppi-pagination button:hover{background:#e8f3ee}
+.ppi-table button:disabled,.ppi-pagination button:disabled{opacity:.45;cursor:not-allowed}
+.ppi-pill{padding:3px 8px;border-radius:25px;white-space:nowrap}
+.ppi-good{background:#dff0e7;color:#205d42}
+.ppi-review{background:#fff0dc;color:#835513}
+.ppi-table .ppi-amount{text-align:left;font-variant-numeric:tabular-nums}
+.ppi-table .ppi-detail td{white-space:normal;background:#f1f6f4;vertical-align:top;line-height:1.9}
+.ppi-detail p{margin:4px 0 10px}
+.ppi-subtable{min-width:620px;background:white}
+.ppi-subtable td{white-space:nowrap}
+.ppi-pagination{display:flex;gap:8px;margin:12px 0}
+.ppi-contacts{margin-top:10px}
+.ppi-mini{padding:7px;border:1px solid #d6e7e2;margin:5px 0;background:white;border-radius:8px}
+@media(max-width:650px){.ppi-root{padding:10px}.ppi-controls input{min-width:100%}}
+
+.ppi-history{margin:13px 0;padding-top:12px;border-top:1px solid #cee0d9}.ppi-history h4{font-size:13px;margin:12px 0 7px}.ppi-ledger-scroll{overflow-x:auto;max-height:400px;overflow-y:auto;margin:8px 0}.ppi-detail-contact{display:inline-block;padding:5px 9px;margin:5px;border:1px solid #d6e4df;border-radius:8px;background:white}.ppi-balance-side{display:inline-block;font-size:10px;color:#517368;margin-right:5px;direction:rtl}
+.ppi-print-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.ppi-print-actions small{font-size:11px;color:#607a79}

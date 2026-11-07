@@ -1,0 +1,348 @@
+/* Unslop: share Madar's graphite / frost / single-blue visual language
+   across EVERY standalone accounting tab. Status greens and reds remain
+   meaningful and ledger logic never changes. */
+.sac-root {
+  --sac-text:#243149;
+  --sac-muted:#596d83;
+  --sac-teal:#568bdc;
+  --sac-line:#d4ddea;
+  --sac-paper:#ffffff;
+  --sac-bg:#edf1f6;
+  color:var(--sac-text);
+  background:var(--sac-bg);
+  font-family:var(--madar-ui-font,"Estedad Variable",Vazirmatn,Tahoma,sans-serif);
+}
+.sac-root.sac-vtr-overview {background:var(--sac-bg);}
+:root[data-theme="light"] .sac-root {background:#edf1f6;}
+:root[data-theme="light"] .sac-root.sac-vtr-overview {background:#edf1f6;}
+.sac-root .sac-sidebar {
+  background:#1c2636;
+  border-inline-end:1px solid #ffffff24;
+}
+.sac-root .sac-sidebar nav button.active:not(.sac-primary) {
+  color:#eef5ff;
+  background:#568bdc35;
+  border-color:#8aaff466;
+  box-shadow:inset -3px 0 0 #85b5f6;
+}
+.sac-root .sac-sidebar nav button:hover:not(.sac-primary) {
+  background:#31445e;
+}
+.sac-root .sac-brand-icon {
+  color:#b9d5ff;
+  background:#29405e;
+  border-color:#5276a7;
+  box-shadow:none;
+}
+.sac-root .sac-brand strong span,.sac-root .sac-sidebar-footer strong {
+  color:#b8d6ff;
+}
+.sac-root .sac-main,.sac-root .sac-body {
+  background:transparent;
+}
+.sac-root .sac-header,.sac-root .sac-footer {
+  background:#f9fbff;
+  border-color:var(--sac-line);
+}
+.sac-root .sac-header h1,.sac-root .sac-panel-title h2,
+.sac-root .sac-metric strong,.sac-root .sac-subheading h3,
+.sac-root .sac-list-section h3 {color:var(--sac-text);}
+.sac-root :is(.sac-panel,.sac-metric) {
+  background:var(--sac-paper);
+  border-color:var(--sac-line);
+  box-shadow:0 4px 18px #14213b0b;
+  border-radius:16px;
+}
+.sac-root .sac-metric:before {background:#7aaef0;}
+.sac-root .sac-field>span,.sac-root .sac-panel-title p,
+.sac-root .sac-metric span,.sac-root .sac-metric small,
+.sac-root :is(th,td) small {color:var(--sac-muted);font-size:12px;}
+.sac-root .sac-kicker,.sac-root .sac-nav-caption,
+.sac-root .sac-footer,.sac-root .sac-pill,
+.sac-root .sac-header p {font-size:12px;}
+.sac-root input,.sac-root select,.sac-root textarea {
+  background:#fafdff;
+  color:var(--sac-text);
+  border-color:var(--sac-line);
+  font-size:13px;
+}
+.sac-root button.sac-primary {
+  background:#477bc6;
+  border-color:#477bc6;
+  color:#fff;
+  box-shadow:none;
+  border-radius:10px;
+}
+.sac-root button.sac-primary:hover:not(:disabled) {
+  background:#386eb8;
+  border-color:#386eb8;
+}
+.sac-root :is(button,input,select,textarea):focus-visible {
+  outline:3px solid #85b6fa;
+  outline-offset:2px;
+}
+.sac-root :is(.sac-period,.sac-issue-date,.sac-empty) {
+  background:#f5f8fc;
+  border-color:var(--sac-line);
+}
+.sac-root th {background:#f0f4fa;color:#49617d;font-size:12px;}
+.sac-root td {font-size:12px;}
+.sac-root tbody tr:hover {background:#eaf1fb;}
+
+/* Ledger panels and dashboards all inherit a neutral surface on graphite. */
+:root[data-theme="dark"] .sac-root {
+  --sac-text:#f2f5fc;
+  --sac-muted:#bac8d9;
+  --sac-teal:#7aaef0;
+  --sac-line:#ffffff2c;
+  --sac-paper:#22252e;
+  --sac-bg:#111113;
+  color:var(--sac-text);
+  background:#111113;
+}
+:root[data-theme="dark"] .sac-root.sac-vtr-overview {background:#111113;}
+:root[data-theme="dark"] .sac-root .sac-sidebar {background:#191d26;}
+:root[data-theme="dark"] .sac-root .sac-main,
+:root[data-theme="dark"] .sac-root .sac-body {background:transparent;}
+:root[data-theme="dark"] .sac-root .sac-header,
+:root[data-theme="dark"] .sac-root .sac-footer {
+  background:#1d2028;
+  border-color:var(--sac-line);
+  color:var(--sac-muted);
+}
+:root[data-theme="dark"] .sac-root :is(.sac-panel,.sac-metric) {
+  background:#22252e;
+  border-color:var(--sac-line);
+  box-shadow:0 6px 20px #0002;
+}
+:root[data-theme="dark"] .sac-root .sac-panel-title {border-color:var(--sac-line);}
+:root[data-theme="dark"] .sac-root :is(.sac-panel-title h2,.sac-metric strong,
+  .sac-header h1,.sac-subheading h3,.sac-list-section h3) {color:var(--sac-text);}
+:root[data-theme="dark"] .sac-root :is(.sac-field,.sac-field>span,
+  .sac-metric span,.sac-metric small,.sac-panel-title p,.sac-header p,
+  th,td small) {color:var(--sac-muted);}
+:root[data-theme="dark"] .sac-root :is(input,select,textarea) {
+  background:#191d25;
+  color:var(--sac-text);
+  border-color:#60718a;
+}
+:root[data-theme="dark"] .sac-root input::placeholder {color:#acbacb;}
+:root[data-theme="dark"] .sac-root button:not(.sac-primary) {
+  background:#2c3442;
+  color:#e4eefc;
+  border-color:#65738b;
+}
+:root[data-theme="dark"] .sac-root button:not(.sac-primary):hover:not(:disabled) {
+  background:#394759;
+  border-color:#8aaee4;
+}
+:root[data-theme="dark"] .sac-root .sac-sidebar nav button:not(.sac-primary) {
+  background:transparent;color:#d5e1f1;border-color:transparent;
+}
+:root[data-theme="dark"] .sac-root .sac-sidebar nav button.active:not(.sac-primary) {
+  color:#eaf3ff;background:#446da04d;border-color:#719dd166;
+}
+:root[data-theme="dark"] .sac-root :is(.sac-period,.sac-issue-date,.sac-empty) {
+  background:#252a34;border-color:var(--sac-line);color:var(--sac-muted);
+}
+:root[data-theme="dark"] .sac-root th {
+  background:#2a303c;color:#cbd9eb;border-color:var(--sac-line);
+}
+:root[data-theme="dark"] .sac-root td {color:var(--sac-text);border-color:var(--sac-line);}
+:root[data-theme="dark"] .sac-root tbody tr:hover {background:#344155;}
+:root[data-theme="dark"] .sac-root .sac-pill {background:#333c4c;color:#e9f2ff;}
+:root[data-theme="dark"] .sac-root .sac-pill.issued {background:#204a39;color:#b0f0cf;}
+:root[data-theme="dark"] .sac-root .sac-pill.cancelled,
+:root[data-theme="dark"] .sac-root .sac-pill.reversed {background:#532d31;color:#ffd0cf;}
+
+/* Older embedded finance workspace uses accw components, not sac components.
+   Its document and permissions stay intact; only the appearance is shared. */
+.accw-root {
+  --accw-accent:#568bdc;
+  font-family:var(--madar-ui-font,"Estedad Variable",Vazirmatn,Tahoma,sans-serif);
+}
+.accw-root :is(button,input,select,textarea):focus-visible {
+  outline:3px solid #85b6fa;
+  outline-offset:2px;
+}
+
+/* All accounting tabs share the ribbon, regardless of which business panel
+   is selected. The older teal interface is translated to Madar's blue. */
+.sac-root > .sac-ribbon-shell {
+  background:#f8fafd;
+  color:#263a55;
+  border-color:#d4ddea;
+  box-shadow:0 2px 10px #18243a12;
+}
+.sac-root .sac-ribbon-titlebar {background:#1c2636;color:#eef4fe;}
+.sac-root .sac-ribbon-app-icon {
+  background:#2b4463;color:#c4dcff;
+  box-shadow:none;
+}
+.sac-root .sac-ribbon-tabs,
+.sac-root .sac-ribbon-tools {background:#f5f7fb;border-color:#d5ddeb;}
+.sac-root .sac-ribbon-tabs button.active {
+  background:#fff;color:#356cb3;
+  border-color:#b6c9e5;border-bottom-color:#fff;
+}
+.sac-root > .sac-ribbon-shell .sac-ribbon-tabs button.active {
+  background:#e9f1fc;color:#315f9e;
+  border-color:#abc2e5;border-bottom-color:#e9f1fc;
+}
+.sac-root .sac-ribbon-tools button.selected {
+  background:#477bc6;color:#fff;border-color:#477bc6;
+}
+.sac-root > .sac-ribbon-shell .sac-ribbon-quick button.sac-ribbon-back {
+  background:#386bab;color:#fff;border-color:#5383c3;
+}
+.sac-root > .sac-ribbon-shell .sac-ribbon-tools button:disabled {
+  opacity:.82;color:#5a6d85;background:#e9eef6;border-color:#d0dae9;
+}
+.sac-root .sac-workflow-nav {
+  background:#f9fbff;border-color:#d4ddea;color:#455e7c;box-shadow:none;
+}
+.sac-root .sac-disclosure {
+  background:#f9fbfe;border-color:#d4ddea;
+}
+.sac-root .sac-disclosure>summary {color:#3568a4;font-size:13px;}
+.sac-root .sac-disclosure[open]>summary {
+  background:#eaf1fc;border-color:#d4ddea;
+}
+.sac-root .sac-invoice-list-help {
+  background:#eaf1fa;border-inline-start:3px solid #568bdc;
+  color:#395879;
+}
+.sac-root .mdash {
+  --md-text:var(--sac-text);
+  --md-muted:var(--sac-muted);
+  --md-border:var(--sac-line);
+  --md-teal:#568bdc;
+  color:var(--sac-text);
+}
+.sac-root .mdash-head h2,.sac-root .mdash-kpi-value {color:var(--sac-text);}
+.sac-root .mdash :is(.mdash-eyebrow,.mdash-caption>svg) {color:#477bc6;}
+.sac-root .mdash :is(.mdash-kpi-title,.mdash-kpi-desc,.mdash-caption,.mdash-head p) {
+  color:var(--sac-muted);
+  font-size:12px;
+}
+.sac-root .mdash .mdash-kpi {
+  background:var(--sac-paper);
+  border-color:var(--sac-line);
+  box-shadow:none;
+}
+.sac-root .mdash .mdash-kpi:hover {transform:none;box-shadow:0 3px 12px #14213b16;}
+.sac-root .mdash .mdash-kpi-icon {
+  background:#7aaef01b;
+  color:#477bc6;
+}
+.sac-root .mdash .mdash-chart-card {
+  background:var(--sac-paper);
+  color:var(--sac-text);
+  border-color:var(--sac-line);
+  box-shadow:none;
+}
+:root[data-theme="dark"] .sac-root > .sac-ribbon-shell {
+  background:#20242e;color:#e9f1fd;
+  border-color:#ffffff2c;
+  box-shadow:0 3px 12px #0003;
+}
+:root[data-theme="dark"] .sac-root .sac-ribbon-titlebar {background:#191d26;}
+:root[data-theme="dark"] .sac-root .sac-ribbon-tabs,
+:root[data-theme="dark"] .sac-root .sac-ribbon-tools {
+  background:#242a35;border-color:#ffffff2c;
+}
+:root[data-theme="dark"] .sac-root .sac-ribbon-tabs button.active {
+  background:#343f52;color:#f0f5ff;border-color:#6985af;
+}
+:root[data-theme="dark"] .sac-root > .sac-ribbon-shell .sac-ribbon-tabs button.active {
+  background:#34445c;color:#eaf3ff;border-color:#7298ce;
+}
+:root[data-theme="dark"] .sac-root .sac-ribbon-tools button.selected {
+  background:#7aaef0;color:#14243b;border-color:#7aaef0;
+}
+:root[data-theme="dark"] .sac-root > .sac-ribbon-shell .sac-ribbon-quick button.sac-ribbon-back {
+  background:#315788;color:#eaf3ff;border-color:#7198c9;
+}
+:root[data-theme="dark"] .sac-root > .sac-ribbon-shell .sac-ribbon-tools button:disabled {
+  background:#303847;color:#b9c8da;border-color:#53647e;opacity:.7;
+}
+:root[data-theme="dark"] .sac-root :is(.sac-workflow-nav,.sac-disclosure) {
+  background:#252b36;border-color:#ffffff2c;color:#d6e3f5;
+}
+:root[data-theme="dark"] .sac-root .sac-disclosure>summary {
+  color:#c1d9ff;
+}
+:root[data-theme="dark"] .sac-root .sac-disclosure[open]>summary {
+  background:#323e52;border-color:#ffffff2c;
+}
+:root[data-theme="dark"] .sac-root .sac-invoice-list-help {
+  background:#29354a;color:#d5e7ff;border-color:#7aaef0;
+}
+:root[data-theme="dark"] .sac-root .mdash :is(.mdash-head h2,.mdash-kpi-value) {
+  color:#f2f6ff;
+}
+:root[data-theme="dark"] .sac-root .mdash :is(.mdash-kpi,.mdash-chart-card) {
+  background:#222833;color:#eaf0fa;border-color:#ffffff2c;
+}
+:root[data-theme="dark"] .sac-root .mdash :is(.mdash-segments,.mdash-custom-range) {
+  background:#222833;color:#eaf0fa;border-color:#ffffff2c;
+}
+.sac-root .mdash :is(button,input,select):focus-visible {
+  outline:3px solid #85b6fa;
+  outline-offset:2px;
+}
+@media(max-width:850px) {
+  .sac-root .sac-sidebar nav button {font-size:12px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .sac-root button {transition:none;}
+}
+
+/* Dark accounting forms used to retain light panels with light inherited ink.
+   Keep ledger status colours semantic and give each editable surface a readable pair. */
+:root[data-theme="dark"] .sac-root :is(
+  .sac-document-detail,.sac-document-info>div,.sac-chart-group,.sac-chart-sub,
+  .sac-inline-info,.sac-live-total,.sac-invoice-summary,.sac-catalog-search,
+  .sac-template-library,.sac-invoice-columns,.sac-invoice-list-toolbar,
+  .sac-invoice-row-menu-items,.sac-invoice-addline,.sac-entry-template-bar,
+  .sac-invoice-editor .sac-grid,.sac-invoice-editor .sac-invoice-line
+){background:#262c38;color:#e8f0fb;border-color:#65738b;}
+:root[data-theme="dark"] .sac-root :is(
+  .sac-document-info dt,.sac-catalog-search small,.sac-invoice-shortcuts,
+  .sac-invoice-summary-note,.sac-invoice-list-search,.sac-entry-template-bar>small,
+  .sac-row-advanced>summary,.sac-invoice-columns,.sac-invoice-total-caption
+){color:#c3d3e8;}
+:root[data-theme="dark"] .sac-root .sac-invoice-editor .sac-invoice-line:nth-of-type(even){
+  background:#2b3341;
+}
+:root[data-theme="dark"] .sac-root .sac-invoice-editor .sac-invoice-line:focus-within{
+  background:#324459;outline-color:#8ab8f5;
+}
+:root[data-theme="dark"] .sac-root :is(.sac-document-detail-header h3,.sac-document-totals strong){
+  color:#f2f6ff;
+}
+:root[data-theme="dark"] .sac-root :is(.sac-invoice-line-total,.sac-live-total strong){
+  color:#a8efd8;
+}
+:root[data-theme="dark"] .sac-root .sac-invoice-editor .sac-live-total>strong{
+  background:#243d39;color:#c5f5e7;
+}
+:root[data-theme="dark"] .sac-root .sac-invoice-summary-heading>strong{
+  background:#28453e;color:#cbf5e9;
+}
+:root[data-theme="dark"] .sac-root .sac-audit-notice{
+  background:#443629;color:#ffe5bc;border:1px solid #aa8e64;
+}
+:root[data-theme="dark"] .sac-root .sac-invoice-row-menu summary{
+  background:#2c3442;color:#edf4ff;border-color:#65738b;
+}
+:root[data-theme="dark"] .sac-root .sac-money-debit{color:#ffb6c2;}
+:root[data-theme="dark"] .sac-root .sac-money-credit{color:#8ce2ba;}
+:root[data-theme="dark"] .sac-root .sac-money-neutral{color:#d4dfed;}
+:root[data-theme="dark"] .sac-root .sac-table-tools>span{color:#c3d3e8;}
+:root[data-theme="dark"] .sac-root .sac-vtr-status.posted{color:#9eefd0;}
+:root[data-theme="dark"] .sac-root .sac-vtr-status.reversed{color:#f7d19a;}
+:root[data-theme="dark"] .sac-root .madar-release-settings :is(h3,p){color:var(--sac-text);}
+:root[data-theme="dark"] .sac-root .sac-invoice-status-filters button[aria-pressed="true"]{
+  background:#7aaef0;color:#10243b;border-color:#a9cdfc;
+}

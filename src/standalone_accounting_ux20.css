@@ -1,0 +1,219 @@
+.sac-root{font-size:14px}
+.sac-root input,.sac-root select{font-size:14px;min-height:43px}
+.sac-sidebar nav button{font-size:14px}
+.sac-root table{font-size:13px}
+.sac-root th{font-size:12px}
+.sac-root td small,.sac-root .sac-metric small{font-size:12px;color:#586d75}
+.sac-panel-title p,.sac-header p{font-size:13px;color:#536d76}
+.sac-id-input{display:flex;gap:6px;align-items:stretch}
+.sac-id-input input{flex:1;min-width:0}
+.sac-id-input button{white-space:nowrap}
+.sac-table-container{width:100%;min-width:0}
+.sac-table-tools{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:8px 0 12px}
+.sac-table-tools label{display:flex;align-items:center;gap:10px;flex:1;max-width:540px;font-size:13px}
+.sac-table-tools input{max-width:400px}
+.sac-table-sort{border:0!important;background:transparent!important;color:inherit!important;min-height:0!important;padding:4px!important;font-weight:700;text-align:right}
+.sac-table-pagination{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px}
+.sac-root .sac-money-debit{color:#bd263b;font-weight:750;direction:ltr;unicode-bidi:isolate}
+.sac-root .sac-money-credit{color:#147d50;font-weight:750;direction:ltr;unicode-bidi:isolate}
+.sac-root .sac-money-neutral{color:#52616a;direction:ltr;unicode-bidi:isolate}
+.sac-root .sac-workflow-actions button{min-height:44px;min-width:44px}
+/* Rendered invoice field labels and inline Jalali hints must pass 4.5:1 in both themes. */
+:root[data-theme="light"] .sac-root .sac-invoice-editor .sac-field>span,
+:root[data-theme="light"] .sac-root .madar-jalali-field small{color:#33485c!important}
+:root[data-theme="dark"] .sac-root .sac-invoice-editor .sac-field>span,
+:root[data-theme="dark"] .sac-root .madar-jalali-field small{color:#e1edf8!important}
+.sac-root .sac-money-debit::before{content:'●';font-size:8px;margin-inline-end:5px}
+.sac-root .sac-money-credit::before{content:'●';font-size:8px;margin-inline-end:5px}
+.sac-root .sac-table-pagination{flex-wrap:wrap}
+.sac-root .sac-table-tools>span{white-space:nowrap;font-weight:650;color:#425a64}
+.sac-document-detail{border:1px solid #b9d8d1;background:#fbfefd;border-radius:12px;padding:18px;margin-top:16px}
+.sac-document-detail-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.sac-document-detail-header h3{font-size:17px;margin:0}
+.sac-document-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:0 0 20px}
+.sac-document-info>div{padding:12px;background:#f0f6f6;border-radius:8px}
+.sac-document-info dt{font-size:12px;color:#536c75}
+.sac-document-info dd{margin:6px 0 0;font-weight:650;overflow-wrap:anywhere}
+.sac-document-totals{display:flex;flex-wrap:wrap;gap:16px;padding:16px 0}
+.sac-document-totals strong{font-size:16px}
+.sac-audit-notice{width:100%;color:#885a25;background:#fff7e9;padding:12px;border-radius:9px;line-height:2}
+.sac-audit-notice button{margin-inline-start:10px}
+.sac-chart-group,.sac-chart-sub{padding:9px 12px;border:1px solid #dbe6e7;margin:8px 0;border-radius:9px}
+.sac-chart-sub{margin-right:14px}
+.sac-chart-group summary,.sac-chart-sub summary{cursor:pointer;font-weight:700}
+.sac-chart-account{display:block;width:100%;text-align:right!important;margin-top:6px}
+.sac-inline-info{padding:9px 14px;background:#e9f6f1;margin-bottom:10px;border-radius:8px}
+.sac-inline-info button{margin-right:14px}
+.sac-live-total{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:10px;padding:15px;background:#e8f7f1;border-radius:10px;margin-top:12px}
+.sac-live-total span,.sac-live-total strong{display:block;padding:5px 12px}
+.sac-live-total strong{font-size:18px;color:#124b49}
+.sac-invoice-row-heading,.sac-invoice-total-caption{display:none}
+.sac-root :is(.sac-body,.sac-table-wrap,.sac-vtr-table-scroll,.sac-ribbon-tabs,.sac-ribbon-tools,.sac-sidebar nav):focus-visible{
+  outline:3px solid #85b6fa;outline-offset:-3px;border-radius:5px;
+}
+.sac-root .madar-release-settings{max-width:760px;color:var(--sac-text)}
+.sac-root .madar-release-settings h3{display:flex;align-items:center;gap:8px;font-size:16px}
+.sac-root .madar-release-settings p{line-height:1.85;font-size:13px}
+.sac-root .madar-release-settings .theme-picks{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0}
+.sac-root .madar-release-settings .theme-picks button{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:9px 13px}
+.sac-root .sac-ribbon-jump{display:flex;align-items:center;position:relative;
+  gap:6px;min-width:180px;max-width:230px;flex:1;color:#b8d5ff}
+.sac-root .sac-ribbon-jump input{height:36px;min-height:36px;min-width:0;width:100%;
+  border:1px solid #657e9e;border-radius:9px;background:#f8fbff;color:#243149;
+  padding:6px 10px;font-size:12px}
+.sac-root .sac-ribbon-jump input::placeholder{color:#526781}
+.sac-root .sac-ribbon-jump-results{position:absolute;z-index:40;top:calc(100% + 5px);
+  inset-inline:0;min-width:220px;max-height:310px;overflow-y:auto;padding:6px;
+  background:#f8fbff;border:1px solid #aebfd5;box-shadow:0 10px 24px #0d1b30a6;
+  border-radius:11px;color:#273c54}
+.sac-root .sac-ribbon-jump-results button{display:block!important;width:100%;text-align:right;
+  border:0!important;border-radius:6px!important;background:transparent!important;
+  color:#273c54!important;white-space:normal!important;padding:9px 10px!important;
+  min-height:38px}
+.sac-root .sac-ribbon-jump-results button:is(:hover,.active,:focus-visible){
+  background:#dceafb!important;color:#173e69!important}
+.sac-root .sac-ribbon-jump-results>span:not(.sac-ribbon-jump-announcement){
+  display:block;padding:10px;font-size:12px}
+.sac-ribbon-jump-announcement{position:absolute;width:1px;height:1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:root[data-theme="dark"] .sac-root .sac-ribbon-jump input{
+  background:#212b39;color:#f0f6ff;border-color:#8396ad}
+:root[data-theme="dark"] .sac-root .sac-ribbon-jump input::placeholder{color:#c1d2e8}
+:root[data-theme="dark"] .sac-root .sac-ribbon-jump-results{
+  background:#222b39;color:#f0f6ff;border-color:#8396ad}
+:root[data-theme="dark"] .sac-root .sac-ribbon-jump-results button{
+  color:#f0f6ff!important}
+:root[data-theme="dark"] .sac-root .sac-ribbon-jump-results button:is(:hover,.active,:focus-visible){
+  background:#344c6d!important;color:#f4f8ff!important}
+@media(max-width:720px){.sac-id-input,.sac-table-tools{flex-direction:column;align-items:stretch}.sac-live-total{gap:3px}}
+@media(max-width:560px){.sac-root .sac-ribbon-jump{max-width:none;min-width:100%;order:-1}}
+@media(max-width:560px){
+  .sac-invoice-work-mode .sac-invoice-editor .sac-invoice-line{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 9px;
+    padding:12px;margin-block:10px;border-radius:12px;
+  }
+  .sac-invoice-row-heading{display:block;grid-column:1/-1;font-size:13px;font-weight:750;
+    padding-bottom:5px;border-bottom:1px solid var(--sac-line)}
+  .sac-invoice-work-mode .sac-invoice-editor .sac-invoice-line>.sac-field:first-of-type{grid-column:1/-1}
+  .sac-invoice-work-mode .sac-invoice-editor .sac-invoice-line input,
+  .sac-invoice-work-mode .sac-invoice-editor .sac-invoice-line select{font-size:16px;min-height:44px}
+  .sac-invoice-work-mode .sac-invoice-editor .sac-invoice-line .sac-invoice-line-total{
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+    gap:4px;min-height:44px;white-space:normal;overflow-wrap:anywhere;
+  }
+  .sac-invoice-total-caption{display:block;color:var(--sac-muted);font-size:11px;font-weight:600}
+  .sac-invoice-work-mode .sac-invoice-line-actions{align-items:center;justify-content:flex-end}
+  .sac-invoice-work-mode .sac-invoice-line-actions button{min-height:44px;min-width:44px}
+  .sac-invoice-work-mode .sac-invoice-summary{position:static}
+  .sac-invoice-work-mode .sac-invoice-commandbar-actions button{min-height:44px}
+}
+@media print{.sac-sidebar,.sac-header-actions,.sac-form-actions,.sac-table-tools,.sac-table-pagination{display:none!important}.sac-root,.sac-body{height:auto;overflow:visible;background:#fff}.sac-main{width:100%}.sac-panel{box-shadow:none;break-inside:avoid}}
+
+/* A single guided invoice flow; the existing business commands remain intact. */
+.sac-wizard-heading{display:grid;gap:10px;margin:0 0 12px;padding:13px 15px;
+  border-radius:14px;border:1px solid var(--sac-line);background:var(--sac-paper)}
+.sac-wizard-heading-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sac-wizard-heading-top>div:first-child{display:grid;gap:4px}
+.sac-wizard-heading-top strong{font-size:15px;color:var(--sac-text)}
+.sac-wizard-heading-top span{font-size:12px;color:var(--sac-muted)}
+.sac-wizard-view{display:flex;gap:4px;padding:4px;border:1px solid var(--sac-line);border-radius:11px}
+.sac-root .sac-wizard-view button{border-radius:8px;border:1px solid transparent;
+  background:transparent;color:var(--sac-text);font-size:12px;padding:7px 10px}
+.sac-root .sac-wizard-view button[aria-pressed=true]{background:#315f9e;color:#fff;border-color:#315f9e}
+.sac-wizard-step-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.sac-root .sac-wizard-step-nav button{display:flex;align-items:center;justify-content:center;gap:8px;
+  min-width:0;text-align:center;border:1px solid var(--sac-line);border-radius:10px;
+  background:transparent;color:var(--sac-text);padding:7px 5px;font-size:12px}
+.sac-root .sac-wizard-step-nav button.active{border-color:#477bc6;background:#e8f0fc;color:#184e91}
+.sac-wizard-step-nav button b{display:grid;place-items:center;flex:none;
+  width:25px;height:25px;border-radius:50%;background:#477bc627;font-size:12px}
+.sac-wizard-step-nav button span{line-height:1.5}
+.sac-wizard-step-hint{margin:0;color:var(--sac-muted);line-height:1.7;font-size:12px}
+.sac-wizard-section-title{font-size:15px;color:var(--sac-text);margin:5px 0 12px}
+.sac-wizard-note,.sac-wizard-review-status{font-size:12px;line-height:1.9;color:var(--sac-muted);margin:8px 0 12px}
+.sac-wizard-field-error,.sac-wizard-alert{color:#8b2631;background:#fff0f0;border:1px solid #efa3aa;
+  padding:10px 13px;border-radius:9px;line-height:1.8;font-size:12px}
+.sac-wizard-field-error{grid-column:1/-1}
+.sac-wizard-impact-warning{margin:8px 0;padding:12px;
+  background:#fff3d9;border:1px solid #dbaf57;border-radius:9px;
+  color:#684813;font-size:12px;line-height:1.9}
+.sac-invoice-wizard-guided .sac-invoice-editor [data-invoice-step][hidden]{display:none!important}
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-invoice-canvas{display:block;max-width:100%}
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-invoice-summary{position:static;margin:0;box-shadow:none}
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-invoice-lines{width:100%}
+.sac-invoice-wizard-guided .sac-invoice-editor :is(.sac-invoice-commandbar,.sac-form-actions,.sac-summary-save){display:none!important}
+.sac-root.sac-invoice-wizard-guided .sac-invoice-editor :is(button,input,select,textarea,summary){
+  min-height:44px!important}
+.sac-root.sac-invoice-wizard-guided .sac-invoice-editor button{min-width:44px!important}
+.sac-invoice-wizard-guided .sac-invoice-editor summary{display:flex;align-items:center}
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-wizard-tax,
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-wizard-due{padding:13px;
+  border:1px solid var(--sac-line);border-radius:12px;background:var(--sac-paper)}
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-wizard-tax .sac-grid,
+.sac-invoice-wizard-guided .sac-invoice-editor .sac-wizard-due .sac-grid{margin:0}
+.sac-wizard-sticky-footer{position:sticky;bottom:0;z-index:15;display:grid;
+  grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;
+  background:var(--sac-paper);color:var(--sac-text);border:1px solid var(--sac-line);
+  border-radius:12px;padding:10px 13px;margin:14px 0 0;
+  box-shadow:0 -9px 24px #101f3842}
+.sac-wizard-sticky-amount{display:grid;gap:1px;min-width:0;position:relative;
+  z-index:2;isolation:isolate;overflow:hidden;align-self:stretch;
+  align-content:center;padding:5px 9px;background:#fff;border-radius:8px}
+.sac-wizard-sticky-amount>span,.sac-wizard-sticky-amount>small{color:#33485c}
+:root[data-theme="dark"] .sac-wizard-sticky-amount{background:#1d2532}
+:root[data-theme="dark"] .sac-wizard-sticky-amount>span,
+:root[data-theme="dark"] .sac-wizard-sticky-amount>small{color:#e1edf8}
+.sac-wizard-sticky-amount>span,.sac-wizard-sticky-amount>small{color:var(--sac-muted);font-size:11px}
+.sac-root.sac-invoice-wizard-guided .sac-wizard-heading-top>div:first-child>span,
+.sac-root.sac-invoice-wizard-guided .sac-wizard-step-hint,
+.sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>small{
+  color:var(--sac-muted)}
+/* Light-paper wizard captions must remain legible at normal-text 4.5:1. */
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-heading-top>div:first-child>span,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-step-hint,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>small,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-note,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-review-status,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-invoice-summary-note{
+  color:#33485c}
+.sac-wizard-sticky-amount strong{font-size:17px;line-height:1.4;color:var(--sac-text)}
+.sac-wizard-sticky-actions{display:flex;gap:8px;min-width:0;align-items:center;
+  justify-content:flex-end;flex-wrap:wrap;position:relative;z-index:1}
+.sac-root .sac-wizard-sticky-actions button{border:1px solid var(--sac-line);
+  border-radius:10px;padding:10px 14px;font-weight:750}
+.sac-root .sac-wizard-sticky-actions button.sac-primary{color:#fff;background:#315f9e;border-color:#315f9e}
+.sac-root .sac-wizard-sticky-actions button:focus-visible,
+.sac-root .sac-wizard-step-nav button:focus-visible{outline:3px solid #85b6fa;outline-offset:2px}
+.sac-invoice-next-action{display:block;font-size:11px;line-height:1.8;color:var(--sac-muted);margin-top:6px}
+@media(max-width:680px){
+  .sac-invoice-wizard-guided .sac-workflow-nav{display:none}
+  .sac-invoice-wizard-guided .sac-ribbon-shell+.sac-sidebar+.sac-main .sac-body{padding:8px 9px 20px}
+  .sac-invoice-wizard-guided .sac-panel-invoice-compose{padding:8px 9px 14px}
+  .sac-wizard-heading{padding:9px;gap:8px;margin-bottom:8px}
+  .sac-wizard-heading-top{align-items:stretch}
+  .sac-wizard-view{width:100%}
+  .sac-wizard-view button{flex:1}
+  .sac-root .sac-wizard-step-nav button{flex-direction:column;gap:3px;min-height:62px;
+    padding:4px 1px;font-size:10px;line-height:1.45}
+  .sac-wizard-step-nav button b{width:23px;height:23px}
+  .sac-wizard-sticky-footer{border-radius:10px;padding:8px 10px;gap:8px;
+    margin-bottom:0;box-shadow:0 -5px 18px #101f3849;
+    grid-template-columns:minmax(0,1fr)}
+  .sac-wizard-sticky-amount{min-width:0;width:100%}
+  .sac-wizard-sticky-amount strong{font-size:15px;overflow-wrap:anywhere}
+  .sac-wizard-sticky-actions{width:100%;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+  .sac-wizard-sticky-actions button{white-space:normal;max-width:none;min-width:0}
+  .sac-invoice-wizard-guided .sac-invoice-summary{padding:12px}
+}
+/* Explicit opaque backing prevents a mobile blue CTA from bleeding through a
+   visually overlapping sticky amount caption while preserving normal contrast. */
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>span,
+:root[data-theme="light"] .sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>small{color:#33485c}
+:root[data-theme="dark"] .sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>span,
+:root[data-theme="dark"] .sac-root.sac-invoice-wizard-guided .sac-wizard-sticky-amount>small{color:#e1edf8}
+/* The document-level floating-field portal normally paints above every form
+   (z-index:999). In a guided invoice this put the focused line-item caption
+   over the sticky total and falsely obscured the total's actual text. Keep
+   captions above ordinary fields but below the sticky financial action bar. */
+body:has(.sac-root.sac-invoice-wizard-guided) .madar-fl-layer{z-index:10}

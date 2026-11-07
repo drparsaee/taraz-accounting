@@ -1,0 +1,113 @@
+/* Private Parsian migration surfaces: ensure real dark theme, not white cards. */
+:root[data-theme="dark"] .sac-root {
+  --par-bg:#17212e;
+  --par-card:#202d3b;
+  --par-card-alt:#263749;
+  --par-border:#4d6279;
+  --par-text:#f0f6ff;
+  --par-muted:#c5d4e5;
+  --par-link:#a7d7ff;
+  color-scheme:dark;
+}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-root,.ppi-root,.ppc-root,.ppe-root,.ppbm-root,.pra-root,
+  .ppd-skeleton,.ppd-error
+){
+  background:var(--par-bg);
+  border-color:var(--par-border);
+  color:var(--par-text);
+  box-shadow:none;
+}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-head h2,.ppd-numbers strong,.ppd-value,.ppd-bank strong,.ppd-subhead,
+  .ppi-heading h3,.ppc-head h2,.ppbm-head h3,.ppe-head h3,.pra-head h3,
+  .ppc-pair dd,.ppe-detail dd,.pra-record dd
+){color:var(--par-text)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-head p,.ppd-label,.ppd-unit,.ppd-hint,.ppd-footer p,.ppd-subhead span,
+  .ppd-bank small,.ppd-numbers,.ppd-context-note,.ppi-heading p,.ppi-subtle,
+  .ppc-head p,.ppc-pair dt,.ppbm-head p,.ppbm-head>span,.ppbm-note,
+  .ppe-head span,.ppe-notice,.ppe-count,.ppe-detail dt,.pra-head p,
+  .pra-source,.pra-record dt,.pra-records>p,.pra-table-list small
+){color:var(--par-muted)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-card,.ppd-bank,.ppc-pair,.ppbm-balances article,
+  .ppe-detail dl>div,.pra-record,.pra-tables
+){background:var(--par-card);color:var(--par-text);border-color:var(--par-border)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-subledger,.ppd-year-control,.ppd-numbers,.ppi-table-wrap,
+  .ppi-ledger-scroll,.ppbm-scroll,.ppe-scroll,.pra-record dl
+){border-color:var(--par-border)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppi-note,.ppi-mini,.ppc-note,.ppbm-notice,.pra-table-list button.selected,
+  .ppd-context-note,.ppe-detail td,.ppi-table .ppi-detail td,.ppi-history,
+  .ppe-detail dl,.ppi-subtable,.ppi-ledger-scroll
+){background:var(--par-card-alt);color:var(--par-text);border-color:var(--par-border)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppe-table th,.ppbm-scroll th,.ppi-table thead th
+){background:#304258;color:#f0f6ff;border-color:var(--par-border)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppe-table td,.ppbm-scroll td,.ppi-table td,.ppi-table th,
+  .pra-record dl,.pra-record summary,.pra-records
+){background-color:transparent;color:var(--par-text);border-color:var(--par-border)}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-year-control select,.ppi-controls input,.ppi-controls select,
+  .ppe-filters input,.ppe-filters select,.ppbm-actions input,.ppbm-actions select,
+  .pra-root input,.pra-root select
+){background:#253548;color:var(--par-text);border:1px solid #68839c;accent-color:#88baff}
+:root[data-theme="dark"] .sac-root :is(
+  .ppi-table button,.ppi-pagination button,.ppe-table button,.ppe-pages button,
+  .ppbm-pages button,.pra-pagination button,.pra-table-list button
+){background:#273950;color:var(--par-link);border-color:#607b94}
+:root[data-theme="dark"] .sac-root .pra-table-list button.selected,
+:root[data-theme="dark"] .sac-root :is(
+  .ppi-table button:hover,.ppi-pagination button:hover,.ppe-table button:hover,
+  .pra-table-list button:hover
+){background:#334f63;color:#fff}
+:root[data-theme="dark"] .sac-root .ppi-counter,
+:root[data-theme="dark"] .sac-root .ppd-state,
+:root[data-theme="dark"] .sac-root .ppc-year{
+  background:#285c51;color:#e4fff6;border:1px solid #488e7d;
+}
+:root[data-theme="dark"] .sac-root .ppi-good{
+  background:#285842;color:#b8f9d9;
+}
+:root[data-theme="dark"] .sac-root .ppi-review{
+  background:#655026;color:#ffe7b0;
+}
+:root[data-theme="dark"] .sac-root .ppc-name dd,
+:root[data-theme="dark"] .sac-root .ppe-error,
+:root[data-theme="dark"] .sac-root .ppd-error{
+  color:#ffcda7;
+}
+:root[data-theme="dark"] .sac-root .ppbm-balances article span{
+  color:#a7efd5;
+}
+:root[data-theme="dark"] .sac-root :is(
+  .ppd-root,.ppi-root,.ppc-root,.ppe-root,.ppbm-root,.pra-root
+) :is(button,input,select,summary):focus-visible{
+  outline:3px solid #9dd0ff;outline-offset:2px;
+}
+.ppd-year-control{display:flex;gap:9px;align-items:center;min-height:42px;padding:6px 11px;
+  border:1px solid #cbdad5;border-radius:11px;flex:0 0 auto}
+.ppd-year-control label{font-size:12px;font-weight:700}
+.ppd-year-control select{font:inherit;font-size:13px;min-height:36px;min-width:105px;
+  padding:5px 10px;border:1px solid #94b4aa;border-radius:8px;background:#fff;color:#203b35}
+.ppd-subledger>p{font-size:12px;line-height:1.9;margin:0;color:inherit}
+@media(max-width:650px){.ppd-year-control{width:100%;justify-content:space-between}}
+
+
+/* Sticky fiscal tables must stay opaque when dark; transparent header cells
+   otherwise expose scrolled rows beneath their labels. */
+:root[data-theme="dark"] .sac-root .ppi-table thead th,
+:root[data-theme="dark"] .sac-root .ppe-table thead th,
+:root[data-theme="dark"] .sac-root .ppbm-scroll thead th{
+  background-color:#304258;color:#f0f6ff;border-color:#5b738c;
+}
+:root[data-theme="dark"] .sac-root .ppi-table .ppi-detail>td,
+:root[data-theme="dark"] .sac-root .ppe-table .ppe-detail>td{
+  background-color:#263749;color:#f0f6ff;
+}
+:root[data-theme="dark"] .sac-root .ppd-year-control{
+  background:#233447;border-color:#607b94;color:#f0f6ff;
+}

@@ -1,0 +1,120 @@
+/* Compact task-first shell. Advanced Vitrea ribbon remains available. */
+.sac-root>.sac-ux-shell{position:relative;z-index:25;isolation:isolate}
+.sac-root>.sac-ux-shell .sac-ribbon-titlebar{min-height:54px;padding:7px 16px}
+.sac-root>.sac-ux-shell .sac-ribbon-identity{flex:0 1 auto}
+.sac-root>.sac-ux-shell .sac-ribbon-identity strong{font-size:14px}
+.sac-root>.sac-ux-shell .sac-ribbon-quick{gap:7px;flex:0 1 auto;min-width:0}
+.sac-root>.sac-ux-shell .sac-ribbon-quick button{display:inline-flex;align-items:center;
+  justify-content:center;min-height:44px;min-width:44px;gap:6px;border-radius:8px;font-size:12px}
+.sac-root>.sac-ux-shell .sac-nav-search-trigger{background:#314960;color:#f2f7ff;
+  border:1px solid #6d88a8;min-width:116px}
+.sac-root>.sac-ux-shell .sac-nav-search-trigger kbd{font:10px/1.4 inherit;
+  border:1px solid #86a1bc;opacity:.9;border-radius:4px;padding:1px 4px}
+.sac-root>.sac-ux-shell .sac-nav-mode{display:flex;gap:2px;padding:3px;border:1px solid #6b809b;
+  border-radius:9px;background:#172435}
+.sac-root>.sac-ux-shell .sac-nav-mode button{border:0;background:transparent;color:#d8e5f6;
+  padding:8px 10px;min-height:44px;min-width:44px;font-size:11px}
+.sac-root>.sac-ux-shell .sac-nav-mode button[aria-pressed=true]{background:#e6effd;
+  color:#1c426c;font-weight:750}
+.sac-root>.sac-ux-shell .sac-simple-nav{display:flex;align-items:center;
+  gap:5px;padding:7px 16px;background:#f5f7fb;border-top:1px solid #d6e0ec;
+  border-bottom:1px solid #d6e0ec;min-width:0}
+.sac-root>.sac-ux-shell .sac-simple-nav button{display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;min-height:44px;min-width:44px;padding:7px 12px;border-radius:9px;
+  background:transparent;color:#3d5673;border:1px solid transparent;
+  font-size:12px;font-weight:700;white-space:nowrap}
+.sac-root>.sac-ux-shell .sac-simple-nav button[aria-current=page]{
+  background:#deebfc;color:#24598f;border-color:#a3c1e7}
+.sac-root>.sac-ux-shell .sac-simple-nav button:hover:not(:disabled){
+  background:#e5edf7;border-color:#aec3db}
+.sac-root>.sac-ux-shell .sac-nav-more-trigger{margin-inline-start:auto}
+.sac-root>.sac-ux-shell .sac-nav-quick-actions{display:flex;gap:7px;align-items:center;
+  padding:7px 16px;background:#f9fbfe;border-top:1px solid #e0e7f0}
+.sac-root>.sac-ux-shell .sac-nav-quick-actions button{display:inline-flex;align-items:center;
+  gap:6px;min-height:44px;min-width:44px;padding:7px 11px;border:1px solid #bccde1;
+  border-radius:8px;background:#fff;color:#315981;font-weight:700;font-size:12px}
+.sac-root>.sac-ux-shell .sac-nav-quick-actions button:first-child{
+  background:#316db5;border-color:#316db5;color:#fff}
+.sac-root>.sac-ux-shell .sac-advanced-ribbon{min-width:0}
+.sac-root>.sac-ux-shell .sac-advanced-ribbon .sac-ribbon-tabs{
+  display:flex;gap:5px;align-items:center;overflow-x:auto;min-height:42px}
+.sac-root>.sac-ux-shell .sac-advanced-ribbon .sac-ribbon-tools{
+  min-height:47px;padding-block:6px}
+.sac-root>.sac-ux-shell .sac-nav-more-advanced button.sac-nav-more-trigger{margin-inline:4px;
+  min-height:44px;min-width:44px;background:#eff4fc;color:#29557d;border:1px solid #c5d6e8}
+.sac-root>.sac-ux-advanced .sac-simple-navigation{display:none}
+.sac-root>.sac-ux-shell .sac-nav-more-menu{position:absolute;top:100%;inset-inline-end:15px;
+  z-index:70;width:min(550px,calc(100vw - 24px));max-height:min(65vh,580px);overflow-y:auto;
+  padding:14px;border:1px solid #aebfd5;border-radius:0 0 14px 14px;
+  background:#f9fbff;color:#243954;box-shadow:0 18px 32px #121e3299}
+.sac-root>.sac-ux-shell .sac-nav-more-heading{display:flex;align-items:baseline;
+  justify-content:space-between;gap:12px;padding:0 0 10px}
+.sac-root>.sac-ux-shell .sac-nav-more-heading strong{font-size:13px}
+.sac-root>.sac-ux-shell .sac-nav-more-heading span{font-size:11px;color:#667b93}
+.sac-root>.sac-ux-shell .sac-nav-more-menu nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sac-root>.sac-ux-shell .sac-nav-more-menu button{min-height:44px;min-width:44px;padding:8px 11px;border:1px solid #d2ddeb;
+  border-radius:8px;background:#fff;color:#344e6f;font-size:12px;text-align:right}
+.sac-root>.sac-ux-shell .sac-nav-more-menu button:is(:hover,[aria-current=page]){
+  background:#e5effc;color:#24598f;border-color:#b8cce5}
+.sac-root>.sac-ux-shell .sac-nav-more-actions{display:flex;flex-wrap:wrap;gap:7px;
+  margin-top:12px;padding-top:12px;border-top:1px solid #d6e1ee}
+.sac-root>.sac-ux-shell .sac-nav-more-actions button{background:#e9f1fb}
+.sac-root>.sac-ux-shell :is(button,input):focus-visible{outline:3px solid #85b6fa;outline-offset:2px}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-simple-nav,
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-quick-actions{
+  background:#232c3a;border-color:#526276}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-simple-nav button{color:#e8f1fd}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-simple-nav button[aria-current=page]{
+  background:#344d6e;color:#f4f8ff;border-color:#779dcc}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-quick-actions button{
+  background:#343f50;color:#f0f6ff;border-color:#687f99}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-quick-actions button:first-child{
+  background:#7aaef0;color:#11273c;border-color:#7aaef0}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-more-menu{
+  background:#252f40;color:#eff5ff;border-color:#70849f}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-more-heading span{color:#c2d3e8}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-more-menu button{
+  background:#303d51;color:#f0f7ff;border-color:#617992}
+:root[data-theme="dark"] .sac-root>.sac-ux-shell .sac-nav-more-menu button:is(:hover,[aria-current=page]){
+  background:#405777;color:#fff;border-color:#89a9d2}
+@media(max-width:1040px){
+  .sac-root>.sac-ux-shell .sac-ribbon-titlebar{gap:8px}
+  .sac-root>.sac-ux-shell .sac-ribbon-quick{flex-wrap:wrap;justify-content:flex-end}
+  .sac-root>.sac-ux-shell .sac-nav-search-trigger kbd{display:none}
+}
+@media(max-width:700px){
+  .sac-root>.sac-ux-shell .sac-ribbon-titlebar{flex-wrap:nowrap;padding:7px 10px;min-height:52px}
+  .sac-root>.sac-ux-shell .sac-ribbon-identity strong{font-size:12px;white-space:nowrap}
+  .sac-root>.sac-ux-shell .sac-ribbon-identity small,
+  .sac-root>.sac-ux-shell .sac-ribbon-user,
+  .sac-root>.sac-ux-shell .sac-ribbon-unit,
+  .sac-root>.sac-ux-shell .sac-ribbon-back{display:none!important}
+  .sac-root>.sac-ux-shell .sac-ribbon-quick{flex-wrap:nowrap;gap:5px;min-width:0}
+  .sac-root>.sac-ux-shell .sac-ribbon-quick .sac-nav-search-trigger{
+    min-width:44px;width:44px;padding:7px}
+  .sac-root>.sac-ux-shell .sac-nav-search-trigger span,
+  .sac-root>.sac-ux-shell .sac-nav-search-trigger kbd{display:none}
+  .sac-root>.sac-ux-shell .sac-nav-mode{gap:0;padding:0}
+  .sac-root>.sac-ux-shell .sac-nav-mode button{padding:5px 5px;font-size:10px;min-height:44px}
+  .sac-root>.sac-ux-shell .sac-ribbon-exit{min-width:44px;padding:7px!important}
+  .sac-root>.sac-ux-shell .sac-simple-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:2px;padding:5px 6px}
+  .sac-root>.sac-ux-shell .sac-simple-nav button{min-width:44px;padding:7px 2px;
+    font-size:11px;white-space:normal;line-height:1.25;flex-direction:column;gap:3px}
+  .sac-root>.sac-ux-shell .sac-simple-nav button:nth-child(4),
+  .sac-root>.sac-ux-shell .sac-simple-nav button:nth-child(5){display:none}
+  .sac-root>.sac-ux-shell .sac-nav-more-trigger{margin:0;min-width:0}
+  .sac-root>.sac-ux-shell .sac-nav-quick-actions{display:none}
+  .sac-root>.sac-ux-advanced .sac-simple-navigation{display:block}
+  .sac-root>.sac-ux-shell .sac-advanced-ribbon{display:none}
+  .sac-root>.sac-ux-shell .sac-nav-more-menu{inset-inline:6px;width:auto;
+    max-height:calc(100dvh - 145px);top:100%;padding:12px;border-radius:0 0 12px 12px}
+  .sac-root>.sac-ux-shell .sac-nav-more-menu nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sac-root>.sac-ux-shell .sac-nav-more-actions button{flex:1 1 40%}
+}
+@media(max-width:390px){
+  .sac-root>.sac-ux-shell .sac-ribbon-identity strong{font-size:11px}
+  .sac-root>.sac-ux-shell .sac-ribbon-titlebar{padding-inline:6px}
+  .sac-root>.sac-ux-shell .sac-ribbon-quick{gap:3px}
+  .sac-root>.sac-ux-shell .sac-nav-mode button{padding-inline:5px}
+}

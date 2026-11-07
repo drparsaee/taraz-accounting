@@ -1,0 +1,17 @@
+.sac-print-designer{display:grid;grid-template-columns:minmax(290px,.8fr) minmax(400px,1.2fr);gap:18px;align-items:start}
+.sac-print-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;background:#f7fbfa;border:1px solid #deebeb;border-radius:10px;padding:14px}
+.sac-print-controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#385d60}
+.sac-print-controls input,.sac-print-controls select{width:100%;min-height:35px;min-width:0}
+.sac-print-controls label:has(input[type=checkbox]){flex-direction:row;align-items:center}
+.sac-print-controls input[type=checkbox]{width:auto;min-height:auto}
+.sac-print-fields{display:grid;grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;border-top:1px solid #dbe8e7;padding-top:12px}
+.sac-print-fields>strong,.sac-print-field-list{grid-column:1/-1}
+.sac-print-field-list{display:flex;flex-wrap:wrap;gap:5px}
+.sac-print-field-list button{font-size:12px;border:1px solid #d2e1e0;background:white;padding:6px;border-radius:5px}
+.sac-print-field-list button.selected{border-color:#00a9bd;background:#ecfafb}
+.sac-print-canvas-shell{display:flex;align-items:center;flex-direction:column;gap:10px;position:sticky;top:85px}
+.sac-print-canvas-shell>div{align-self:stretch;display:flex;flex-direction:column;gap:4px}
+.sac-print-canvas-shell small{color:#536e72;font-size:12px}
+.sac-print-canvas-shell canvas{display:block;background:#fff;width:100%;max-width:590px;height:auto;box-shadow:0 6px 18px #20323926;border:1px solid #d1dedf;touch-action:none;cursor:move}
+.sac-print-error{color:#a32f29;font-size:12px}
+@media(max-width:1000px){.sac-print-designer{grid-template-columns:1fr}.sac-print-canvas-shell{position:static}}

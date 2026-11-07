@@ -1,0 +1,85 @@
+/* UX-03/04. Scoped to accounting action home; Vitrea variables own light/dark. */
+.sac-ah{--ah-link:#285786;color:var(--vtr-text);margin:0 0 18px;min-width:0}
+:root[data-theme="dark"] .sac-ah{--ah-link:#a7caff}
+.sac-ah *{box-sizing:border-box}
+.sac-ah-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
+.sac-ah-kicker{font-size:10px;letter-spacing:1px;color:var(--ah-link);font-weight:850;direction:ltr;display:block;text-align:right}
+.sac-ah-title h2{font-size:clamp(23px,2.3vw,30px);font-weight:850;line-height:1.35;margin:3px 0 5px}
+.sac-ah-title p{font-size:12px;color:var(--vtr-soft);line-height:1.75;margin:0}
+.sac-ah-customize{position:relative;z-index:3;flex:0 0 auto;border:1px solid var(--vtr-line);background:var(--vtr-card);border-radius:12px;min-width:150px}
+.sac-ah-customize>summary{display:flex;align-items:center;gap:8px;padding:10px 13px;min-height:44px;cursor:pointer;color:var(--vtr-text);font-size:12px;font-weight:750;list-style:none}
+.sac-ah-customize>summary::-webkit-details-marker{display:none}
+.sac-ah-customize fieldset{min-width:220px;padding:8px 12px 12px;border:0;border-top:1px solid var(--vtr-line);margin:0}
+.sac-ah-customize legend{font-size:11px;color:var(--vtr-soft);line-height:2}
+.sac-ah-customize label{display:flex;gap:8px;align-items:center;min-height:39px;font-size:12px;cursor:pointer}
+.sac-ah-customize input{accent-color:var(--vtr-accent);width:17px;height:17px}
+.sac-ah-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:14px}
+.sac-root.sac-vtr-overview .sac-ah-action{display:flex;align-items:center;text-align:right;gap:11px;min-width:0;min-height:79px;width:100%;padding:12px 13px;border-radius:16px;border:1px solid var(--vtr-line);background:var(--vtr-card);color:var(--vtr-text);box-shadow:0 8px 24px #101a2a12;transition:border-color .15s ease,transform .15s ease}
+.sac-root.sac-vtr-overview .sac-ah-action:hover:not(:disabled){border-color:var(--vtr-accent);transform:translateY(-2px)}
+.sac-ah-action-icon{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:#6a9ceb22;color:var(--vtr-accent)}
+.sac-ah-action>span:nth-child(2){min-width:0;flex:1}
+.sac-ah-action strong{display:block;font-size:13px;font-weight:800;line-height:1.5;overflow-wrap:anywhere}
+.sac-ah-action small{display:block;color:var(--vtr-soft);font-size:10.5px;line-height:1.6}
+.sac-ah-arrow{flex:none;color:var(--vtr-soft)}
+.sac-ah-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.sac-ah-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;min-height:148px;padding:16px;border:1px solid var(--vtr-line);border-radius:17px;background:var(--vtr-card)}
+.sac-ah-card.primary{background:linear-gradient(135deg,#669bf420,transparent 72%),var(--vtr-card);border-color:var(--vtr-accent)}
+.sac-ah-card.attention{border-color:#b68e4e;background:linear-gradient(135deg,#d9ad6023,transparent 76%),var(--vtr-card)}
+.sac-ah-card>span{color:var(--vtr-soft);font-size:11px;line-height:1.65}
+.sac-ah-card>strong{font-weight:850;font-size:clamp(16px,1.7vw,24px);line-height:1.45;overflow-wrap:anywhere;max-width:100%}
+.sac-ah-card>strong small{font-size:11px;font-weight:650;color:var(--vtr-soft)}
+.sac-ah-card>small{display:block;color:var(--vtr-soft);font-size:11px;line-height:1.7}
+.sac-root.sac-vtr-overview .sac-ah-card button{min-height:44px;min-width:44px;display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ah-link);font-size:11px;font-weight:800;padding:7px 0;margin-top:auto}
+.sac-root.sac-vtr-overview .sac-ah-actions button,
+.sac-root.sac-vtr-overview .sac-ah-customize>summary{min-height:44px;min-width:44px}
+/* Legacy home controls share the same action area. Keep their touch surfaces accessible. */
+.sac-root.sac-vtr-overview :is(.sac-vtr-quick-actions button,
+  .sac-vtr-home button,.sac-vtr-outstanding-grid button){min-height:44px;min-width:44px}
+.sac-ah-performance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;padding:15px;border-radius:17px;background:var(--vtr-card);border:1px solid var(--vtr-line)}
+.sac-ah-performance>div{min-width:0;border-inline-start:1px solid var(--vtr-line);padding-inline:12px}
+.sac-ah-performance>div:first-child{border-inline-start:0}
+.sac-ah-performance span{display:block;font-size:11px;color:var(--vtr-soft)}
+.sac-ah-performance strong{display:block;font-size:clamp(15px,1.6vw,20px);font-weight:850;margin:7px 0;overflow-wrap:anywhere}
+.sac-ah-performance small{display:block;color:var(--vtr-soft);font-size:10.5px;line-height:1.7}
+.sac-ah-performance>p{grid-column:1/-1;font-size:11px;color:var(--vtr-soft);margin:1px 0 0;line-height:1.7;border-top:1px solid var(--vtr-line);padding-top:9px}
+.sac-ah-warning{display:flex;align-items:center;gap:9px;margin:10px 0;padding:10px 12px;border:1px solid #b68e4e;border-radius:12px;color:var(--vtr-text);font-size:12px}
+.sac-ah-warning svg{flex:none;color:#b68e4e}
+.sac-ah :is(button,summary,input):focus-visible{outline:3px solid var(--vtr-accent);outline-offset:3px}
+@media(max-width:1040px){.sac-ah-actions,.sac-ah-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.sac-ah-title{flex-wrap:wrap}.sac-ah-customize{width:100%}.sac-ah-actions,.sac-ah-cards,.sac-ah-performance{grid-template-columns:minmax(0,1fr)}.sac-ah-performance>div{border-inline-start:0;border-bottom:1px solid var(--vtr-line);padding:8px 0}.sac-ah-performance>div:last-of-type{border-bottom:0}.sac-ah-action{min-height:65px!important}.sac-ah-card{min-height:120px}}
+@media(prefers-reduced-motion:reduce){.sac-ah *{transition:none!important}}
+@media print{.sac-ah-customize,.sac-ah-actions,.sac-ah-card button{display:none!important}.sac-ah-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* The historical ledger is distinct from newly issued operational invoices. */
+.sac-ah-historical{margin:0 0 16px;padding:18px;border:1px solid var(--vtr-line);
+  background:var(--vtr-card);border-radius:18px;color:var(--vtr-text)}
+.sac-ah-history-heading{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.sac-ah-history-heading h3{font-size:15px;font-weight:850;margin:0 0 4px}
+.sac-ah-history-heading p{font-size:11.5px;color:var(--vtr-soft);line-height:1.8;margin:0}
+.sac-root.sac-vtr-overview .sac-ah-history-heading button{font:inherit;font-size:12px;
+  min-height:42px;padding:8px 12px;border:1px solid var(--vtr-line);border-radius:10px;
+  color:var(--ah-link);background:transparent;display:flex;align-items:center;gap:5px}
+.sac-ah-history-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.sac-ah-history-grid article{display:flex;flex-direction:column;gap:7px;padding:13px;
+  min-width:0;border-radius:13px;background:color-mix(in srgb,var(--vtr-card),var(--vtr-accent) 5%);
+  border:1px solid var(--vtr-line)}
+.sac-ah-history-grid article:first-child{border-color:var(--vtr-accent)}
+.sac-ah-history-grid span{font-size:12px;color:var(--vtr-soft);font-weight:650}
+.sac-ah-history-grid strong{font-size:clamp(16px,1.45vw,22px);color:var(--vtr-text);
+  line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.sac-ah-history-grid small{font-size:11px;color:var(--vtr-soft)}
+.sac-ah-debt-details{border-top:1px solid var(--vtr-line);margin-top:13px;padding-top:10px}
+.sac-ah-debt-details summary{font-size:12px;font-weight:800;color:var(--ah-link);
+  cursor:pointer;min-height:40px;padding:8px 2px}
+.sac-ah-debt-scroll{max-height:280px;overflow:auto}
+.sac-ah-debt-scroll table{width:100%;border-collapse:collapse;min-width:460px;font-size:12px}
+.sac-ah-debt-scroll th,.sac-ah-debt-scroll td{text-align:right;border-bottom:1px solid var(--vtr-line);
+  padding:10px;color:var(--vtr-text);background:transparent}
+.sac-ah-debt-scroll th{color:var(--vtr-soft)}
+.sac-ah-history-footnote{font-size:11px;color:var(--vtr-soft);line-height:1.8;margin:10px 0 0}
+.sac-ah-operational-label{font-size:13px;color:var(--vtr-text);font-weight:850;
+  padding:0 0 10px}
+@media(max-width:1150px){.sac-ah-history-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.sac-ah-history-grid{grid-template-columns:minmax(0,1fr)}
+  .sac-ah-historical{padding:12px}}

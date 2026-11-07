@@ -1,0 +1,72 @@
+/* High information density for the independent ledger. This remains visual:
+   no amounts, accounting validation, approvals or print templates are altered. */
+.sac-root .sac-sidebar{
+  flex-basis:210px;
+  padding:14px 10px 12px;
+}
+.sac-root .sac-brand{gap:9px;padding:2px 7px 15px}
+.sac-root .sac-brand-icon{width:37px;height:37px;border-radius:11px}
+.sac-root .sac-sidebar nav{gap:2px}
+.sac-root .sac-sidebar nav button{
+  min-height:37px;
+  padding:8px 10px;
+  font-size:12px;
+}
+.sac-root .sac-sidebar-footer{padding:12px 5px 0}
+.sac-root .sac-header{
+  gap:10px;
+  padding:12px clamp(14px,2vw,26px);
+}
+.sac-root .sac-header h1{
+  margin:3px 0;
+  font-size:clamp(19px,2vw,24px);
+}
+.sac-root .sac-header-actions{gap:8px;flex-wrap:wrap}
+.sac-root .sac-body{
+  padding:14px clamp(12px,2vw,25px) 26px;
+}
+.sac-root .sac-metrics{gap:9px;margin-bottom:12px}
+.sac-root .sac-metric{padding:12px 14px;border-radius:12px}
+.sac-root .sac-metric:before{margin-bottom:7px}
+.sac-root .sac-metric strong{margin:4px 0}
+.sac-root .sac-panel{padding:14px 16px;margin-bottom:12px}
+.sac-root .sac-panel-title{
+  margin-bottom:11px;
+  padding-bottom:9px;
+}
+.sac-root .sac-panel-title h2{font-size:16px}
+.sac-root .sac-grid{gap:9px 11px}
+.sac-root .sac-field{gap:4px}
+.sac-root .sac-form-actions{padding-top:8px;gap:7px}
+.sac-root th,.sac-root td{padding:9px 10px}
+.sac-root .sac-subheading{margin:14px 0 8px}
+.sac-root .sac-empty{padding:14px}
+.sac-root .sac-alert{padding:9px 12px;margin-bottom:10px}
+.sac-root .sac-table-tools{gap:8px;margin:5px 0 9px}
+.sac-root .sac-record{padding:10px 12px;margin-top:7px}
+.sac-root .sac-doc-line{gap:7px;padding:8px 0}
+.sac-root .sac-document-detail{padding:13px;margin-top:10px}
+.sac-root .sac-document-info{gap:8px;margin-bottom:12px}
+.sac-root .sac-document-info > div{padding:9px}
+.sac-root .sac-form-actions button,
+.sac-root .sac-header button{min-height:38px}
+@media(max-width:1150px){
+  .sac-root .sac-sidebar{flex-basis:185px}
+}
+@media(max-width:850px){
+  .sac-root .sac-sidebar{flex:0 0 auto;padding:8px 11px}
+  .sac-root .sac-sidebar nav{gap:6px}
+  .sac-root .sac-sidebar nav button{flex:none;min-height:38px;padding:8px 10px}
+  .sac-root .sac-header{padding:9px 12px}
+  .sac-root .sac-body{padding:10px 12px 18px}
+}
+@media(max-width:560px){
+  .sac-root .sac-panel{padding:12px}
+  .sac-root .sac-metric{padding:10px 11px}
+  .sac-root .sac-header h1{font-size:19px}
+  .sac-root .sac-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+  .sac-root .sac-body{padding:0}
+  .sac-root .sac-panel{padding:0;border:0;box-shadow:none}
+}
