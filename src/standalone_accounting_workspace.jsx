@@ -1532,12 +1532,12 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         <button type="button" onClick={requestExit}><ArrowRight size={17}/> خروج از حسابداری</button></div>
     </aside>
     <div className="sac-main">
-      <header className="sac-header"><div><span className="sac-kicker">TARAZ / ACCOUNTING</span>
+      {tab!=='overview'&&<header className="sac-header"><div><span className="sac-kicker">TARAZ / ACCOUNTING</span>
         <h1>{SECTIONS.find(s=>s[0]===tab)?.[1]}</h1>
         <p>دفترکل مستقل، مبتنی بر داده واقعی میزبان</p></div>
         <div className="sac-header-actions"><span>تمام مبالغ: {unitLabel}</span>
           <button type="button" onClick={()=>void requestManualRefresh()} disabled={busy||state.loading}>
-            <RefreshCw size={16}/> بازخوانی</button></div></header>
+            <RefreshCw size={16}/> بازخوانی</button></div></header>}
       <div className="sac-body" role="region" aria-label="محتوای صفحه حسابداری" tabIndex={0}>
         {tab==='invoice'&&<nav className="sac-workflow-nav" aria-label="مسیر فاکتور فروش">
           <button type="button" onClick={()=>gotoTab('overview')} disabled={busy||pendingRetry}>صفحه اصلی</button>

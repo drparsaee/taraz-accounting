@@ -259,6 +259,9 @@
   background:var(--vs-glass);color:var(--vs-ink);
   border:1px solid var(--vs-edge);border-radius:999px;padding:9px 13px;
 }
+:root[data-theme="dark"] .sac-root.taraz-vt-app .sac-alert.info{
+  background:#1e3938;color:#d5fff3;border-color:#3b746d;
+}
 .sac-root.taraz-vt-app>.sac-main>.sac-body{
   padding:18px clamp(12px,2.5vw,34px) 38px;
   background:transparent;

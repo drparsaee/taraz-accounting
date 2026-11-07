@@ -13,7 +13,7 @@
   --tdh-blue-soft:#2b4267;--tdh-coral:#ffa9c0;
 }
 .tdh-root *{box-sizing:border-box}
-.tdh-root :is(h2,h3,p){margin:0}
+.tdh-root :is(h1,h2,h3,p){margin:0}
 .tdh-root button{font:inherit}
 .tdh-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;
   min-height:110px;padding:18px 22px;border:1px solid var(--tdh-line);
@@ -27,7 +27,7 @@
 .tdh-mark-dot,.tdh-source-dot{width:8px;height:8px;display:inline-block;
   flex:none;border-radius:50%;background:#8bbae9;box-shadow:0 0 0 3px #83b4e524}
 .tdh-source-dot{width:5px;height:5px;background:#5dccad;margin-right:1px}
-.tdh-hero h2{font-size:clamp(23px,2vw,30px);font-weight:850;line-height:1.5;color:var(--tdh-ink)}
+.tdh-hero h1{font-size:clamp(23px,2vw,30px);font-weight:850;line-height:1.5;color:var(--tdh-ink)}
 .tdh-hero p{font-size:11px;line-height:1.8;color:var(--tdh-muted);margin-top:3px}
 .tdh-hero-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .tdh-year-select{display:flex;gap:7px;align-items:center;padding:4px 12px;min-height:45px;
@@ -176,3 +176,7 @@
 .tdh-exposure-grid button>small{font-size:9px;color:var(--tdh-muted)}
 .tdh-root .tdh-exposure-grid button:hover{border-color:var(--tdh-blue)}
 @media(max-width:600px){.tdh-exposure-grid{grid-template-columns:1fr}}
+.tdh-root .tdh-stat-label{font-size:clamp(10px,.82vw,12px)}
+.tdh-root .tdh-stat-foot,.tdh-root .tdh-party-heading small,
+.tdh-root .tdh-person-name{font-size:clamp(10px,.8vw,12px)}
+.tdh-root .tdh-sheet-head p{font-size:clamp(11px,.8vw,12px)}

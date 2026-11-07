@@ -134,7 +134,7 @@ export default function TarazHomeCommand({
       <div className="tdh-hero-title">
         <div className="tdh-hero-mark"><span className="tdh-mark-dot"/>{L.eyebrow}
           <span className="tdh-source-dot">●</span></div>
-        <h2>{L.title}</h2><p>{L.subtitle}</p>
+        <h1>{L.title}</h1><p>{L.subtitle}</p>
       </div>
       <div className="tdh-hero-actions">
         <label className="tdh-year-select"><CalendarDays size={17}/>
