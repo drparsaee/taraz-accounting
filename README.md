@@ -42,3 +42,16 @@ ledger. A universal new-account onboarding workflow and standalone updater
 have not yet been completed. The old task-manager source is not part of the
 Taraz runtime, but some Python compatibility modules are retained locally
 while the accounting dependencies are refactored.
+
+## Interface aligned with Madar
+
+Taraz uses Madar's Vitrea visual pattern without embedding the Madar
+task-manager code: a glass top navigation capsule, left icon dock, grouped
+keyboard-accessible navigation drawer, neutral/graphite cards, and separate
+light/dark preferences (taraz-ui-theme). The accounting section model,
+host authorization, invoices, journal entries and Parsian archive stay
+independent. Layout switches to a horizontal bottom dock on narrow screens.
+
+UX source: src/accounting_navigation_shell.jsx and
+src/taraz_vitrea_shell.css. Regression coverage:
+node --test tests/taraz_vitrea_shell.test.cjs.

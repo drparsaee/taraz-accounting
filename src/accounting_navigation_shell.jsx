@@ -1,6 +1,7 @@
 import React from 'react';
-import {ArrowRight,Building2,FilePlus2,Landmark,MoreHorizontal,Printer,
-  RefreshCw,Search,Settings2,ShieldCheck,Users,Wallet,FileText,Layers3} from 'lucide-react';
+import {ArrowRight,Building2,FilePlus2,Landmark,Menu,Printer,
+  RefreshCw,Search,Settings2,ShieldCheck,Users,Wallet,FileText,Layers3,
+  Sun,Moon,X,CheckCircle2,ChevronLeft,BookOpen,ReceiptText} from 'lucide-react';
 import AccountingGlobalSearch from './accounting_global_search.jsx';
 import {ACCOUNTING_PRIMARY_SECTIONS,accountingVisibleSections,
   buildAccountingSearchIndex} from './accounting_nav_search.js';
@@ -35,14 +36,12 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
   const permittedDraft=canDraft&&(role==='editor'||role==='admin');
   const permittedManage=canManage&&(role==='editor'||role==='admin');
   const permittedAdmin=canAdmin&&role==='admin';
-  const [mode,setMode]=React.useState('simple');
-  const [chosen,setChosen]=React.useState('');
   const [moreOpen,setMoreOpen]=React.useState(false);
+  const [theme,setTheme]=React.useState(()=>document.documentElement.dataset.theme==='light'?'light':'dark');
   const [searchOpen,setSearchOpen]=React.useState(false);
   const moreRef=React.useRef(null);
+  const menuButtonRef=React.useRef(null);
   const searchButtonRef=React.useRef(null);
-  const searchLabelId=React.useId();
-  const searchShortcutId=React.useId();
   const visible=React.useMemo(()=>accountingVisibleSections(sections,role,sectionAccess),
     [sections,role,sectionAccess]);
   const labels=React.useMemo(()=>new Map(visible),[visible]);
@@ -50,10 +49,8 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
     sections:visible,view:typeof onSearchSelect==='function'?searchView:null,
     role,recordAccess,sectionAccess
   }),[visible,searchView,onSearchSelect,role,recordAccess,sectionAccess]);
-  const active=groups.find(group=>group.id===(chosen||(groupFor?.(tab)||'general')))||groups[0];
   const primary=ACCOUNTING_PRIMARY_SECTIONS.filter(key=>labels.has(key));
-  const secondary=visible.filter(([key])=>!primary.includes(key));
-  React.useEffect(()=>{setChosen('');setMoreOpen(false);},[tab]);
+  React.useEffect(()=>{setMoreOpen(false);},[tab]);
   React.useEffect(()=>{
     const keyDown=event=>{
       if(disabled||event.isComposing)return;
@@ -107,112 +104,148 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
     setSearchOpen(false);
     searchButtonRef.current?.focus();
   };
-  const moreButton=()=> <button type="button"
-    className={'sac-nav-more-trigger'+(moreOpen?' active':'')}
-    data-accounting-action="more"
-    aria-expanded={moreOpen} aria-controls="sac-nav-more-panel" disabled={disabled}
-    onClick={()=>setMoreOpen(open=>!open)}>
-    <MoreHorizontal size={16}/> بیشتر
-  </button>;
-  return <div className={'sac-ribbon-shell sac-ux-shell sac-ux-'+mode}>
-    <div className="sac-ribbon-titlebar">
-      <div className="sac-ribbon-identity"><span className="sac-ribbon-app-icon"><Landmark size={22}/></span>
-        <span><strong>تراز | حسابداری مستقل</strong>
-          <small>محیط کار مالی · {companyName||'دفتر مستقل'}</small></span></div>
-      <div className="sac-ribbon-quick" aria-label="دسترسی سریع حسابداری">
-        {currentUser?.username&&<span className="sac-ribbon-user">
-          <Users size={14} aria-hidden="true"/>{currentUser.username}</span>}
-        <button ref={searchButtonRef} type="button" className="sac-nav-search-trigger"
-          data-accounting-action="search"
-          disabled={disabled} onClick={()=>{setMoreOpen(false);setSearchOpen(true);}}
-          aria-labelledby={searchLabelId+' '+searchShortcutId}
-          aria-keyshortcuts="Control+K Meta+K" title="جست‌وجوی سوابق دفتر جاری (Ctrl+K)">
-          <Search size={17}/> <span id={searchLabelId}>جست‌وجو</span>{' '}
-          <kbd id={searchShortcutId}>Ctrl+K</kbd></button>
-        <div role="group" className="sac-nav-mode" aria-label="سطح نمایش حسابداری">
-          <button type="button" aria-pressed={mode==='simple'}
-            disabled={disabled} onClick={()=>{setMode('simple');setMoreOpen(false);}}>ساده</button>
-          <button type="button" aria-pressed={mode==='advanced'}
-            disabled={disabled} onClick={()=>{setMode('advanced');setMoreOpen(false);}}>پیشرفته</button>
-        </div>
-        {tab!=='overview'&&onBack&&<button type="button" className="sac-ribbon-back"
-          disabled={disabled} onClick={onBack} title={backLabel}>
-          <ArrowRight size={16}/> <span>{backLabel}</span></button>}
-        <span className="sac-ribbon-unit" title="واحد دفتر حسابداری">{currency}</span>
-        <button type="button" className="sac-ribbon-exit" onClick={onExit}>خروج</button>
-      </div>
-    </div>
-    <div className="sac-simple-navigation">
-      <nav className="sac-simple-nav" aria-label="مسیرهای اصلی حسابداری">
+  const toggleTheme=()=>{
+    const next=theme==='dark'?'light':'dark';
+    document.documentElement.dataset.theme=next;
+    try{window.localStorage.setItem('taraz-ui-theme',next);}catch(_error){/* ephemeral preference */ }
+    setTheme(next);
+  };
+  const closeMenu=()=>{setMoreOpen(false);menuButtonRef.current?.focus();};
+  React.useEffect(()=>{
+    if(!moreOpen)return;
+    const root=moreRef.current;
+    if(!root)return;
+    const first=root.querySelector('button:not(:disabled)');
+    first?.focus();
+    const trap=event=>{
+      if(event.key!=='Tab')return;
+      const items=[...root.querySelectorAll('button:not(:disabled),[href],input:not(:disabled)')];
+      if(!items.length)return;
+      const start=items[0],end=items[items.length-1];
+      if(event.shiftKey&&document.activeElement===start){event.preventDefault();end.focus();}
+      else if(!event.shiftKey&&document.activeElement===end){event.preventDefault();start.focus();}
+    };
+    root.addEventListener('keydown',trap);
+    return ()=>root.removeEventListener('keydown',trap);
+  },[moreOpen]);
+  const actionDisabled=disabled;
+  const fullNavIcon={
+    overview:Landmark,invoice:FileText,bill:Layers3,proforma:ReceiptText,
+    parties:Users,company:Building2,settlements:Wallet,cash:Wallet,
+    cheques:ReceiptText,accounts:BookOpen,journal:BookOpen,
+    reports:Layers3,settings:Settings2,items:Layers3,
+    migration:BookOpen,period:CheckCircle2
+  };
+  return <div className="sac-ribbon-shell sac-ux-shell taraz-vt-shell">
+    <div className="taraz-vt-topline">
+      <button type="button" className="taraz-vt-brand" onClick={()=>navigate('overview')}
+        style={theme==='light'?{background:'#f8fbff',color:'#172538',borderColor:'#c2cbd8'}:undefined}
+        disabled={disabled} title="خانه تراز">
+        <img src="./taraz-icon.svg" width="36" height="36" alt="" />
+        <span><strong>تراز</strong><small>حسابداری مستقل</small></span>
+      </button>
+      <nav className="sac-simple-nav taraz-vt-primary" aria-label="صفحه‌های اصلی تراز">
         {primary.map(key=>{
           const Icon=NAV_ICONS[key]||Landmark;
-          return <button key={key} type="button" disabled={disabled}
-            data-accounting-tab={key}
-            aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)}>
-            <Icon size={17}/><span>{SHORT_LABELS[key]||labels.get(key)}</span></button>;
+          return <button type="button" key={key} data-accounting-tab={key}
+            aria-current={tab===key?'page':undefined} onClick={()=>navigate(key)}
+            disabled={disabled}>
+            <Icon size={17} aria-hidden="true"/><span>{SHORT_LABELS[key]||labels.get(key)}</span>
+          </button>;
         })}
-        {moreButton()}
       </nav>
-      <div className="sac-nav-quick-actions" role="group" aria-label="کارهای پرتکرار حسابداری">
-        {permittedDraft&&<button type="button" data-accounting-action="invoice" disabled={disabled} onClick={()=>quick('invoice')}>
-          <FilePlus2 size={16}/> فاکتور جدید</button>}
-        {permittedManage&&<button type="button" data-accounting-action="payment" disabled={disabled} onClick={()=>quick('payment')}>
-          <Wallet size={16}/> {onQuickAction?'ثبت پرداخت':'دریافت و پرداخت'}</button>}
-        {permittedDraft&&<button type="button" data-accounting-action="purchase" disabled={disabled} onClick={()=>quick('purchase')}>
-          <FileText size={16}/> خرید جدید</button>}
-        <button type="button" data-accounting-action="reports" disabled={disabled} onClick={()=>quick('reports')}>
-          <Layers3 size={16}/> گزارش‌ها</button>
+      <div className="taraz-vt-top-actions">
+        {currentUser?.username&&<span className="taraz-vt-user" title={currentUser.username}>
+          <Users size={16}/><span>{currentUser.username}</span></span>}
+        <span className="taraz-vt-currency" title="واحد دفتر حسابداری">{currency}</span>
+        <button type="button" className="taraz-vt-search-trigger"
+          ref={searchButtonRef} data-accounting-action="search"
+          disabled={actionDisabled} aria-keyshortcuts="Control+K Meta+K"
+          title="جست‌وجو (Ctrl+K)" aria-label="جست‌وجو در تراز"
+          onClick={()=>{setMoreOpen(false);setSearchOpen(true);}}>
+          <Search size={18}/><span>جست‌وجو</span><kbd>Ctrl+K</kbd>
+        </button>
       </div>
     </div>
-    {mode==='advanced'&&<div className="sac-advanced-ribbon">
-      <nav aria-label="دسته‌بندی‌های حسابداری" className="sac-ribbon-tabs" tabIndex={0}>
-        {groups.map(group=>{const Icon=group.icon;
-          return <button key={group.id} type="button" disabled={disabled}
-            aria-pressed={active?.id===group.id} onClick={()=>setChosen(group.id)}
-            className={active?.id===group.id?'active':''}>
-            <Icon size={16}/>{group.title}</button>;
-        })}
-      </nav>
-      <nav className="sac-ribbon-tools" aria-label="فرمان‌های گروه انتخاب‌شده" tabIndex={0}>
-        {active?.items.filter(key=>labels.has(key)).map(key=><button key={key}
-          type="button" data-accounting-tab={key} onClick={()=>navigate(key)} disabled={disabled}
-          aria-current={tab===key?'page':undefined} className={tab===key?'selected':''}>
-          {labels.get(key)}</button>)}
-        {active?.id==='documents'&&permittedDraft&&<button className="sac-ribbon-highlight"
-          type="button" onClick={()=>quick('invoice')} disabled={disabled}>
-          <FilePlus2 size={16}/> ثبت فاکتور جدید</button>}
-        {active?.id==='settings'&&<span className="sac-ribbon-hint">
-          <ShieldCheck size={14}/> دفتر مالی شرکت مستقل است</span>}
-        {permittedManage&&<button type="button" onClick={onPrint}
-          disabled={disabled||!hasPrintableInvoice} title="دریافت PDF فاکتور انتخاب‌شده">
-          <Printer size={16}/> PDF فاکتور</button>}
-        <button type="button" onClick={onRefresh} disabled={disabled}>
-          <RefreshCw size={16}/> بازخوانی</button>
-        {permittedAdmin&&onManageUsers&&<button type="button" disabled={disabled}
-          onClick={onManageUsers}><Users size={16}/> کاربران</button>}
-        {onSwitchCompany&&<button type="button" disabled={disabled} onClick={onSwitchCompany}>
-          <Building2 size={16}/> تغییر شرکت</button>}
-        <button type="button" data-accounting-tab="settings" disabled={disabled} onClick={()=>navigate('settings')}>
-          <Settings2 size={16}/> تنظیمات</button>
-        <span className="sac-nav-more-advanced">{moreButton()}</span>
-      </nav>
-    </div>}
-    {moreOpen&&<section id="sac-nav-more-panel" className="sac-nav-more-menu" ref={moreRef}
-      role="region" aria-label="بخش‌های بیشتر حسابداری">
-      <div className="sac-nav-more-heading"><strong>بخش‌های بیشتر</strong>
-        <span>{mode==='advanced'?'همهٔ بخش‌های مجاز':'ادامهٔ امکانات حسابداری'}</span></div>
-      <nav aria-label="فهرست بخش‌های دیگر">
-        {(mode==='simple'?secondary:visible).map(([key,label])=><button type="button"
-          key={key} data-accounting-tab={key} disabled={disabled} aria-current={tab===key?'page':undefined}
-          onClick={()=>navigate(key)}>{label}</button>)}
-      </nav>
-      <div className="sac-nav-more-actions" role="group" aria-label="دسترسی‌های تکمیلی">
-        {permittedDraft&&<button type="button" onClick={()=>quick('invoice')} disabled={disabled}>فاکتور جدید</button>}
-        {permittedManage&&<button type="button" onClick={()=>quick('payment')} disabled={disabled}>{onQuickAction?'ثبت پرداخت':'دریافت و پرداخت'}</button>}
-        {permittedDraft&&<button type="button" onClick={()=>quick('purchase')} disabled={disabled}>خرید جدید</button>}
-        <button type="button" onClick={()=>quick('reports')} disabled={disabled}>گزارش‌ها</button>
-      </div>
-    </section>}
+    <div className="taraz-vt-dock" role="toolbar" aria-label="میان‌برهای تراز">
+      <button ref={menuButtonRef} type="button" className="sac-nav-more-trigger"
+        data-accounting-action="more" disabled={disabled}
+        aria-label="بازکردن فهرست بخش‌های تراز" title="فهرست بخش‌ها"
+        aria-controls="taraz-vt-drawer" aria-expanded={moreOpen}
+        onClick={()=>setMoreOpen(open=>!open)}><Menu size={21}/></button>
+      <span className="taraz-vt-dock-divider"/>
+      {permittedDraft&&<button type="button" className="taraz-vt-create" disabled={disabled}
+        data-accounting-action="invoice" onClick={()=>quick('invoice')}
+        title="فاکتور فروش جدید" aria-label="فاکتور فروش جدید"><FilePlus2 size={21}/></button>}
+      {permittedManage&&<button type="button" disabled={disabled}
+        data-accounting-action="payment" title="دریافت و پرداخت" aria-label="دریافت و پرداخت"
+        onClick={()=>quick('payment')}><Wallet size={20}/></button>}
+      <button type="button" disabled={disabled} data-accounting-action="reports"
+        title="گزارش‌های مالی" aria-label="گزارش‌های مالی" onClick={()=>quick('reports')}>
+        <Layers3 size={20}/></button>
+      <span className="taraz-vt-dock-divider"/>
+      <button type="button" disabled={disabled} onClick={()=>void onRefresh()}
+        title="بازخوانی اطلاعات مالی" aria-label="بازخوانی اطلاعات مالی"><RefreshCw size={20}/></button>
+      <button type="button" data-accounting-action="theme" title={theme==='dark'?'تم روشن':'تم تیره'}
+        aria-label={theme==='dark'?'تغییر به تم روشن':'تغییر به تم تیره'}
+        onClick={toggleTheme}>{theme==='dark'?<Sun size={20}/>:<Moon size={20}/>}</button>
+      <button type="button" disabled={disabled} data-accounting-tab="settings"
+        title="تنظیمات" aria-label="تنظیمات" onClick={()=>navigate('settings')}>
+        <Settings2 size={20}/></button>
+      <button type="button" title="جست‌وجو" aria-label="بازکردن جست‌وجو" disabled={disabled}
+        onClick={()=>setSearchOpen(true)}><Search size={20}/></button>
+    </div>
+    {moreOpen&&<>
+      <button type="button" className="taraz-vt-backdrop" onClick={closeMenu}
+        aria-label="بستن منوی تراز"/>
+      <aside ref={moreRef} id="taraz-vt-drawer" className="sac-nav-more-menu taraz-vt-drawer"
+        role="dialog" aria-modal="true" aria-label="فهرست بخش‌های تراز">
+        <header className="taraz-vt-drawer-heading">
+          <span><strong>فضای کار تراز</strong><small>{companyName||'دفتر حسابداری'} · {currency}</small></span>
+          <button type="button" onClick={closeMenu} aria-label="بستن فهرست"><X size={20}/></button>
+        </header>
+        <div className="taraz-vt-drawer-content">
+          {groups.map(group=>{
+            const entries=group.items.filter(key=>labels.has(key));
+            if(!entries.length)return null;
+            const Icon=group.icon;
+            return <section className="taraz-vt-nav-group" key={group.id}>
+              <h3><Icon size={16} aria-hidden="true"/>{group.title}</h3>
+              <nav aria-label={group.title}>
+                {entries.map(key=>{
+                  const ItemIcon=fullNavIcon[key]||ChevronLeft;
+                  return <button type="button" key={key} data-accounting-tab={key}
+                    aria-current={tab===key?'page':undefined} disabled={disabled}
+                    onClick={()=>navigate(key)}>
+                    <ItemIcon size={17} aria-hidden="true"/><span>{labels.get(key)}</span>
+                    {tab===key&&<span className="taraz-vt-active-indicator" aria-hidden="true"/>}
+                  </button>;
+                })}
+              </nav>
+            </section>;
+          })}
+        </div>
+        <div className="taraz-vt-drawer-actions">
+          <strong>عملیات دفتر</strong>
+          <div>
+            {permittedDraft&&<button type="button" onClick={()=>quick('invoice')} disabled={disabled}>
+              <FilePlus2 size={17}/> فاکتور جدید</button>}
+            {permittedManage&&<button type="button" onClick={()=>quick('payment')} disabled={disabled}>
+              <Wallet size={17}/> ثبت پرداخت</button>}
+            {permittedManage&&<button type="button" onClick={onPrint}
+              disabled={disabled||!hasPrintableInvoice}><Printer size={16}/> PDF فاکتور</button>}
+            {permittedAdmin&&onManageUsers&&<button type="button" onClick={onManageUsers}
+              disabled={disabled}><Users size={17}/> کاربران</button>}
+            {onSwitchCompany&&<button type="button" onClick={onSwitchCompany} disabled={disabled}>
+              <Building2 size={17}/> تغییر شرکت</button>}
+            <button type="button" onClick={()=>void onRefresh()} disabled={disabled}>
+              <RefreshCw size={17}/> بازخوانی</button>
+            <button type="button" onClick={onExit}><ArrowRight size={17}/> خروج</button>
+          </div>
+          <p><ShieldCheck size={15}/> تراز از اطلاعات تسک‌منیجر مدار مستقل است.</p>
+        </div>
+      </aside>
+    </>}
     <AccountingGlobalSearch open={searchOpen} index={index} disabled={disabled}
       onClose={closeSearch} onSelect={searchSelect}/>
   </div>;

@@ -8,6 +8,7 @@ import './accounting_density.css';
 import './accounting_vitrea.css';
 import './accounting_unslop.css';
 import './personal_parsian_dark_fix.css';
+import './taraz_vitrea_shell.css';
 import {buildStandaloneDocumentExport,downloadStandaloneBlob} from './standalone_invoice_export.js';
 import {buildParsianKarmaDocumentExport} from './parsian_karma_invoice_export.js';
 import AccountingTopRibbon from './accounting_top_ribbon.jsx';
@@ -1490,7 +1491,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     }catch(err){setState(p=>({...p,error:err.message,notice:''}));}
   };
 
-  return <div dir="rtl" className={'sac-root'+(tab==='invoice'?' sac-invoice-work-mode':
+  return <div dir="rtl" className={'sac-root taraz-vt-app'+(tab==='invoice'?' sac-invoice-work-mode':
     tab==='overview'?' sac-overview-work-mode sac-vtr-overview':'')+
     (wizardEnabled?' sac-invoice-wizard-guided':'')}
     aria-label="تراز، برنامه مستقل حسابداری">
