@@ -1,0 +1,86 @@
+.taraz-madar-dashboard{display:grid;gap:15px;max-width:1500px;margin:12px 0 18px;padding:21px;
+  border:1px solid #b6cbe1;border-radius:16px;background:#f8fbff;color:#1e344b;
+  box-shadow:0 4px 22px #112e4714;font-size:13px;text-align:right}
+.taraz-madar-dashboard :is(h2,p){margin:0}
+.taraz-madar-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.taraz-madar-title{display:flex;align-items:center;gap:13px}
+.taraz-madar-mark{display:grid;place-items:center;width:43px;height:43px;background:#dceefc;
+  border-radius:12px;color:#295f98}
+.taraz-madar-title small{font-size:11px;color:#56738d}
+.taraz-madar-title h2{font-size:20px;font-weight:800;margin:2px 0 4px}
+.taraz-madar-title p{color:#48617a;font-size:12px}
+.taraz-madar-dashboard button{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  gap:7px;min-height:38px;padding:7px 13px;border-radius:8px;border:1px solid #b6c9dc;
+  background:#fff;color:#244565;font-weight:650;font-size:12px}
+.taraz-madar-dashboard button:disabled{cursor:not-allowed;opacity:.53}
+.taraz-madar-dashboard button:focus-visible,.taraz-madar-dashboard :is(input,select):focus-visible{
+  outline:3px solid #79b5e8;outline-offset:2px}
+.taraz-madar-dashboard button.taraz-madar-refresh,.taraz-madar-dashboard button.taraz-madar-open{
+  background:#285f94;border-color:#285f94;color:#fff}
+.taraz-madar-connection{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.taraz-madar-connection>div{border:1px solid #d7e3f1;border-radius:10px;background:#fff;padding:11px;min-width:0}
+.taraz-madar-connection :is(strong,span,small){display:block}
+.taraz-madar-connection strong{font-size:11px;color:#547089}
+.taraz-madar-connection span{font-size:14px;font-weight:700;margin:5px 0;color:#23557c}
+.taraz-madar-connection small{line-height:1.65;color:#60778f}
+.taraz-madar-controls{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.taraz-madar-consent{display:flex;gap:8px;align-items:center;font-size:12px;flex:1 1 320px}
+.taraz-madar-consent input{accent-color:#206997;width:17px;height:17px;flex:none}
+.taraz-madar-summary{display:flex;gap:9px;flex-wrap:wrap}
+.taraz-madar-summary span{background:#eaf2fa;border-radius:8px;padding:8px 11px;color:#284964}
+.taraz-madar-summary strong{color:#1f659d;font-size:17px}
+.taraz-madar-filters{display:grid;grid-template-columns:minmax(260px,2fr) minmax(190px,1fr);gap:10px}
+.taraz-madar-filters label{display:grid;gap:6px;color:#4e6a81;font-size:12px}
+.taraz-madar-filters :is(input,select){width:100%;height:38px;min-width:0;
+  border:1px solid #bfcfdf;border-radius:7px;padding:7px 10px;color:#19384f;background:#fff}
+.taraz-madar-requests{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:10px}
+.taraz-madar-request{display:grid;gap:11px;align-content:start;background:#fff;border:1px solid #d9e4ef;
+  border-radius:10px;padding:13px;min-width:0}
+.taraz-madar-request-title{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:9px}
+.taraz-madar-request-title strong{overflow-wrap:anywhere;flex:1 1 170px;font-size:14px}
+.taraz-madar-state{padding:5px 8px;background:#e8f1fb;color:#245e8e;border-radius:99px;font-size:11px}
+.taraz-madar-provenance{display:grid;gap:5px}
+.taraz-madar-provenance small{color:#526b80;overflow-wrap:anywhere}
+.taraz-madar-provenance code{direction:ltr;unicode-bidi:isolate;word-break:break-all}
+.taraz-madar-actions{display:flex;gap:7px;flex-wrap:wrap}
+.taraz-madar-confirm{padding:14px;border:2px solid #7bafd4;border-radius:11px;background:#eaf4fe;display:grid;gap:9px}
+.taraz-madar-confirm small{color:#435c77}
+.taraz-madar-confirm>div{display:flex;gap:8px;flex-wrap:wrap}
+.taraz-madar-message,.taraz-madar-error,.taraz-madar-empty{padding:10px;border-radius:8px;background:#e9f5ed;color:#145f39}
+.taraz-madar-error{background:#fef0ef;color:#952b28}
+.taraz-madar-empty{background:#edf2f8;color:#48627b}
+.taraz-madar-boundary{display:flex;align-items:center;gap:8px;color:#55718b;line-height:1.7;font-size:11px}
+.taraz-madar-explorer{display:grid;gap:12px;border-top:1px solid #c6d7e7;padding-top:16px}
+.taraz-madar-explorer-head h3{font-size:17px;margin:0 0 5px;color:inherit}
+.taraz-madar-explorer-head p{color:#617c94;font-size:12px;line-height:1.65}
+.taraz-madar-explorer-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.taraz-madar-explorer-options label,.taraz-madar-host-fields label{display:grid;gap:6px;color:inherit;font-size:12px}
+.taraz-madar-explorer-options select,.taraz-madar-host-fields input{min-height:38px;width:100%;min-width:0;
+  padding:8px 10px;border:1px solid #adc5da;border-radius:8px;background:#fff;color:#203a51}
+.taraz-madar-host-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+  margin:0;padding:12px;border:1px solid #bdcfdf;border-radius:10px}
+.taraz-madar-host-fields legend{font-weight:750;padding-inline:7px}
+.taraz-madar-host-fields>p{grid-column:1/-1;font-size:11px;color:#4d687e;line-height:1.6}
+.taraz-madar-record-description{white-space:pre-wrap;overflow-wrap:anywhere}
+.taraz-madar-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.taraz-madar-pagination span{font-size:12px;color:inherit}
+.taraz-madar-quick-nav{display:flex;justify-content:flex-start;padding:8px 20px;
+  background:#eaf3fa;border-bottom:1px solid #c8d9e8}
+.taraz-madar-quick-nav button{min-height:40px;display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:9px;border:1px solid #83b0d4;color:#164977;
+  background:#fff;font-size:13px;font-weight:750;cursor:pointer}
+.taraz-madar-quick-nav button[aria-current=page]{color:#fff;background:#246593}
+.taraz-madar-quick-nav button:disabled{opacity:.55;cursor:not-allowed}
+:root[data-theme=dark] .taraz-madar-dashboard{background:#202b3a;color:#ebf4fc;border-color:#46617d}
+:root[data-theme=dark] .taraz-madar-dashboard :is(.taraz-madar-request,.taraz-madar-connection>div){
+  background:#29394c;border-color:#48607a}
+:root[data-theme=dark] .taraz-madar-dashboard :is(.taraz-madar-title p,.taraz-madar-provenance small,
+  .taraz-madar-connection strong,.taraz-madar-connection small,.taraz-madar-boundary){color:#c3d7eb}
+:root[data-theme=dark] .taraz-madar-dashboard :is(.taraz-madar-title h2,.taraz-madar-request strong){color:#f0f7ff}
+:root[data-theme=dark] .taraz-madar-dashboard .taraz-madar-connection span{color:#9dccf4}
+:root[data-theme=dark] .taraz-madar-dashboard .taraz-madar-summary span{background:#334d68;color:#edf5ff}
+:root[data-theme=dark] .taraz-madar-dashboard .taraz-madar-summary strong{color:#a8d5ff}
+:root[data-theme=dark] .taraz-madar-quick-nav{background:#1c2a3b;border-bottom-color:#415c79}
+@media(max-width:760px){.taraz-madar-dashboard{padding:14px}.taraz-madar-connection{grid-template-columns:1fr}
+  .taraz-madar-filters,.taraz-madar-explorer-options,.taraz-madar-host-fields{grid-template-columns:1fr}
+  .taraz-madar-heading{align-items:flex-start}}
