@@ -202,6 +202,9 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
+  const [ecosystemStatus,setEcosystemStatus]=useState(null);
+  const [ecosystemBusy,setEcosystemBusy]=useState(false);
+  const [ecosystemError,setEcosystemError]=useState('');
   const [dirty,setDirty]=useState(false);
   const [filter,setFilter]=useState('all');
   const [requestText,setRequestText]=useState('');
@@ -247,6 +250,27 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
     }finally{if(live.current)setLoading(false);}
   },[api,ready]);
   useEffect(()=>{void refresh();},[refresh]);
+  const inspectEcosystem=async()=>{
+    if(ecosystemBusy||typeof api?.tarazEcosystemStatus!=='function'||
+      typeof api?.tarazAiProviderStatus!=='function')return;
+    setEcosystemBusy(true);setEcosystemError('');
+    try{
+      const [system,ai]=await Promise.all([
+        api.tarazEcosystemStatus(),api.tarazAiProviderStatus(),
+      ]);
+      if(system?.schemaVersion!==1||system.product!=='TARAZ'||
+        system.readOnly!==true||system.financialEventCreated!==false||
+        system.source!=='LOCAL_AUTHENTICATED_TARAZ'||
+        system.outbox?.remoteSenderAvailable!==false||
+        ai?.modelRan!==false||ai.enabledForActions!==false||
+        ai.coreCommercialFeaturesAvailable!==true)
+        throw Error('Untrusted ecosystem capability response');
+      if(live.current)setEcosystemStatus({system,ai});
+    }catch(_error){
+      if(live.current){setEcosystemStatus(null);
+        setEcosystemError('وضعیت اتصال یا AI به شکل معتبر قابل خواندن نبود.');}
+    }finally{if(live.current)setEcosystemBusy(false);}
+  };
   const update=(field,value)=>{
     setForm(prev=>({...prev,[field]:value}));setDirty(true);
     setMadarSyncPreview(null);
@@ -896,6 +920,21 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
         <RefreshCw size={16}/> بازخوانی
       </button>
     </header>
+    <div className="taraz-orders-hint" role="group" aria-label="وضعیت اکوسیستم و AI">
+      <button type="button" disabled={ecosystemBusy||
+        typeof api?.tarazEcosystemStatus!=='function'||
+        typeof api?.tarazAiProviderStatus!=='function'}
+        onClick={()=>void inspectEcosystem()}>
+        {ecosystemBusy?'در حال بررسی...':'وضعیت آفلاین، همگام‌سازی و AI'}</button>
+      {ecosystemStatus&&<p role="status">
+        عملیات دستی محلی: در دسترس با مجوز کاربر ·
+        {' '}انتقال مرجع مالی: هنوز مصوب نشده ·
+        {' '}همگام‌سازی سه‌محصولی: متصل نیست ·
+        {' '}AI: {ecosystemStatus.ai.availability} ·
+        {' '}RADAR: سورس/اتصال تأیید نشده
+      </p>}
+      {ecosystemError&&<p role="alert">{ecosystemError}</p>}
+    </div>
     {!ready&&<p className="taraz-orders-alert" role="alert">
       این نسخه میزبان هنوز قابلیت ذخیره سفارش مستقل را ندارد؛ نسخه جدید را اجرا کنید.
     </p>}

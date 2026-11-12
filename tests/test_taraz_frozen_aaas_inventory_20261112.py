@@ -18,6 +18,12 @@ PHASE_MODULES = {
                                "reconcile_uncertain"},
     "taraz_madar_order_sync": {"sync_order_to_madar",
                                "read_madar_order_stage_progress"},
+    "taraz_ecosystem_protocol": {"TrustedScope", "validate_envelope"},
+    "taraz_ecosystem_outbox": {"EcosystemOutbox", "enqueue",
+                                "reconcile_verified_receipt"},
+    "taraz_repository_contracts": {"TarazOrderReadRepository",
+                                   "VersionedReference", "read_reference"},
+    "taraz_ai_provider_status": {"provider_status"},
 }
 BRIDGE_API = {
     "tarazOrderFinanceDraft", "tarazAgentOrderReview",
@@ -26,6 +32,7 @@ BRIDGE_API = {
     "tarazMadarOrderSyncHistory", "tarazMadarOrderRecover",
     "tarazOrderMadarLink", "tarazOrderMadarLinkRead",
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
+    "tarazEcosystemStatus", "tarazAiProviderStatus",
 }
 
 

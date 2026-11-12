@@ -85,6 +85,45 @@ class TarazAPI(AccountingDesktopAPI):
         super().__init__(str(path))
         self._requires_migration = (path / "taraz-migration-manifest.json").exists()
 
+    def tarazEcosystemStatus(self):
+        """Authenticated, read-only truth about this local ecosystem boundary.
+
+        Do not claim a shared RADAR deployment, a central Cloud/finance lease,
+        working remote transport or an operational model from code presence.
+        No internet, mutable accounting call or LAN host side effect.
+        """
+        from taraz_ecosystem_protocol import SCHEMA_VERSION, EVENT_SCHEMAS
+        with self._lock:
+            self._require_authenticated()
+            return {
+                'schemaVersion': SCHEMA_VERSION,
+                'product': 'TARAZ',
+                'localCompanyDirectory': True,
+                'localManualBusinessFunctions': True,
+                'networkState': 'NOT_PROBED',
+                'centralFinancialAuthorityTransfer': 'OPEN_NOT_IMPLEMENTED',
+                'outbox': {
+                    'nonfinancialSchemaAvailable': True,
+                    'eventTypes': sorted(EVENT_SCHEMAS),
+                    'remoteSenderAvailable': False,
+                    'remoteReceiptTransportVerified': False,
+                },
+                'otherProducts': {
+                    'MADAR': 'REQUIRES_AUTHENTICATED_PINNED_HOST',
+                    'RADAR': 'SOURCE_NOT_VERIFIED',
+                },
+                'source': 'LOCAL_AUTHENTICATED_TARAZ',
+                'readOnly': True,
+                'financialEventCreated': False,
+            }
+
+    def tarazAiProviderStatus(self):
+        """AI status only; explicitly never invokes the model or a cloud API."""
+        from taraz_ai_provider_status import provider_status
+        with self._lock:
+            self._require_authenticated()
+            return provider_status()
+
     def tarazOrderList(self, offset=0, limit=50):
         """Read the operational order desk for the selected accounting company."""
         from taraz_order_store import TarazOrderStore

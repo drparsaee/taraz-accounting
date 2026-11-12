@@ -41,6 +41,9 @@ MANDATORY = {
     "taraz_order_store.py", "taraz_desktop.py", "standalone_accounting_desktop.py",
     "taraz_aaas_agent.py", "taraz_madar_order_link.py",
     "taraz_madar_order_sync.py",
+    "taraz_ecosystem_protocol.py", "taraz_ecosystem_outbox.py",
+    "taraz_repository_contracts.py",
+    "taraz_ai_provider_status.py",
     "taraz_llm_order_suggest.py", "taraz_llm_print_suggest.py",
     "src/taraz_order_workspace.jsx", "src/taraz_order_workspace.css",
     "src/accounting_invoice_wizard.jsx", "src/accounting_invoice_wizard.css",
@@ -58,6 +61,7 @@ REQUIRED_ORDER_API = {
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
     "tarazMadarOrderProgress",
     "tarazMadarOrderSyncHistory", "tarazMadarOrderRecover",
+    "tarazEcosystemStatus", "tarazAiProviderStatus",
 }
 REQUIRED_PYZ = {
     "taraz_order_store": {"TarazOrderStore", "list", "command", "get"},
@@ -69,6 +73,12 @@ REQUIRED_PYZ = {
     "taraz_madar_order_sync": {"sync_order_to_madar", "prepare_madar_order_state",
                                "extract_madar_order_stage_progress",
                                "read_madar_order_stage_progress"},
+    "taraz_ecosystem_protocol": {"TrustedScope", "validate_envelope"},
+    "taraz_ecosystem_outbox": {"EcosystemOutbox", "enqueue",
+                                "mark_possibly_sent", "reconcile_verified_receipt"},
+    "taraz_repository_contracts": {"TarazOrderReadRepository",
+                                   "VersionedReference", "read_reference"},
+    "taraz_ai_provider_status": {"provider_status"},
     "taraz_llm_order_suggest": {"suggest_order"},
     "taraz_llm_print_suggest": {"suggest_print_layout"},
     "standalone_accounting_template_store": {"save", "set_default", "duplicate"},
@@ -79,6 +89,7 @@ JS_WITNESSES = (b"tarazOrderList", b"tarazOrderCommand", b"tarazOrderSuggest", b
                 b"tarazAgentMemoryCommand", b"tarazAgentNaturalRequest",
                 b"tarazMadarOrderPreview", b"tarazMadarOrderProgress",
                 b"tarazMadarOrderSyncHistory", b"tarazMadarOrderRecover",
+                b"tarazEcosystemStatus", b"tarazAiProviderStatus",
                 b"sac-invoice-beginner", b"invoiceDesign")
 CSS_WITNESSES = (b".taraz-orders", b".sac-invoice-beginner-pane")
 BuildBlocked = legacy.BuildBlocked
@@ -529,6 +540,10 @@ def build(*, freeze_sha: str) -> Path:
              "--hidden-import", "taraz_aaas_agent",
              "--hidden-import", "taraz_madar_order_link",
              "--hidden-import", "taraz_madar_order_sync",
+             "--hidden-import", "taraz_ecosystem_protocol",
+             "--hidden-import", "taraz_ecosystem_outbox",
+             "--hidden-import", "taraz_repository_contracts",
+             "--hidden-import", "taraz_ai_provider_status",
              "--hidden-import", "taraz_llm_order_suggest",
              "--hidden-import", "taraz_llm_print_suggest",
              "--hidden-import", "taraz_madar_data_reader",
