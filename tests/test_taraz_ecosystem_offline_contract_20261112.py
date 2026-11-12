@@ -76,11 +76,13 @@ class OfflineInteropTests(unittest.TestCase):
         self.assertEqual(other_instance.list(company_id='COMPANY-A')['total'],1)
         self.assertEqual(other_instance.enqueue(
             packet,scope=self.scope,source_witness=self.witness),first)
-        other_instance.mark_possibly_sent(packet['eventId'],scope=self.scope)
+        other_instance.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                          source_witness=self.witness)
         self.assertEqual(other_instance.get(
             packet['eventId'],company_id='COMPANY-A')['state'],'OUTCOME_UNKNOWN')
         with self.assertRaises(SyncConflict):
-            other_instance.mark_possibly_sent(packet['eventId'],scope=self.scope)
+            other_instance.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                              source_witness=self.witness)
         receipt=VerifiedReceipt('COMPANY-A','MADAR',packet['eventId'],
                                 packet['sourceDigest'],'APPLIED','madar-revision-one')
         finished=other_instance.reconcile_verified_receipt(receipt,scope=self.scope)
@@ -106,7 +108,8 @@ class OfflineInteropTests(unittest.TestCase):
         self.assertEqual(self.store.list(company_id='COMPANY-B')['total'],0)
         self.assertFalse(EcosystemOutbox(self.other).path.exists())
         with self.assertRaises(SyncConflict):
-            self.store.mark_possibly_sent(packet['eventId'],scope=self.foreign)
+            self.store.mark_possibly_sent(packet['eventId'],scope=self.foreign,
+                                          source_witness=self.witness)
 
     def test_model_and_finance_payloads_are_refused_with_strict_schema(self):
         original=self.message()
@@ -168,14 +171,65 @@ class OfflineInteropTests(unittest.TestCase):
     def test_target_conflict_requires_human_review_no_last_write_wins(self):
         packet=self.message()
         self.store.enqueue(packet,scope=self.scope,source_witness=self.witness)
-        self.store.mark_possibly_sent(packet['eventId'],scope=self.scope)
+        self.store.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                      source_witness=self.witness)
         receipt=VerifiedReceipt('COMPANY-A','MADAR',packet['eventId'],
                                 packet['sourceDigest'],'CONFLICT','remote-stale')
         result=self.store.reconcile_verified_receipt(receipt,scope=self.scope)
         self.assertEqual(result['state'],'REVIEW_REQUIRED')
         with self.assertRaises(SyncConflict):
-            self.store.mark_possibly_sent(packet['eventId'],scope=self.scope)
+            self.store.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                          source_witness=self.witness)
         self.assertFalse(result['financialEventCreated'])
+
+    def test_dispatch_refuses_missing_witness_and_real_source_revision_change(self):
+        packet=self.message()
+        self.store.enqueue(packet,scope=self.scope,source_witness=self.witness)
+        with self.assertRaises(PermissionError):
+            self.store.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                          source_witness=None)
+        changed=dict(passport(),projectReference='QA-MADAR-NEW-PROJECT')
+        updated=TarazOrderStore(self.company).command({
+            'action':'update','idempotencyKey':secrets.token_hex(16),
+            'orderId':self.order['id'],'expectedRevision':1,
+            'data':changed,'nextStatus':None,'manualConfirmation':False,
+        },actor='qa-agent',role='editor')
+        self.assertEqual(updated['revision'],2)
+        with self.assertRaises(SyncConflict):
+            self.store.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                          source_witness=self.witness)
+        self.assertEqual(self.store.get(packet['eventId'],
+                         company_id='COMPANY-A')['state'],'PENDING')
+        # A later source revision must not silently overtake an unresolved one.
+        with self.assertRaises(SyncConflict):
+            self.store.enqueue(self.message(),scope=self.scope,
+                               source_witness=self.witness)
+        self.assertEqual(self.store.list(company_id='COMPANY-A')['total'],1)
+
+    def test_following_revision_can_stage_only_after_prior_acknowledgment(self):
+        first=self.message()
+        self.store.enqueue(first,scope=self.scope,source_witness=self.witness)
+        self.store.mark_possibly_sent(first['eventId'],scope=self.scope,
+                                      source_witness=self.witness)
+        changed=dict(passport(),projectReference='QA-MADAR-NEW-PROJECT')
+        update=TarazOrderStore(self.company).command({
+            'action':'update','idempotencyKey':secrets.token_hex(16),
+            'orderId':self.order['id'],'expectedRevision':1,
+            'data':changed,'nextStatus':None,'manualConfirmation':False,
+        },actor='qa-agent',role='editor')
+        self.assertEqual(update['revision'],2)
+        with self.assertRaises(SyncConflict):
+            self.store.enqueue(self.message(),scope=self.scope,
+                               source_witness=self.witness)
+        self.store.reconcile_verified_receipt(VerifiedReceipt(
+            'COMPANY-A','MADAR',first['eventId'],first['sourceDigest'],
+            'APPLIED','madar-revision-one'),scope=self.scope)
+        second=self.message()
+        staged=self.store.enqueue(second,scope=self.scope,
+                                  source_witness=self.witness)
+        self.assertEqual(staged['state'],'PENDING')
+        self.assertEqual(staged['source_revision'],2)
+        self.assertEqual(self.store.list(company_id='COMPANY-A')['total'],2)
 
     def test_many_concurrent_idempotent_retries_write_exactly_one(self):
         packet=self.message()
@@ -191,7 +245,8 @@ class OfflineInteropTests(unittest.TestCase):
     def test_crash_reopening_uncertain_without_network_auto_retry(self):
         packet=self.message()
         self.store.enqueue(packet,scope=self.scope,source_witness=self.witness)
-        self.store.mark_possibly_sent(packet['eventId'],scope=self.scope)
+        self.store.mark_possibly_sent(packet['eventId'],scope=self.scope,
+                                      source_witness=self.witness)
         recovered=EcosystemOutbox(self.company)
         snapshot=recovered.list(company_id='COMPANY-A')
         self.assertEqual(snapshot['entries'][0]['state'],'OUTCOME_UNKNOWN')

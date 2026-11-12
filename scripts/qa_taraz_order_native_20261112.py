@@ -116,6 +116,11 @@ JS = r'''(() => {
       !scope.querySelector('[aria-label="مبلغ پرداخت سفارش"]').disabled);
     fill(scope,'مبلغ پرداخت سفارش','500000');
     fill(scope,'روش پرداخت سفارش','bank-transfer');
+    // Backend revision can be visible before React clears its busy/dirty
+    // state. Require the actual action control to be enabled; never force it.
+    await until(()=>Array.from(scope.querySelectorAll('button')).some(button=>
+      button.textContent.trim()==='ثبت در پرونده سفارش (نه بانک)'&&
+      !button.disabled));
     click(scope,'ثبت در پرونده سفارش (نه بانک)');
     const pending=await waitRevision(4);
     if(pending.paymentBalance!==2500000||pending.payments?.[0]?.status!=='recorded')

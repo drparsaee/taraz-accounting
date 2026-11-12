@@ -157,12 +157,15 @@ class EcosystemOutbox:
                             (envelope['eventId'],)).fetchone()
             if same:
                 raise SyncConflict('Event ID reused with different idempotency key')
-            latest=db.execute('''SELECT MAX(source_revision) AS revision
+            latest=db.execute('''SELECT source_revision AS revision,state
                 FROM event_outbox WHERE company_id=? AND source_system=?
-                AND entity_type=? AND entity_id=?''',
+                AND entity_type=? AND entity_id=?
+                ORDER BY source_revision DESC LIMIT 1''',
                 (envelope['companyId'],envelope['sourceSystem'],
                  envelope['entityType'],envelope['entityId'])).fetchone()
-            if latest['revision'] is not None and (
+            if latest is not None and latest['state'] != 'ACKNOWLEDGED':
+                raise SyncConflict('Prior entity event is not remotely acknowledged')
+            if latest is not None and (
                 envelope['sourceRevision']!=latest['revision']+1):
                 raise SyncConflict('Stale/gapped entity event ordering requires review')
             stamp=_utc()
@@ -230,13 +233,28 @@ class EcosystemOutbox:
                     'financialEventCreated':False}
         finally:db.close()
 
-    def mark_possibly_sent(self,event_id,*,scope):
-        """Persist uncertain state BEFORE a permitted remote write, no retry."""
+    def mark_possibly_sent(self,event_id,*,scope,source_witness):
+        """Recheck source CAS before durable send intent; never auto-retry.
+
+        The caller must supply an independently backed source witness. This
+        does not remove the need for CAS at the destination: the source can
+        change immediately after this function returns.
+        """
         if type(scope) is not TrustedScope or scope.role!='admin':
             raise PermissionError('Only trusted admin transport may dispatch')
+        if not callable(source_witness):
+            raise PermissionError('Trusted source store witness is required at dispatch')
         db=self._open(True)
         try:
             db.execute('BEGIN IMMEDIATE')
+            current=db.execute('''SELECT source_revision,source_digest
+                FROM event_outbox WHERE event_id=? AND company_id=?
+                AND source_system=? AND state='PENDING' ''',
+                (event_id,scope.company_id,scope.source_system)).fetchone()
+            if current is None:
+                raise SyncConflict('Only never-sent event may start transmission')
+            if source_witness()!=(current['source_revision'],current['source_digest']):
+                raise SyncConflict('Source changed after staging, remote send refused')
             result=db.execute('''UPDATE event_outbox SET state='OUTCOME_UNKNOWN',
                 remote_may_have_changed=1,updated_utc=?
                 WHERE event_id=? AND company_id=? AND source_system=?

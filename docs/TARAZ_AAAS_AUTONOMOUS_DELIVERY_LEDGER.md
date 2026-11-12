@@ -400,3 +400,61 @@ full RADAR source/integration, real three-mode offline sync/finance authority,
 model-quality, independent product QA and physical printer requirements
 are resolved. Financial Authority/Fencing, conflict and RPO/RTO decisions
 are OPEN; DB2 does not start.
+
+## ECOSYSTEM PRIME continuation — 2026-11-12, CAS and second Frozen
+
+This section supersedes the older build identifier only for the changes
+described here; historical reports above remain intact.
+
+- Exact TARAZ branch at start: `codex/taraz-final-integration-20261112`, HEAD
+  `190e1c3c3a6bf604b4e8e9378145c11478335fe4`. No CoS worker spawned:
+  `agents(status)` returned null session identity. No destructive Git operation.
+- Outbox correction: `mark_possibly_sent` now demands a trustworthy independent
+  `source_witness` immediately before recording OUTCOME_UNKNOWN. Stale revision
+  or digest is blocked. New revisions of the same entity cannot overtake
+  earlier unacknowledged/unknown/conflicted events. The remote sender, inbox,
+  authenticated target receipt channel and Cloud reconciliation are STILL
+  not implemented. Receiver-side CAS remains essential.
+- Synthetic target tests: 18/18 PASS (Outbox/DB0-DB1/real temporary MADAR HTTPS);
+  expanded ecosystem plus old frozen archive assertions plus new exact PYZ
+  witness: **34/34 PASS**. No operational MADAR/financial DB was written.
+- Post-CAS source freeze: **145 runtime files**, SHA-256
+  `22f3add4ca853a2eee41ec14f9b18163ba48461ec0dd8f77f2c83afcf934a189`.
+  A second non-installed Frozen candidate was built with exit 0:
+  `build-65ee160b5e26`. Exact EXE SHA-256
+  `18d90e869d97194f1eda07d3b729d1dbbcd6f0321661d03cef651fe5e35471fd`;
+  ZIP SHA-256 `63056f774ec3487ea9c35c098d1ecb358cfe0e4586058ebb64ff2d26b0ac984e`;
+  manifest SHA-256
+  `ce4053f45fd7b749451c06a689e3491e008e317859f2a2d77ef439f62af7f1e0`.
+- Actual frozen PYZ includes both source-CAS refusal and earlier-revision
+  acknowledgment guards (1/1 test PASS). Direct *real frozen* private Win32
+  navigation: `PASS_NATIVE_THREE_SCREEN_NAVIGATION_VIEW_ONLY`, exit 0; protected
+  QA ledger unchanged, 1.0.4 installed baseline unchanged, no forced process
+  termination. Evidence:
+  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\cas-frozen-private-view-qa-20261112\qa-final-native-8fde1280e59f\native-gui-report.json`.
+  This is NOT a Frozen invoice Save/Edit/Reopen/PDF pass. CDP on the preceding
+  candidate was blocked and was not claimed fixed on this new candidate.
+- Regression observation: Python orders 59/59 and Edge orders 16/16 PASS;
+  an initial native source-hosted run failed at phase PAYMENT because the
+  test clicked before React finished clearing busy/dirty. The QA-only runner
+  was corrected to wait for the actual button enabled state (no forced click).
+  Re-executed the exact synthetic native order journey: `PASS_ORDER_NATIVE`,
+  SQLite readback and Agent memory readback true, no formal financial event.
+  PyWebView's protective Parsian PermissionErrors and temporary cleanup warning
+  remained visible; do not label them all-path success.
+- After the QA-only enabled-button wait correction, a complete new
+  `npm run test:orders:all` execution also exited **0**: Vite build 2060
+  modules, 59/59 Python, 16/16 Edge, and `PASS_ORDER_NATIVE` in isolated
+  source-hosted WebView2. It does not test the Frozen EXE save path.
+- RADAR's authoritative source remains unverified; a fresh read-only LocalForge
+  API search returned a connection error. No RADAR adapter was fabricated.
+- Subsequent P1 current-source regression: `node
+  scripts/run_taraz_p1_checks_20261112.mjs --native-current-source` exit 0;
+  34/34 Python, 11/11 Edge, `PASS_WEBVIEW2_REAL_BRIDGE_DRAFT` in a private
+  synthetic ledger. Invoice/proforma create, edit, reopen, custom print
+  template and native PDF (82,142 bytes) were verified with **zero** journal
+  events. Report explicitly states `sameCompiledUiAsFrozenExe=false`; this
+  cannot satisfy the Frozen operator workflow gate. Protective Parsian errors
+  appeared on stderr in the isolated QA profile.
+- Release remains **NOT READY FOR APPROVAL**. Installed Taraz, official books,
+  office MadarHost, LAN/Firewall and unrelated user worktrees were not changed.

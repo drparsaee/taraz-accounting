@@ -6,7 +6,7 @@ never substitutes for frozen/native/production acceptance.
 
 | # | User-required scenario | Status | Evidence and limitations |
 | --- | --- | --- | --- |
-| 1 | Frozen EXE invoice/create/edit/reopen/print | BLOCKED | New build-7f17dbf72519 is real and hash-attested, archive/code/UI 6/6 PASS, private real Frozen navigation view-only PASS; CDP flag observed but no listener. Direct Save/Edit/Reopen/PDF still NOT verified on this EXE |
+| 1 | Frozen EXE invoice/create/edit/reopen/print | BLOCKED | New build-65ee160b5e26 is real and hash-attested, exact embedded CAS code 1/1 PASS, private Frozen navigation view-only PASS; earlier CDP flag reached the WebView2 process but no listener. Direct Save/Edit/Reopen/PDF still NOT verified on this EXE |
 | 2 | Orders, actual costs, production conservation | VERIFIED PASS (isolated); Frozen BLOCKED | Repeated current runtime source 59/59 Python / 16/16 Edge, Native source-hosted PASS, separate raw SQLite five-axis QA |
 | 3 | Financial controls, permissions, no unintended posting | VERIFIED PASS (isolated source); live NOT TESTED | Disposable ledgers and draft-only handoffs; official Cloud/Local financial authority OPEN |
 | 4 | Agent with online AI | NOT TESTED | New online status checks make no cloud inference; no provider cost/model quality or actual data-consent proof |
@@ -15,7 +15,7 @@ never substitutes for frozen/native/production acceptance.
 | 7 | Full LAN without internet | BLOCKED ecosystem E2E; private loopback PASS | Real ephemeral MADAR HTTPS localhost and real TARAZ client with TLS pin/CAS; not external multi-client/host failover |
 | 8 | Full three-product integration | BLOCKED | Real private TARAZ–MADAR task sync, checklist and identity; RADAR source/API NOT FOUND |
 | 9 | Cloud loss and local business continuation | NOT TESTED E2E | Local stores work independently, but cloud/local authority switch is not implemented/approved |
-| 10 | Reconnection and duplicate-free reconciliation | VERIFIED PASS (isolated contract); Cloud E2E BLOCKED | Durable SQLite outbox: no blind resend, unknown-after-crash, typed receipt and conflict review |
+| 10 | Reconnection and duplicate-free reconciliation | VERIFIED PASS (isolated contract); Cloud E2E BLOCKED | Durable SQLite outbox: no blind resend, unknown-after-crash, typed receipt, conflict review, required source CAS recheck before dispatch, and no overtake by later unacknowledged entity revisions |
 | 11 | Tenant and permissions | VERIFIED PASS (isolated contracts); cross-product identity BLOCKED | Company-scope ACL and negative tests; no actual shared SSO |
 | 12 | Backup and restore | NOT TESTED ecosystem-wide | Existing Madar tests do not establish a cross-product RPO/RTO |
 | 13 | PostgreSQL parity | NOT TESTED | DB0 five real disposable SQLite schemas and DB1 order read contract; DB2 not authorized until ADR |

@@ -7,7 +7,7 @@ record, NOT an acceptance of deployed three-product interoperability.
 
 | Product | Verified location and Git | Evidence boundary |
 | --- | --- | --- |
-| TARAZ | D:\CoS-Test\000- Taraz\taraz-mtr-e2-isolated-20261109; branch codex/taraz-final-integration-20261112; feature Commit 47830f6 after base db22b9c | New uninstalled Frozen build-7f17dbf72519 structurally verified and real view-only smoke PASS; direct UI Save/Edit/PDF E2E remains BLOCKED |
+| TARAZ | D:\CoS-Test\000- Taraz\taraz-mtr-e2-isolated-20261109; branch codex/taraz-final-integration-20261112; integration HEAD 190e1c3 after base db22b9c | Later uninstalled Frozen build-65ee160b5e26 contains the CAS dispatch guard and passed real private view-only smoke; direct UI Save/Edit/PDF E2E remains BLOCKED |
 | MADAR Windows/LAN candidate | D:\CoS-Test\000- Madar\madar-mtr-v126-integration-20261110; detached HEAD 785a419af482f998154464a41df7770c9c9c87d4; 7 tracked modifications found | package version 1.0.26, real native LAN API, local file proposal bridge and Web API |
 | MADAR primary checkout | D:\CoS-Test\000- Madar\madar-desk; main c9aaf3e4a9cd7653a620d3671ffc58f546c3d17e; 10 tracked modifications | Separate older main snapshot; never overwrite without provenance reconciliation |
 | MADAR PWA | D:\CoS-Test\000- Madar\madar-web-pwa-20261106; feat/madar-web-pwa-20261106 d48c09450251c2c74aea64a26f20bcebb4ae1e; 12 tracked modifications | Separate IndexedDB/offline browser experiment, NOT proof of production offline sync |
@@ -66,6 +66,11 @@ or RADAR interoperability.
    BEGIN IMMEDIATE, durable event/receipt tables, idempotency, ordering and
    cross-company rejection. A possible remote send is persisted as
    OUTCOME_UNKNOWN BEFORE network I/O, and never retried automatically.
+   Post-staging dispatch now requires a fresh authoritative source witness;
+   changed Revision/Digest refuses dispatch. A newer event for the same source
+   entity cannot overtake an earlier unacknowledged/uncertain/conflicted one.
+   Destination CAS is still mandatory because the source may change after
+   dispatch begins. These changes do not create a remote transport.
    It has NO remote sender, no RADAR recipient and no verified transport.
    VerifiedReceipt is an internal trust-contract type, not authentication.
 3. taraz_repository_contracts.py: read-only DB1 adapter for the EXISTING
