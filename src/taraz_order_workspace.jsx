@@ -217,6 +217,7 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
   const [madarLinkError,setMadarLinkError]=useState('');
   const [madarSyncPreview,setMadarSyncPreview]=useState(null);
   const [madarProgress,setMadarProgress]=useState(null);
+  const [madarSyncHistory,setMadarSyncHistory]=useState(null);
   const [madarSyncBusy,setMadarSyncBusy]=useState(false);
   const [madarSyncNotice,setMadarSyncNotice]=useState('');
   const [madarSyncError,setMadarSyncError]=useState('');
@@ -250,6 +251,7 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
     setForm(prev=>({...prev,[field]:value}));setDirty(true);
     setMadarSyncPreview(null);
     setMadarProgress(null);
+    setMadarSyncHistory(null);
     if(field==='projectReference'){
       setMadarBound(null);setMadarLinkStatus(null);setMadarSyncPreview(null);
     }
@@ -260,6 +262,7 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
     setMadarPage(null);setMadarSelectedId('');setMadarError('');setMadarBusy(false);
     setMadarSyncPreview(null);setMadarSyncError('');
     setMadarProgress(null);
+    setMadarSyncHistory(null);
   };
   const readMadarProjects=async(offset=0)=>{
     if(!madarConsent||madarBusy||!canEdit||!canAdmin||
@@ -419,6 +422,45 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
       setMadarSyncError('وضعیت قابل‌اعتماد مراحل دریافت نشد؛ مجوز، اتصال و پیوند را بررسی کنید.');
     }finally{if(live.current)setMadarSyncBusy(false);}
   };
+  const loadMadarSyncHistory=async()=>{
+    if(!active||!canAdmin||
+      typeof api?.tarazMadarOrderSyncHistory!=='function')return;
+    try{
+      const result=await api.tarazMadarOrderSyncHistory(active.id);
+      if(result?.orderId!==active.id||result.readOnly!==true||
+        result.financialEventCreated!==false||
+        !Array.isArray(result.entries)||result.entries.length>30)
+        throw Error('Untrusted Madar local sync history');
+      if(live.current)setMadarSyncHistory(result);
+    }catch(_error){
+      if(live.current)setMadarSyncHistory(null);
+    }
+  };
+  const recoverMadarSync=async()=>{
+    if(!active||busy||dirty||madarSyncBusy||!madarConsent||
+      !canAdmin||madarLinkStatus?.link?.project_id!==active.projectReference||
+      typeof api?.tarazMadarOrderRecover!=='function')return;
+    setMadarSyncBusy(true);setMadarSyncError('');setMadarSyncNotice('');
+    setMadarSyncPreview(null);setMadarProgress(null);
+    try{
+      const result=await api.tarazMadarOrderRecover(
+        active.id,active.projectReference,{...madarCredentials},true);
+      if(result?.orderId!==active.id||
+        result.orderRevision!==active.revision||
+        result.wroteMadarState!==false||
+        result.financialEventCreated!==false||
+        !['RECOVERED_CONFIRMED','REVIEW_REQUIRED'].includes(result.status))
+        throw Error('Untrusted sync recovery result');
+      setMadarSyncNotice(result.status==='RECOVERED_CONFIRMED'?
+        'وظیفهٔ همان نسخهٔ سفارش در مدار مشاهده شد؛ بدون ارسال مجدد، نتیجهٔ نامشخص بازیابی شد.':
+        'وظیفه در مدار یافت نشد. هیچ ارسال خودکاری انجام نمی‌شود؛ پیش‌نمایش جدید و تأیید مستقل لازم است.');
+    }catch(_error){
+      setMadarSyncError('بازیابی وضعیت تأیید نشد. اتصال و گواهی میزبان را بررسی کنید؛ نوشتن دوباره خودکار ممنوع است.');
+    }finally{
+      if(live.current)setMadarSyncBusy(false);
+      void loadMadarSyncHistory();
+    }
+  };
   const commitMadarOrderSync=async()=>{
     const candidate=madarSyncPreview;
     if(!candidate||!active||busy||dirty||madarSyncBusy||madarLinkBusy||
@@ -454,7 +496,10 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
     }catch(_error){
       setMadarSyncPreview(null);
       setMadarSyncError('نتیجه نوشتن در مدار ممکن است نامشخص باشد. پیش از هر تکرار، وضعیت میزبان را دوباره بخوانید.');
-    }finally{if(live.current)setMadarSyncBusy(false);}
+    }finally{
+      if(live.current)setMadarSyncBusy(false);
+      void loadMadarSyncHistory();
+    }
   };
   const stageUpdate=(index,field,value)=>{
     setForm(prev=>({...prev,costStages:prev.costStages.map((s,i)=>
@@ -464,6 +509,7 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
   const applyRequestHints=()=>{
     if(!requestHints?.fields)return;
     setMadarBound(null);
+    setMadarSyncHistory(null);
     setMadarLinkStatus(null);setMadarLinkError('');
     setMadarSyncPreview(null);setMadarSyncNotice('');setMadarSyncError('');
     setForm(prev=>{
@@ -1104,6 +1150,27 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
                       typeof api?.tarazMadarOrderProgress!=='function'}
                       onClick={()=>void readMadarStageProgress()}>
                       بازخوانی وضعیت واقعی مراحل از مدار (فقط خواندن)</button>
+                    <button type="button" disabled={madarSyncBusy||busy||
+                      typeof api?.tarazMadarOrderSyncHistory!=='function'}
+                      onClick={()=>void loadMadarSyncHistory()}>
+                      تاریخچهٔ تلاش‌های همگام‌سازی (محلی)</button>
+                    <button type="button" disabled={madarSyncBusy||busy||dirty||
+                      !madarConsent||madarLinkBusy||
+                      typeof api?.tarazMadarOrderRecover!=='function'}
+                      onClick={()=>void recoverMadarSync()}>
+                      بازیابی نتیجهٔ نامشخص از مدار (بدون ارسال مجدد)</button>
+                    {madarSyncHistory?.orderId===active.id&&
+                      <div className="taraz-orders-madar-sync-preview" role="status">
+                        <strong>تاریخچهٔ معتبر همگام‌سازی</strong>
+                        {madarSyncHistory.entries.length===0?<p>
+                          برای این سفارش هنوز تلاش ثبت‌شده‌ای وجود ندارد.</p>:
+                          madarSyncHistory.entries.slice(0,10).map(entry=><p
+                            key={entry.attempt_id}>
+                            Revision {entry.order_revision} · {entry.status}
+                            {entry.remote_write_attempted?' · احتمال ارسال به میزبان':' · بدون ارسال'}
+                            {entry.error_type?' · نوع خطا: '+entry.error_type:''}
+                          </p>)}
+                      </div>}
                     {madarProgress?.orderId===active.id&&
                       madarProgress.orderRevision===active.revision&&
                       <div className="taraz-orders-madar-sync-preview" role="status">

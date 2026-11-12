@@ -36,6 +36,7 @@ window.madar = Object.fromEntries(
    'tarazOrderMadarLinkRead', 'tarazOrderMadarLink',
    'tarazMadarOrderPreview', 'tarazMadarOrderCommit',
    'tarazMadarOrderProgress',
+   'tarazMadarOrderSyncHistory', 'tarazMadarOrderRecover',
    'tarazOrderSuggest',
    'tarazPrintSuggest',
    'standaloneAccountingTemplateList', 'standaloneAccountingTemplateSave',

@@ -253,7 +253,7 @@ def _write_pinned_state(host, port, pin, token, state, revision):
 
 def sync_order_to_madar(*, order, project_id, connection, reviewed_revision,
                         preview_digest, manual_confirmation=False, dry_run=True,
-                        source_store=None):
+                        source_store=None, before_remote_write=None):
     """On-demand verified Madar sync. Real mutation requires admin review.
 
     The host POST is made only after the human reviewed exact order/project and
@@ -308,6 +308,12 @@ def sync_order_to_madar(*, order, project_id, connection, reviewed_revision,
     fresh=source_store.get(order['id'])
     if fresh['revision']!=order['revision'] or _source_digest(fresh)!=_source_digest(order):
         raise MadarReadError('Taraz order changed before Madar write')
+    if before_remote_write is not None:
+        if not callable(before_remote_write):
+            raise MadarReadError('Invalid durable sync audit callback')
+        # This must persist a local TRANSMITTING marker BEFORE the HTTPS POST.
+        # Its failure prevents the POST rather than silently losing audit.
+        before_remote_write()
     response=_write_pinned_state(host,port,pin,token,candidate,revision)
     returned,after_who,after_revision=_validate_host_result(login,response)
     match=[t for t in returned['tasks'] if t.get('id')==task['id']]

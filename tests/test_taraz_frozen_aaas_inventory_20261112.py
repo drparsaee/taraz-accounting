@@ -14,7 +14,8 @@ PHASE_MODULES = {
     "taraz_order_store": {"get"},
     "taraz_aaas_agent": {"CompanyAgentMemory", "review_order_tools",
                          "interpret_natural_order_request"},
-    "taraz_madar_order_link": {"MadarOrderLinkStore", "bind"},
+    "taraz_madar_order_link": {"MadarOrderLinkStore", "bind",
+                               "reconcile_uncertain"},
     "taraz_madar_order_sync": {"sync_order_to_madar",
                                "read_madar_order_stage_progress"},
 }
@@ -22,6 +23,7 @@ BRIDGE_API = {
     "tarazOrderFinanceDraft", "tarazAgentOrderReview",
     "tarazAgentMemoryList", "tarazAgentMemoryCommand",
     "tarazAgentNaturalRequest", "tarazMadarOrderProgress",
+    "tarazMadarOrderSyncHistory", "tarazMadarOrderRecover",
     "tarazOrderMadarLink", "tarazOrderMadarLinkRead",
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
 }

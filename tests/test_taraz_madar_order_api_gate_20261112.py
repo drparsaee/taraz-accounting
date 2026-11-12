@@ -151,6 +151,75 @@ class MadarOperationalApiGateTests(unittest.TestCase):
         self.assertEqual(json.dumps(state,sort_keys=True,ensure_ascii=False),before)
         self.assertEqual(self.store.get(self.order['id'])['revision'],1)
 
+    def test_unknown_remote_write_is_logged_then_recovered_by_pinned_read_only(self):
+        """A lost acknowledgement can NEVER trigger an automatic second POST."""
+        self.bind_project()
+        preview=self.preview()
+        with patch.object(sync,'_pinned_json',side_effect=self.packets()), patch.object(
+                sync,'_write_pinned_state',side_effect=ConnectionResetError(
+                    'synthetic lost acknowledgement')) as writes:
+            with self.assertRaises(ConnectionResetError):
+                self.api.tarazMadarOrderCommit(self.payload(preview),self.conn)
+            self.assertEqual(writes.call_count,1)
+        history=self.api.tarazMadarOrderSyncHistory(self.order['id'])
+        self.assertTrue(history['readOnly'])
+        self.assertFalse(history['financialEventCreated'])
+        self.assertEqual(len(history['entries']),1)
+        attempt=history['entries'][0]
+        self.assertEqual(attempt['status'],'OUTCOME_UNKNOWN')
+        self.assertTrue(attempt['remote_write_attempted'])
+        self.assertEqual(attempt['error_type'],'ConnectionResetError')
+        self.assertNotIn(self.conn['password'],str(history))
+        self.assertNotIn(self.conn['fingerprint'],str(history))
+        # Model a state where host committed but its response was lost. No
+        # further network write is permitted during explicit recovery.
+        committed,_,_=sync.prepare_madar_order_state(
+            self.madar,order=self.order,project_id='test-p1')
+        with patch.object(sync,'_pinned_json',
+                          side_effect=self.packets(committed)) as reads, patch.object(
+                              sync,'_write_pinned_state') as new_write:
+            recovered=self.api.tarazMadarOrderRecover(
+                self.order['id'],'test-p1',self.conn,True)
+            self.assertEqual(reads.call_count,2)
+            new_write.assert_not_called()
+        self.assertEqual(recovered['status'],'RECOVERED_CONFIRMED')
+        self.assertTrue(recovered['priorUnknownResolved'])
+        self.assertFalse(recovered['wroteMadarState'])
+        self.assertEqual(self.api.tarazMadarOrderSyncHistory(
+            self.order['id'])['entries'][0]['status'],'RECOVERED_CONFIRMED')
+        self.assertEqual(self.store.get(self.order['id'])['revision'],1)
+
+    def test_uncertain_write_followed_by_absent_task_requires_fresh_human_preview(self):
+        self.bind_project()
+        preview=self.preview()
+        with patch.object(sync,'_pinned_json',side_effect=self.packets()), patch.object(
+                sync,'_write_pinned_state',side_effect=TimeoutError('QA')):
+            with self.assertRaises(TimeoutError):
+                self.api.tarazMadarOrderCommit(self.payload(preview),self.conn)
+        with patch.object(sync,'_pinned_json',side_effect=self.packets()), patch.object(
+                sync,'_write_pinned_state') as no_post:
+            recovered=self.api.tarazMadarOrderRecover(
+                self.order['id'],'test-p1',self.conn,True)
+            no_post.assert_not_called()
+        self.assertEqual(recovered['status'],'REVIEW_REQUIRED')
+        self.assertTrue(recovered['requiresNewHumanReview'])
+        self.assertEqual(self.api.tarazMadarOrderSyncHistory(
+            self.order['id'])['entries'][0]['status'],'REVIEW_REQUIRED')
+
+    def test_stale_review_writes_nothing_and_persists_audit_rejection(self):
+        self.bind_project()
+        preview=self.preview()
+        state=json.loads(json.dumps(self.madar))
+        state['settings']['theme']='changed-after-preview'
+        with patch.object(sync,'_pinned_json',side_effect=self.packets(state)), patch.object(
+                sync,'_write_pinned_state') as no_post:
+            with self.assertRaises(Exception):
+                self.api.tarazMadarOrderCommit(self.payload(preview),self.conn)
+            no_post.assert_not_called()
+        history=self.api.tarazMadarOrderSyncHistory(self.order['id'])
+        self.assertEqual(history['entries'][0]['status'],'REJECTED')
+        self.assertFalse(history['entries'][0]['remote_write_attempted'])
+
     def test_no_link_confirmation_or_stale_host_never_posts(self):
         with patch.object(sync,"_pinned_json") as host, patch.object(
                 sync,"_write_pinned_state") as writer:

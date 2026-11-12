@@ -315,7 +315,8 @@ class TarazAPI(AccountingDesktopAPI):
             order=store.get(request['orderId'])
             if request['expectedOrderRevision']!=order['revision']:
                 raise OrderConflict('Taraz order revision changed before Madar sync')
-            linked=MadarOrderLinkStore(self.path.parent).read(request['orderId'])
+            link_store=MadarOrderLinkStore(self.path.parent)
+            linked=link_store.read(request['orderId'])
             witness=linked.get('link') or {}
             if (order.get('projectReference')!=request['projectId'] or
                 witness.get('project_id')!=request['projectId'] or
@@ -323,11 +324,75 @@ class TarazAPI(AccountingDesktopAPI):
                 witness.get('tls_fingerprint')!=str(
                     connection.get('fingerprint','')).lower()):
                 raise PermissionError('Verified current Madar project link required')
-            return sync_order_to_madar(
-                order=order,project_id=request['projectId'],connection=connection,
-                reviewed_revision=request['expectedMadarRevision'],
+            attempt=link_store.begin_sync_attempt(
+                order_id=order['id'],order_revision=order['revision'],
+                project_id=request['projectId'],actor=self._actor,
                 preview_digest=request['previewDigest'],
-                manual_confirmation=True,dry_run=False,source_store=store)
+                host_revision=request['expectedMadarRevision'])
+            transmission_started=False
+            def record_possible_write():
+                nonlocal transmission_started
+                link_store.mark_sync_transmitting(attempt)
+                transmission_started=True
+            try:
+                result=sync_order_to_madar(
+                    order=order,project_id=request['projectId'],
+                    connection=connection,
+                    reviewed_revision=request['expectedMadarRevision'],
+                    preview_digest=request['previewDigest'],
+                    manual_confirmation=True,dry_run=False,source_store=store,
+                    before_remote_write=record_possible_write)
+            except BaseException as exc:
+                # Only error *type* is persisted, never host response, token,
+                # PIN, password, project payload or finance content.
+                link_store.finish_sync_attempt(
+                    attempt,status=('OUTCOME_UNKNOWN' if
+                        transmission_started else 'REJECTED'),
+                    error_type=type(exc).__name__)
+                raise
+            link_store.finish_sync_attempt(
+                attempt,status=('SYNCHRONIZED' if
+                    result['wroteMadarState'] else 'ALREADY_SYNCED'))
+            return result
+
+    def tarazMadarOrderSyncHistory(self, orderId):
+        """Company-scoped, read-only durable synchronization audit."""
+        from taraz_order_store import TarazOrderStore
+        from taraz_madar_order_link import MadarOrderLinkStore
+        with self._lock:
+            who=self._require_authenticated('admin')
+            if who.get('role')!='admin':
+                raise PermissionError('Taraz administrator required')
+            TarazOrderStore(self.path.parent).get(orderId)
+            return {'orderId':orderId,
+                    **MadarOrderLinkStore(self.path.parent).sync_history(orderId)}
+
+    def tarazMadarOrderRecover(self, orderId, projectId, connection,
+                              explicitConsent=False):
+        """Read-only host reconciliation; NEVER re-POST or auto-retry a task."""
+        from taraz_madar_order_link import MadarOrderLinkStore
+        if explicitConsent is not True:
+            raise PermissionError('Explicit Madar recovery read consent required')
+        with self._lock:
+            self._require_authenticated('admin')
+            preview=self.tarazMadarOrderPreview(
+                orderId,projectId,connection,explicitConsent=True)
+            if preview.get('status') not in ('ALREADY_SYNCED','PREVIEW_ONLY'):
+                raise ValueError('Unrecognized host reconciliation outcome')
+            # Never derive current source revision from a truncated list.
+            from taraz_order_store import TarazOrderStore
+            order=TarazOrderStore(self.path.parent).get(orderId)
+            outcome=('RECOVERED_CONFIRMED' if
+                preview['status']=='ALREADY_SYNCED' else 'REVIEW_REQUIRED')
+            history=MadarOrderLinkStore(self.path.parent)
+            settled=history.reconcile_uncertain(
+                order_id=orderId,order_revision=order['revision'],
+                project_id=projectId,status=outcome)
+            return {'status':outcome,'priorUnknownResolved':settled,
+                    'taskId':preview['taskId'],'orderId':orderId,
+                    'orderRevision':order['revision'],
+                    'wroteMadarState':False,'financialEventCreated':False,
+                    'requiresNewHumanReview':outcome=='REVIEW_REQUIRED'}
 
     def tarazOrderMadarLinkRead(self, orderId):
         """Read Taraz-stored verification, not a claim of live Madar membership."""

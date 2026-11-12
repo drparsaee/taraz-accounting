@@ -57,12 +57,15 @@ REQUIRED_ORDER_API = {
     "tarazAgentMemoryCommand", "tarazOrderMadarLinkRead", "tarazOrderMadarLink",
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
     "tarazMadarOrderProgress",
+    "tarazMadarOrderSyncHistory", "tarazMadarOrderRecover",
 }
 REQUIRED_PYZ = {
     "taraz_order_store": {"TarazOrderStore", "list", "command", "get"},
     "taraz_aaas_agent": {"CompanyAgentMemory", "review_order_tools",
                          "interpret_natural_order_request", "list", "command"},
-    "taraz_madar_order_link": {"MadarOrderLinkStore", "read", "bind"},
+    "taraz_madar_order_link": {"MadarOrderLinkStore", "read", "bind",
+                               "begin_sync_attempt", "mark_sync_transmitting",
+                               "finish_sync_attempt", "reconcile_uncertain"},
     "taraz_madar_order_sync": {"sync_order_to_madar", "prepare_madar_order_state",
                                "extract_madar_order_stage_progress",
                                "read_madar_order_stage_progress"},
@@ -75,6 +78,7 @@ JS_WITNESSES = (b"tarazOrderList", b"tarazOrderCommand", b"tarazOrderSuggest", b
                 b"tarazOrderFinanceDraft", b"tarazAgentOrderReview",
                 b"tarazAgentMemoryCommand", b"tarazAgentNaturalRequest",
                 b"tarazMadarOrderPreview", b"tarazMadarOrderProgress",
+                b"tarazMadarOrderSyncHistory", b"tarazMadarOrderRecover",
                 b"sac-invoice-beginner", b"invoiceDesign")
 CSS_WITNESSES = (b".taraz-orders", b".sac-invoice-beginner-pane")
 BuildBlocked = legacy.BuildBlocked

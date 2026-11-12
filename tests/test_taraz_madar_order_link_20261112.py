@@ -2,6 +2,7 @@
 import hashlib
 import json
 import secrets
+import sqlite3
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -123,6 +124,40 @@ class MadarOrderAssociationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.api.tarazOrderMadarLink(self.req())
         self.assertEqual(self.links.read(row["id"])["link"]["revision"],1)
+
+    def test_crashed_transmitting_attempt_reconciles_without_remote_write(self):
+        """Crash after durable pre-POST marker: never guess no write happened."""
+        identifier=self.links.begin_sync_attempt(
+            order_id=self.order['id'],order_revision=1,
+            project_id='MADAR-QA-1',actor='qa-admin',
+            preview_digest='b'*64,host_revision='c'*64)
+        self.links.mark_sync_transmitting(identifier)
+        initial=self.links.sync_history(self.order['id'])
+        self.assertEqual(initial['entries'][0]['status'],'TRANSMITTING')
+        self.assertTrue(initial['entries'][0]['remote_write_attempted'])
+        self.assertTrue(self.links.reconcile_uncertain(
+            order_id=self.order['id'],order_revision=1,
+            project_id='MADAR-QA-1',status='REVIEW_REQUIRED'))
+        recovered=MadarOrderLinkStore(self.root).sync_history(self.order['id'])
+        self.assertEqual(recovered['entries'][0]['status'],'REVIEW_REQUIRED')
+        self.assertFalse(self.links.reconcile_uncertain(
+            order_id=self.order['id'],order_revision=1,
+            project_id='MADAR-QA-1',status='RECOVERED_CONFIRMED'))
+
+    def test_preupgrade_read_has_no_schema_migration_and_read_is_nondestructive(self):
+        connection=sqlite3.connect(self.links.path)
+        try:
+            connection.execute('CREATE TABLE links(order_id TEXT PRIMARY KEY)')
+            connection.execute('PRAGMA user_version=1')
+            connection.commit()
+        finally:
+            connection.close()
+        before=hashlib.sha256(self.links.path.read_bytes()).hexdigest()
+        result=self.links.sync_history(self.order['id'])
+        self.assertEqual(result['entries'],[])
+        self.assertTrue(result['readOnly'])
+        self.assertEqual(hashlib.sha256(self.links.path.read_bytes()).hexdigest(),
+                         before)
 
 if __name__=="__main__":
     unittest.main()
