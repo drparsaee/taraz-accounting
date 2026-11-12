@@ -12,10 +12,10 @@ if str(ROOT) not in sys.path:
 
 from scripts import qa_taraz_v106_finalfix_native_gui_20261112 as qa
 
-qa.BUILD = qa.ARTIFACTS / "build-69285b6c27de"
+qa.BUILD = qa.ARTIFACTS / "build-8498c703dc4d"
 qa.EXE = qa.BUILD / "binary" / "Taraz.exe"
-qa.SOURCE_SHA = "0c1938319cf7ef1c1fef0ee4b323acc50fabce15fd6791f9267cd37e3f3a76e9"
-qa.EXE_SHA = "a053a7390474f642494537f2292a1a18b637f376f4b5c4962651c806ef58d91c"
+qa.SOURCE_SHA = "1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f"
+qa.EXE_SHA = "3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4"
 qa.RESULTS = qa.ARTIFACTS / "current-aaas-frozen-view-qa-20261112"
 
 if __name__ == "__main__":

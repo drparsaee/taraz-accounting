@@ -193,18 +193,20 @@ historical evidence, never as current acceptance claims.
 See `docs/TARAZ_PRIME_FINAL_INTEGRATION_QA_20261112.md` for exact commands,
 trust boundaries, five independent QA axes, evidence and blockers.
 
-- Integration branch `codex/taraz-final-integration-20261112`; three scoped
-  commits `e658702`, `60e0390`, `f064609`, tracked source/index clean.
+- Integration branch `codex/taraz-final-integration-20261112`; five scoped
+  commits `e658702`, `60e0390`, `f064609`, `ec0ced7`, `bcef425`.
+  Runtime source tracked, clean and frozen with exact SHA.
 - All 141 runtime files tracked, current source freeze
-  `0c1938319cf7ef1c1fef0ee4b323acc50fabce15fd6791f9267cd37e3f3a76e9`.
-- **Current uninstalled build** `build-69285b6c27de`: EXE SHA-256
-  `a053a7390474f642494537f2292a1a18b637f376f4b5c4962651c806ef58d91c`,
-  ZIP SHA-256 `ae7cd92dbf5f405eec2a886b13021890b023501a91e1adef8fa8c79c88a9f3c4`.
+  `1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f`.
+- **Current uninstalled build** `build-8498c703dc4d`: EXE SHA-256
+  `3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4`,
+  ZIP SHA-256 `9f8039c50f094f446856d2a69d26f2a59bf204c27500002df8f1304a8d9edebc`.
   Independent binary structure 3/3 PASS; real frozen GUI **view-only** PASS.
 - Independent five-case QA fresh disposable SQLite **5/5 PASS** (including
   independent raw SQLite readback); separate MTR tests **135/135 PASS**.
-  P1 source-hosted WebView2 and Phase4 source/Edge tests also PASS within
-  their respective boundaries, but are **not frozen EXE acceptance**.
+  Current-order suite **59/59 Python**, **16/16 Edge**, Native Source-hosted
+  PASS; P1 source-hosted WebView2 **34/34 Python**, **11/11 Edge**, Native
+  PASS. These remain **not frozen EXE acceptance**.
 - Frozen CDP native process receives the expected flag but no listening
   debugger endpoint. Its QA window exited gracefully; installed 1.0.4 and
   cloned ledger remained unchanged. Gate A **BLOCKED**.
@@ -212,6 +214,9 @@ trust boundaries, five independent QA axes, evidence and blockers.
   failed closed on two operational synthetic prompts; rule-based
   request/memory flow works but AaaS model Gate C **BLOCKED**.
 - Madar project/stage guarded contract and manual-edit no-clobber tested;
+  durable sync attempt audit, failed/stale pre-POST refusal, lost-ack
+  `OUTCOME_UNKNOWN`, crash `TRANSMITTING` and authenticated read-only
+  recovery tested with **no automatic repeat POST** (20/20 isolated tests);
   no real authorized MadarHost present for E2E. Gate D **BLOCKED**.
 - PDF source path tested; only virtual printer devices found, no physical
   output proven. Real frozen print dialogue and hardware remain open.

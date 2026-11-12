@@ -25,10 +25,10 @@ from scripts import qa_taraz_v106_finalfix_native_gui_20261112 as pinned
 from scripts import qa_taraz_v103_native_gui_20261111 as native
 from scripts import qa_taraz_v101_upgrade_acceptance_20261110 as acl
 
-BUILD = pinned.ARTIFACTS / 'build-69285b6c27de'
+BUILD = pinned.ARTIFACTS / 'build-8498c703dc4d'
 EXE = BUILD / 'binary' / 'Taraz.exe'
-EXE_SHA = 'a053a7390474f642494537f2292a1a18b637f376f4b5c4962651c806ef58d91c'
-SOURCE_SHA = '0c1938319cf7ef1c1fef0ee4b323acc50fabce15fd6791f9267cd37e3f3a76e9'
+EXE_SHA = '3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4'
+SOURCE_SHA = '1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f'
 OUTPUT = pinned.ARTIFACTS / 'frozen-aaas-cdp-private-qa-20261112'
 
 CDP_PROBE = r'''

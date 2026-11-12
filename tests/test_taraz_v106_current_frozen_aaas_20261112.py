@@ -16,15 +16,16 @@ from PyInstaller.archive.readers import CArchiveReader
 
 
 BUILD = Path("D:/CoS-Test/MTR-NEXT-UPDATE-CANDIDATES-20261110/"
-             "taraz-v1.0.6-aaas/build-69285b6c27de")
-EXPECTED_EXE = "a053a7390474f642494537f2292a1a18b637f376f4b5c4962651c806ef58d91c"
-EXPECTED_SOURCE = "0c1938319cf7ef1c1fef0ee4b323acc50fabce15fd6791f9267cd37e3f3a76e9"
-EXPECTED_ZIP = "ae7cd92dbf5f405eec2a886b13021890b023501a91e1adef8fa8c79c88a9f3c4"
+             "taraz-v1.0.6-aaas/build-8498c703dc4d")
+EXPECTED_EXE = "3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4"
+EXPECTED_SOURCE = "1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f"
+EXPECTED_ZIP = "9f8039c50f094f446856d2a69d26f2a59bf204c27500002df8f1304a8d9edebc"
 MODULES = {
     "taraz_order_store": {"TarazOrderStore", "get", "command"},
     "taraz_aaas_agent": {"CompanyAgentMemory", "review_order_tools",
                           "interpret_natural_order_request", "command"},
-    "taraz_madar_order_link": {"MadarOrderLinkStore", "read", "bind"},
+    "taraz_madar_order_link": {"MadarOrderLinkStore", "read", "bind",
+                               "reconcile_uncertain","mark_sync_transmitting"},
     "taraz_madar_order_sync": {"sync_order_to_madar",
                                "prepare_madar_order_state",
                                "read_madar_order_stage_progress"},
@@ -33,7 +34,8 @@ EXE_APIS = {
     "tarazOrderFinanceDraft", "tarazAgentOrderReview", "tarazAgentMemoryList",
     "tarazAgentMemoryCommand", "tarazAgentNaturalRequest",
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
-    "tarazMadarOrderProgress",
+    "tarazMadarOrderProgress", "tarazMadarOrderSyncHistory",
+    "tarazMadarOrderRecover",
 }
 
 

@@ -10,23 +10,26 @@ post, remote Madar production write, global input, or release promotion occurred
 - Branch: `codex/taraz-final-integration-20261112`
 - Baseline HEAD before integration: `653089bb99747ab1c909cfdb113d2d12bc36e47a`.
 - Scoped commits: `e658702` (invoices/print), `60e0390`
-  (orders/Agent/Madar), `f064609` (MTR authority/peer integration).
+  (orders/Agent/Madar), `f064609` (MTR authority/peer integration),
+  `ec0ced7` (independent QA and reproducible evidence), `bcef425`
+  (durable Madar attempt log and read-only lost-acknowledgement recovery).
 - All **141** runtime source inventory paths are tracked in Git. Tracked
-  working tree and index were verified clean following the three commits.
+  working tree and index were verified clean following the integration commits.
   Historical untracked files were deliberately preserved, not staged globally.
-- Source fingerprint: `0c1938319cf7ef1c1fef0ee4b323acc50fabce15fd6791f9267cd37e3f3a76e9`
+- Source fingerprint: `1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f`
   (rechecked after integration, identical to build source freeze).
 - Uninstalled candidate:
-  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\build-69285b6c27de`.
+  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\build-8498c703dc4d`.
 - EXE SHA-256:
-  `a053a7390474f642494537f2292a1a18b637f376f4b5c4962651c806ef58d91c`.
+  `3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4`.
 - ZIP SHA-256:
-  `ae7cd92dbf5f405eec2a886b13021890b023501a91e1adef8fa8c79c88a9f3c4`.
+  `9f8039c50f094f446856d2a69d26f2a59bf204c27500002df8f1304a8d9edebc`.
 - Manifest SHA-256:
-  `207ec66fc1ba2a2867a7a45fae1fe21dd30ad361816afaa7f1ca19e133f462da`.
-- Build was produced before committing the same tracked source content. Thus
-  source SHA parity is proven, but claiming the build command was executed from
-  the final Git commit would be false.
+  `a11cd4691545cf615be4661b23793f87508927dc5025170fb0556be86b2b7278`.
+- This **latest build** was made after committing source `bcef425`. Its
+  141-input SHA was checked again after the build. Previous uninstalled
+  `build-69285b6c27de` remains a superseded historical candidate, not
+  current acceptance evidence.
 - Installed version 1.0.4 preserved. The build remains uninstalled.
 
 ## Gate verdicts
@@ -36,8 +39,8 @@ post, remote Madar production write, global input, or release promotion occurred
 | A: Frozen EXE E2E | **BLOCKED** | Executable/ZIP/PYZ/compiled UI parity 3/3 PASS; real frozen navigation and owned-window smoke PASS; clean graceful exit | Full invoice/proforma Save/Edit/Reload, order/memory UI and PDF/print directly inside this frozen EXE **not** proven. WebView2 had the exact remote-debug port flag, yet its local CDP listener was not available |
 | B: Phase 4 | **VERIFIED PASS** (source/backend/SQLite); frozen portion **BLOCKED** | 100 sold/120 produced/5 scrap/15 healthy surplus; six actual cost stages 665,000 RIAL; two synthetic settlements 500,000 + 2,000,000; independent SQLite reopen and accounting Draft with zero journal | Frozen UI completion still blocked; no real banking or settlement performed |
 | C: AaaS | **BLOCKED** for actual model autonomy; rule-based flow **VERIFIED PASS** | Persian intent mapped to read-only real SQLite tools; versioned memory propose/accept/reject, roles, source revision, separate companies and explicit human confirmation | `qwen3:4b` timed out at ~22s and `qwen3:0.6b` failed closed in 2/2 realistic ~17s calls. No reliable LLM proposal/action workflow proven |
-| D: Madar | **BLOCKED** operationally; source contract **VERIFIED PASS** | Authenticated pinned TLS contract, scoped project link, CAS, duplicate protection, one task/checklist, read-only stage progress, source revision and manual-edit non-clobber | MadarHost not present/reachable in bounded test environment; no authorized end-to-end live host sync or recovery proven |
-| E: Source Integration | **VERIFIED PASS** (scoped) | Three commits, all runtime files tracked, clean tracked working tree, unchanged runtime fingerprint, no unrelated untracked deletion | No merge, push, installation or production activation requested or performed |
+| D: Madar | **BLOCKED** operationally; source contract **VERIFIED PASS** | Authenticated pinned TLS, CAS, task/checklist/stage status, manual-edit no-clobber, **durable pre-POST attempt audit**, lost-acknowledgement status and recovery by **read only** (no automatic retry) | MadarHost not present/reachable in bounded test environment; no authorized live host E2E |
+| E: Source Integration | **VERIFIED PASS** (scoped) | Five commits, all runtime files tracked, clean tracked source at frozen SHA, untracked unrelated data preserved | No merge, push, installation or production activation requested or performed |
 | F: Independent QA | **VERIFIED PASS** for 5 fresh source-side cases; product acceptance **BLOCKED** | Independent QA makes direct raw SQLite assertions, uses isolated fresh fixtures and deliberately does not inherit implementer verdicts | Full frozen/hardware/model/live-Host verification not available |
 
 ## Five independent QA scenarios
@@ -59,7 +62,10 @@ returning `ALREADY_SYNCED`). No authorization was weakened to pass the tests.
    rule-based memory action only*. **BLOCKED** for real model-based operational
    intelligence and frozen GUI.
 4. **Taraz–Madar operational link:** **VERIFIED PASS** for isolated state adapter,
-   pinned-host contract and negative gates; **BLOCKED** for real MadarHost.
+   pinned-host contract, durable attempt audit, crash-safe `TRANSMITTING`
+   state and read-only `RECOVERED_CONFIRMED`/`REVIEW_REQUIRED` reconciliation,
+   including simulated lost-acknowledgement and zero repeat-POST checks.
+   **BLOCKED** for live MadarHost.
 5. **Data/ACL/recovery/anti-posting:** **VERIFIED PASS** on synthetic data and
    independent restart/readback; **NOT TESTED** for production interruption
    recovery or real account permissions beyond test personas.
@@ -69,17 +75,20 @@ returning `ALREADY_SYNCED`). No authorization was weakened to pass the tests.
 - `py -3.12 -B -m unittest tests.test_taraz_integration -q`: **22/22 PASS**.
 - `node --test tests/taraz_settings.test.cjs`: **6/6 PASS**.
 - Nine isolated MTR modules' suite: **135/135 PASS** (~244 seconds).
-- `npm run test:orders:all` before final scoped commits (the same 141-file
-  runtime SHA): Vite PASS, **40/40 Python**, **16/16 Edge**, source-hosted native
-  `PASS_ORDER_NATIVE`; **not** frozen.
+- `npm run test:orders:all` on **current runtime SHA**: Vite PASS,
+  **59/59 Python**, **16/16 Edge**, source-hosted native
+  `PASS_ORDER_NATIVE`, exit 0; **not** frozen.
 - `node scripts/run_taraz_p1_checks_20261112.mjs --native-current-source`
   repeated as a standalone run: Vite PASS, **34/34 Python**, **11/11 Edge**,
   real WebView2 source-hosted create/edit/reopen and PDF PASS (82,142 bytes),
   no journal, actual template persistence, no installed-profile mutation.
   One **overlapping** earlier run saw `ERR_EMPTY_RESPONSE` from a temporary
   HTTP QA fixture; do not assert that concurrent test runs are stable.
-- Frozen structure independent test 3/3 PASS; combined static module and
-  private CDP guard tests 9/9 PASS.
+- Madar operational isolated/recovery tests: 20/20 PASS; additional
+  combined QA/Madar/frozen static test selection 28/28 PASS.
+- Latest frozen structure independent test 3/3 PASS; including module
+  inventory static checks 6/6 PASS. Separate private CDP policy guard
+  had 3/3 PASS on the preceding candidate and was unchanged.
 - `git diff --check` exit 0; old LF/CRLF advisories on source files only.
 
 ## Native Windows and print boundaries
@@ -92,6 +101,10 @@ returning `ALREADY_SYNCED`). No authorization was weakened to pass the tests.
   `qaProcessClosedGracefully=true`, `privateLedgerUnchanged=true`, and
   `installedBaselineUnchanged=true`. Earlier private orphan was recovered
   by uniquely owned `WM_CLOSE`, with no forced termination.
+  The latest probe evidence is
+  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\frozen-aaas-cdp-private-qa-20261112\qa-feef6dfff27d\frozen-cdp-report.json`.
+  The latest frozen view-only report is
+  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\current-aaas-frozen-view-qa-20261112\qa-final-native-508a9c084abf\native-gui-report.json`.
 - The official pywebview `REMOTE_DEBUGGING_PORT` hook was made available
   only to an explicit private QA profile marker, defaulting to OFF; isolated
   guard test 3/3 PASS. Its presence in a production candidate does **not**
