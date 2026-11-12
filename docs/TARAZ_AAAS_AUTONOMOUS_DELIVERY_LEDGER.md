@@ -222,3 +222,181 @@ trust boundaries, five independent QA axes, evidence and blockers.
   output proven. Real frozen print dialogue and hardware remain open.
 - **Decision: NOT READY FOR APPROVAL.** No install, release, external financial
   transaction, production Madar write, Git reset/clean/push/merge.
+
+## Superseding final Git readback and architecture gate | 2026-11-12
+
+The current branch, HEAD and six-commit history were read directly in this
+update. This addendum supersedes the five-commit count in the earlier snapshot;
+the detailed gate verdicts and candidate hashes remain those in
+docs/TARAZ_PRIME_FINAL_INTEGRATION_QA_20261112.md.
+
+- Branch: codex/taraz-final-integration-20261112.
+- HEAD: db22b9cfcbd5120a755820e41b02ceb494efb872.
+- Six commits, oldest to newest: e658702, 60e0390, f064609, ec0ced7,
+  bcef425, db22b9c. The last commit pins the candidate/acceptance evidence
+  and updates QA-only guards; it does not change the runtime source SHA.
+- All 141 runtime inventory paths are reported tracked; tracked tree/index
+  were observed clean. The 187 historical untracked paths were observed and
+  preserved, not staged or deleted.
+- Source fingerprint: 1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f.
+- Uninstalled candidate: build-8498c703dc4d.
+- EXE SHA-256: 3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4.
+- ZIP SHA-256: 9f8039c50f094f446856d2a69d26f2a59bf204c27500002df8f1304a8d9edebc.
+- Installed 1.0.4 remains unchanged.
+
+### Latest Gate E/F and operational verdicts
+
+| Gate | Status | Boundary |
+| --- | --- | --- |
+| A — Frozen EXE | BLOCKED | Navigation/view-only smoke passed; complete frozen Save/Edit/Reload/PDF workflow not proven. |
+| B — Orders | VERIFIED PASS at Backend + disposable SQLite; Frozen UI BLOCKED | Synthetic order, production/scrap, six actual-cost stages, settlements, SQLite reopen and finance Draft; no real banking. |
+| C — Agent | Rule-based tools and memory VERIFIED PASS; real LLM autonomy BLOCKED | Persian model calls timed out/failed closed; no reliable model-driven action workflow. |
+| D — Madar | Isolated contract/audit/read-only recovery VERIFIED PASS; live Host BLOCKED | No authorized reachable production-like MadarHost E2E. |
+| E — Git integration | VERIFIED PASS | Six commits; 141 runtime paths tracked; tracked clean; 187 untracked preserved. |
+| F — independent QA | 5/5 VERIFIED PASS at source and disposable SQLite level | Independent direct database readback; not full frozen/live product acceptance. |
+| Print | Source-hosted PDF PASS; physical printer NOT TESTED | Frozen print dialog and physical output remain open. |
+
+Prime reports 22/22 Python and 6/6 JavaScript integration tests, 5/5
+independent five-axis QA, 135/135 MTR controls and a latest post-final-commit
+11/11 PASS test selection. These test counts are USER-REPORTED and were not rerun
+in this documentation update. The detailed QA report separately records
+current-order 59/59 Python + 16/16 Edge and source-hosted P1 34/34 Python +
+11/11 Edge; these do not close the Frozen EXE gate.
+
+No installation, release, real financial transaction, official posting,
+production Madar write or physical print occurred. Decision remains NOT READY
+FOR APPROVAL.
+
+### Mandatory architecture decisions before PostgreSQL DB2
+
+The following are explicitly OPEN and must not be forgotten or inferred:
+
+1. Central Backend deployment: Office LAN/local host versus Cloud/managed
+   hosting.
+2. Offline policy: online-only versus read-only cache, local Pending Drafts
+   or a bounded command outbox.
+
+Both are PRE-DB2 BLOCKERS. DB0 read-only inventory and DB1 isolated Repository
+contracts may proceed; do not provision or start the PostgreSQL pilot until
+the user-approved choices are recorded.
+
+See docs/TARAZ_ARCHITECTURE_DECISIONS_20261112.md. The current central HTTPS
+Backend plus optional SQLite cache/Pending Draft proposal is not approved.
+Preserve existing MadarHost/LAN services, network shares, installed 1.0.4 and
+SQLite business data. Any future network test remains isolated and read-only
+unless separately authorized.
+
+This documentation update is intentionally uncommitted. It modifies this
+tracked Ledger file and adds one new untracked architecture-decision record;
+the previously preserved 187 untracked paths were not removed or staged.
+Current readback after this documentation update: one tracked file modified
+(this Ledger) and 188 untracked paths (the prior 187 plus the new ADR).
+
+## ECOSYSTEM PRIME actual continuation — 2026-11-12
+
+The older "Mandatory architecture decisions" paragraph directly above is
+**historical and SUPERSEDED** by the user's new explicit approval:
+LAN host, private enterprise host, Cloud and Cloud + customer local offline
+node all must be supported; non-AI core workflows must work without Internet.
+Only financial authority/fencing transfer, conflict resolution, backup,
+tenant security and RPO/RTO remain OPEN prior to DB2. This supersession is
+recorded in docs/TARAZ_ARCHITECTURE_DECISIONS_20261112.md.
+
+- Starting provenance: TARAZ branch codex/taraz-final-integration-20261112,
+  HEAD db22b9cfcbd5120a755820e41b02ceb494efb872. Old runtime inventory
+  141 files SHA256
+  1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f
+  and previously uninstalled EXE build-8498c703dc4d SHA256
+  3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4
+  were independently rechecked at continuation start.
+- CoS agents(status) showed self=null, run_id=null and no workers. None spawned.
+  Existing dirty Ledger and 188 historical untracked paths were preserved.
+- MADAR candidates found: madar-mtr-v126-integration-20261110 detached
+  785a419 (7 tracked dirty); madar-desk main c9aaf3e (10 dirty);
+  madar-web-pwa-20261106 d48c094 (12 dirty). Sources read-only.
+  No RADAR repository detected in scoped search; LocalForge loopback search
+  unavailable. RADAR features cannot be invented or marked implemented.
+- Implemented in current TARAZ source: versioned nonfinancial metadata-only
+  event contract; company-scoped durable SQLite Outbox and receipts with
+  idempotency, source witness, CAS/replay guard, unknown-after-send status,
+  no automatic resend; read-only Order Repository adapter; optional AI
+  capability/consent/loopback discovery without inference claims; authenticated
+  native status methods and visible UI status.
+- New DB0 inspection via real disposable Store APIs found accounting v1,
+  orders v2, Agent memory v1, Madar links v1 and ecosystem Outbox v1.
+  DB1 order read adapter verified exact source revision and digest changes.
+  DB0 incomplete across historical data; DB1 read-only partial, DB2 BLOCKED.
+- Tests: new DB0+DB1/native capabilities/AI optional/Outbox 21/21 PASS;
+  external MADAR v126 isolated TLS suite 10/10 PASS; real MADAR v126
+  HTTPS loopback server and real TARAZ TLS-pinned API 4/4 PASS for project
+  association, reviewed task CAS, manual progress readback, duplicate
+  prevention, incorrect TLS pin and stale revision refusal. Test server was
+  newly owned and shut down; no production MadarHost touched.
+- Current TARAZ orders regression:
+  npm run test:orders:all exit 0, Vite PASS, 59/59 Python, 16/16 Edge,
+  PASS_ORDER_NATIVE with SQLite readback and no journal. This is
+  source-hosted WebView2, NOT frozen EXE acceptance.
+- Current TARAZ P1 regression:
+  node scripts/run_taraz_p1_checks_20261112.mjs --native-current-source
+  exit 0, Vite PASS, 34/34 Python, 11/11 Edge, native source-hosted
+  PASS_WEBVIEW2_REAL_BRIDGE_DRAFT including same-ID invoice/proforma
+  reopen-edit, three modes, 82142-byte PDF, saved print template,
+  CAS/revision, no journal. Runtime source unchanged during QA;
+  separate pywebview protective permission errors and a temp-folder
+  cleanup warning were visible and not suppressed.
+- RADAR implementation and shared cross-product identity broker are
+  BLOCKED/NOT IMPLEMENTED. Cloud + local finance failover, actual model
+  inference quality, source-hosted-versus-Frozen parity, true physical LAN
+  multi-client, PostgreSQL migration, full backup and hardware print
+  remain NOT TESTED/BLOCKED as detailed in the ecosystem QA matrix.
+- No installation, activation, official ledger posting, live LAN service
+  mutation, real bank call, firewall change, global Windows input or
+  destructive Git operation occurred.
+
+See docs/TARAZ_ECOSYSTEM_SOURCE_AND_CONTRACT_20261112.md for inventory and
+test sources, and docs/TARAZ_ECOSYSTEM_QA_MATRIX_20261112.md for all fifteen
+acceptance axes. **Release decision: NOT READY FOR APPROVAL.**
+
+### ECOSYSTEM PRIME | frozen candidate and final scoped rechecks
+
+- Source Commit: 47830f6ca561fa4d3fe6c7f88c4aa8128e382a3a, branch
+  codex/taraz-final-integration-20261112, source inventory **145 files**,
+  SHA256 **23bd9f26a7954220f0e3720483a355a9442f15a0505960968d5a5edd1bd09ff7**.
+  This includes the new protocol, Outbox, DB1 reader, optional AI status,
+  authenticated native API and visible UI status.
+- New non-installed build **build-7f17dbf72519** after source Commit;
+  builder exit 0 with **V106_AAAS_NON_QA_BUILT_NOT_INSTALLED**.
+  EXE SHA256 **301dfede5eeaa597f73c03b86d17fcee6f23083ac78e3945b161aef547937ede**,
+  ZIP SHA256 **f6f1ca75bfcdbef0246ee54cf7028a143a4a63b6320bdb94be8c66aaeecb7db9**,
+  manifest SHA256 **64b1076f821efd58e36aaa810e680cd5346effc120e30b107018a7bebd1e65f2**.
+- Independently reopened real PyInstaller CArchive/PYZ, checked actual
+  byte parity with Vite UI, included new modules and exact native bridge
+  APIs: **6/6 PASS**, exit 0. Original test assertion expected 141 inputs;
+  corrected to 145 after comparing actual source and frozen inventory.
+- Private real frozen EXE launched and navigated invoice/order/print with
+  owned Win32 UIA; **PASS_NATIVE_THREE_SCREEN_NAVIGATION_VIEW_ONLY**, exit 0;
+  no financial command, no installed-profile mutation and graceful closure.
+  Report:
+  D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\current-aaas-frozen-view-qa-20261112\qa-final-native-00d36c75a647\native-gui-report.json
+- Actual new EXE CDP attempt **BLOCKED**, exit 1. The verified WebView2
+  process received the QA debug-port flag, but **cdpPortListening=false**.
+  QA process exited gracefully; installed baseline, candidate and private
+  finance ledger unchanged; no forced process termination. Report:
+  D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\frozen-aaas-cdp-private-qa-20261112\qa-3c34ecae51a7\frozen-cdp-report.json
+  Therefore full human-equivalent Frozen Save/Edit/Reopen/PDF is **NOT PASS**.
+- Actual local Ollama tags GET confirmed **qwen3:0.6b** and **qwen3:4b**
+  installed. Discovery is NOT evidence that their Persian inference or tool
+  planning works; earlier quality/timeout concerns remain.
+- Final regression: Orders 59/59 Python, 16/16 Edge, Native Source-hosted
+  PASS; P1 34/34 Python, 11/11 Edge, Native Source-hosted PDF/Template PASS;
+  Ecosystem 28/28 isolated tests (including actual Madar HTTPS temporary host)
+  PASS. Native source-hosted results are NOT frozen EXE acceptance.
+- Installed 1.0.4, real books, office MadarHost, Windows networking and
+  unrelated untracked files unchanged. No production install, print, payment,
+  finance posting, PostgreSQL pilot or Git push.
+
+**Gate status remains NOT READY FOR APPROVAL** until actual Frozen EXE E2E,
+full RADAR source/integration, real three-mode offline sync/finance authority,
+model-quality, independent product QA and physical printer requirements
+are resolved. Financial Authority/Fencing, conflict and RPO/RTO decisions
+are OPEN; DB2 does not start.

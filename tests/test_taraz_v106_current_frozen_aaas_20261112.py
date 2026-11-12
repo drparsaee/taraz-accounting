@@ -16,10 +16,10 @@ from PyInstaller.archive.readers import CArchiveReader
 
 
 BUILD = Path("D:/CoS-Test/MTR-NEXT-UPDATE-CANDIDATES-20261110/"
-             "taraz-v1.0.6-aaas/build-8498c703dc4d")
-EXPECTED_EXE = "3462cfb0dc93365e202686691eb74cc1b97dcde0333c44266191db934a42e9f4"
-EXPECTED_SOURCE = "1661fab1c4e6dd66a70bd596f002a28d7db11dd30816c1ac20d0422d392abe4f"
-EXPECTED_ZIP = "9f8039c50f094f446856d2a69d26f2a59bf204c27500002df8f1304a8d9edebc"
+             "taraz-v1.0.6-aaas/build-7f17dbf72519")
+EXPECTED_EXE = "301dfede5eeaa597f73c03b86d17fcee6f23083ac78e3945b161aef547937ede"
+EXPECTED_SOURCE = "23bd9f26a7954220f0e3720483a355a9442f15a0505960968d5a5edd1bd09ff7"
+EXPECTED_ZIP = "f6f1ca75bfcdbef0246ee54cf7028a143a4a63b6320bdb94be8c66aaeecb7db9"
 MODULES = {
     "taraz_order_store": {"TarazOrderStore", "get", "command"},
     "taraz_aaas_agent": {"CompanyAgentMemory", "review_order_tools",
@@ -29,6 +29,11 @@ MODULES = {
     "taraz_madar_order_sync": {"sync_order_to_madar",
                                "prepare_madar_order_state",
                                "read_madar_order_stage_progress"},
+    "taraz_ecosystem_protocol": {"TrustedScope","validate_envelope"},
+    "taraz_ecosystem_outbox": {"EcosystemOutbox","enqueue",
+                               "reconcile_verified_receipt"},
+    "taraz_repository_contracts": {"TarazOrderReadRepository","read_reference"},
+    "taraz_ai_provider_status": {"provider_status"},
 }
 EXE_APIS = {
     "tarazOrderFinanceDraft", "tarazAgentOrderReview", "tarazAgentMemoryList",
@@ -36,6 +41,7 @@ EXE_APIS = {
     "tarazMadarOrderPreview", "tarazMadarOrderCommit",
     "tarazMadarOrderProgress", "tarazMadarOrderSyncHistory",
     "tarazMadarOrderRecover",
+    "tarazEcosystemStatus", "tarazAiProviderStatus",
 }
 
 
@@ -62,7 +68,7 @@ class FrozenAaasIndependentIntegrityTests(unittest.TestCase):
     def test_executable_zip_manifest_and_installed_pointer(self):
         report = self.report
         self.assertEqual(report["sourceFreezeSha256"], EXPECTED_SOURCE)
-        self.assertEqual(report["sourceFilesCount"], 141)
+        self.assertEqual(report["sourceFilesCount"], 145)
         self.assertEqual(report["status"], "V106_AAAS_NON_QA_BUILT_NOT_INSTALLED")
         self.assertIs(report["installed"], False)
         self.assertIs(report["pointerChanged"], False)
