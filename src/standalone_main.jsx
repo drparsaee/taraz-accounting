@@ -1,6 +1,7 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {StandaloneAccountingWorkspace} from './standalone_accounting_workspace.jsx';
+import {TarazSileoToaster,tarazToast} from './taraz_sileo_feedback.jsx';
 import './styles.css';
 import {installFloatingLabels} from './floating_labels.js';
 import './floating_labels.css';
@@ -18,7 +19,7 @@ try {
 class AccountingErrorBoundary extends React.Component {
   constructor(props){super(props);this.state={failed:false};}
   static getDerivedStateFromError(){return {failed:true};}
-  componentDidCatch(error){console.error('Taraz accounting UI error',error);}
+  componentDidCatch(_error){console.error('Taraz accounting UI render failure (details intentionally hidden)');}
   render(){
     if(!this.state.failed)return this.props.children;
     return <main dir="rtl" role="alert" style={{fontFamily:'Tahoma,sans-serif',
@@ -57,16 +58,17 @@ function AuthenticatedAccounting(){
     onManageUsers={canAdmin&&typeof api.standaloneAccountingManageUsers==='function'?
       async()=>{
         try{await api.standaloneAccountingManageUsers();}
-        catch(error){window.alert('مدیریت کاربران انجام نشد: '+(error?.message||String(error)));}
+        catch(_error){window.alert('مدیریت کاربران انجام نشد؛ مجوز و وضعیت میزبان را بررسی کنید.');}
       }:null}
     onSwitchCompany={typeof api.standaloneAccountingRequestCompanySwitch==='function'?
       async()=>{
         if(!window.confirm('تغییر شرکت، فرم‌های ذخیره‌نشده را کنار می‌گذارد. دفتر فعلی پس از بکاپ ایمن بسته می‌شود. ادامه دهید؟'))return;
         try{
-          await api.standaloneAccountingRequestCompanySwitch();
+          const acknowledged=await api.standaloneAccountingRequestCompanySwitch();
+          if(acknowledged===true)tarazToast({kind:'companyRequest',section:'company'});
           // The Windows host now closes its OWN window after the mandatory
           // final backup. JavaScript window.close() may be ignored by WebView2.
-        }catch(error){window.alert('تغییر شرکت انجام نشد: '+(error?.message||String(error)));}
+        }catch(_error){window.alert('تغییر شرکت انجام نشد؛ وضعیت میزبان و پشتیبان را بررسی کنید.');}
       }:null}
     onExit={()=>{
       if(window.__madarStandaloneOnly){window.close();return;}
@@ -75,8 +77,11 @@ function AuthenticatedAccounting(){
 }
 const root=document.getElementById('root');
 createRoot(root).render(
-  <AccountingErrorBoundary>
-    <AuthenticatedAccounting/>
-  </AccountingErrorBoundary>
+  <>
+    <TarazSileoToaster/>
+    <AccountingErrorBoundary>
+      <AuthenticatedAccounting/>
+    </AccountingErrorBoundary>
+  </>
 );
 installFloatingLabels(document);

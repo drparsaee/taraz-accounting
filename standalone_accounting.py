@@ -82,6 +82,47 @@ def _decode_checked(payload, digest):
     return state
 
 
+def _attach_record_audit(view, state):
+    """Expose immutable event attribution without changing journal snapshots.
+
+    Document dates are commercial fields; creation, draft edits and subsequent
+    transitions use the authenticated actor and trusted clock in the events.
+    This projection is deliberately never written back into the event chain.
+    """
+    edited = {"party.update", "invoice.update", "bill.update"}
+    for event in state["events"]:
+        command = event["command"]
+        kind = command["type"]
+        targets = []
+        if kind in ("party.register", "party.update"):
+            targets.append(("parties", command["partyId"], kind == "party.register"))
+        elif kind.startswith("invoice.") and "invoiceId" in command:
+            targets.append(("invoices", command["invoiceId"], kind == "invoice.create"))
+        elif kind.startswith("bill.") and "billId" in command:
+            targets.append(("bills", command["billId"], kind == "bill.create"))
+        elif kind == "proforma.convert":
+            targets.append(("invoices", command["invoiceId"], True))
+        elif kind == "contractor.bill.create":
+            targets.append(("bills", command["billId"], True))
+        if kind in ("invoice.correct", "bill.correct"):
+            collection = "invoices" if kind.startswith("invoice.") else "bills"
+            targets.append((collection, command["replacementId"], True))
+        for collection, identifier, is_creation in targets:
+            record = view[collection].get(identifier)
+            if record is None:
+                continue
+            if is_creation:
+                record["createdAt"] = event["at"]
+                record["createdBy"] = event["actor"]
+            if kind in edited:
+                record["editedAt"] = event["at"]
+                record["editedBy"] = event["actor"]
+            record["lastChangedAt"] = event["at"]
+            record["lastChangedBy"] = event["actor"]
+            record["lastChangedEventId"] = event["eventId"]
+    return view
+
+
 class StandaloneAccountingStore:
     """One independently versioned accounting journal in a dedicated SQLite file.
 
@@ -191,7 +232,8 @@ class StandaloneAccountingStore:
             connection.execute("BEGIN")
             try:
                 revision, state = self._current(connection)
-                view = accounting_view(state, actor=actor, accounts=accounts)
+                view = _attach_record_audit(
+                    accounting_view(state, actor=actor, accounts=accounts), state)
                 return {"revision": revision, "view": view}
             finally:
                 if connection.in_transaction:
@@ -214,7 +256,9 @@ class StandaloneAccountingStore:
                 # Validate the WHOLE chain and semantic posting result on
                 # every accepted command, including an idempotent replay.
                 validate_accounting_state(updated_state)
-                view = accounting_view(updated_state, actor=actor, accounts=accounts)
+                view = _attach_record_audit(
+                    accounting_view(updated_state, actor=actor, accounts=accounts),
+                    updated_state)
                 if not output["changed"]:
                     connection.execute("COMMIT")
                     return {"revision": revision, "result": output["result"],

@@ -1,0 +1,127 @@
+.taraz-context-help {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font: inherit;
+}
+
+.taraz-context-help-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 36px;
+  padding: .35rem .65rem;
+  border: 1px solid var(--taraz-border,#64748b);
+  border-radius: 9px;
+  background: var(--taraz-surface,#1f2937);
+  color: var(--taraz-text,#fff);
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.taraz-context-help-trigger:hover,
+.taraz-context-help-close:hover {
+  border-color: var(--taraz-accent,#38bdf8);
+}
+
+.taraz-context-help-trigger:focus-visible,
+.taraz-context-help-close:focus-visible {
+  outline: 3px solid var(--taraz-accent,#0284c7);
+  outline-offset: 3px;
+}
+
+.taraz-context-help-layer {
+  /* Portal to body: the invoice work-mode root creates a separate stacking
+     context that previously intercepted clicks on this nested modal. */
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.taraz-context-help-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: rgba(4,12,24,.72);
+  cursor: default;
+}
+
+.taraz-context-help-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%,28rem);
+  max-height: min(85dvh,580px);
+  overflow: auto;
+  border: 1px solid var(--taraz-border,#64748b);
+  border-radius: 16px;
+  padding: 1rem 1.25rem 1.15rem;
+  background: var(--taraz-surface,#17212e);
+  color: var(--taraz-text,#fff);
+  box-shadow: 0 16px 54px rgba(0,0,0,.35);
+  text-align: start;
+  font: inherit;
+  line-height: 1.85;
+}
+
+.taraz-context-help-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.taraz-context-help-heading h2 {
+  font: inherit;
+  font-weight: 750;
+  font-size: 1.08rem;
+  margin: 0;
+}
+
+.taraz-context-help-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid var(--taraz-border,#64748b);
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.taraz-context-help-details ol {
+  margin: .65rem 0 .3rem;
+  padding: 0 1.35rem 0 0;
+}
+.taraz-context-help-details li {
+  margin: .3rem 0;
+  padding-inline-start: .25rem;
+}
+.taraz-context-help-caution {
+  border-inline-start: 3px solid #b97a20;
+  padding: .5rem .7rem;
+  margin: .7rem 0 0;
+  background: rgba(185,122,32,.12);
+  border-radius: 5px;
+  color: inherit;
+  font-size: .88rem;
+}
+
+@media (max-width: 440px) {
+  .taraz-context-help-dialog {padding: .9rem;max-height: 88dvh;}
+  .taraz-context-help-trigger span {display:none;}
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .taraz-context-help-dialog,.taraz-context-help-trigger {transition:none;}
+}

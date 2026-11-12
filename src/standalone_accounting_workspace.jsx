@@ -3,6 +3,8 @@ import {ArrowLeft,ArrowRight,BookOpen,Building2,Download,FileText,Landmark,Layer
   Plus,RefreshCw,Settings2,ShieldAlert,TrendingUp,Users,Wallet} from 'lucide-react';
 import './standalone_accounting_workspace.css';
 import TarazSettings from './taraz_settings.jsx';
+import {tarazToast,tarazIntegrationFeedbackApi} from './taraz_sileo_feedback.jsx';
+import {madarProposalInvoiceSuggestion} from './taraz_madar_invoice_draft.js';
 import './standalone_accounting_ux20.css';
 import './accounting_density.css';
 import './accounting_vitrea.css';
@@ -23,13 +25,17 @@ import ProviderCsvMigration from './provider_csv_migration.jsx';
 import {buildAccountingInvoiceEntryTemplate,parseAccountingInvoiceEntryTemplate}
   from './accounting_invoice_entry_templates.js';
 import AccountingPrintDesigner from './accounting_print_designer.jsx';
+import TarazMadarDashboard from './taraz_madar_dashboard.jsx';
+import TarazOrderWorkspace from './taraz_order_workspace.jsx';
 import {filterInvoiceRows,invoiceStatusCounts} from './accounting_invoice_quick_filter.js';
 import {DEFAULT_PRINT_TEMPLATE,validatePrintTemplate,buildCustomPrintExport}
   from './accounting_print_template.js';
 import {buildAccountingStructuredExport} from './accounting_structured_invoice_export.js';
 import {formatAccountingJalali,parseAccountingJalali,displayAccountingDate} from './accounting_jalali_dates.js';
 import AccountingJalaliField from './accounting_jalali_field.jsx';
-import {InvoiceWizardNavigation,INVOICE_WIZARD_STEPS} from './accounting_invoice_wizard.jsx';
+import {InvoiceWizardNavigation,BeginnerInvoiceEditor,INVOICE_WIZARD_STEPS,
+  invoiceRowsForSubmission,composeInvoiceExplanation,splitInvoiceExplanation}
+  from './accounting_invoice_wizard.jsx';
 import AccountingManagementDashboard from './accounting_management_dashboard.jsx';
 import AccountingActionHome from './accounting_action_home.jsx';
 import {accountingPeriodRows} from './accounting_period_report.js';
@@ -255,9 +261,10 @@ export function nextAccountingNumber(records,prefix,year){
   }
   return '';
 }
-const SECTIONS=[['overview','داشبورد'],['company','مشخصات شرکت'],
+const SECTIONS=[['overview','داشبورد'],['madar','اطلاعات مدار'],['company','مشخصات شرکت'],
   ['proforma','پیش‌فاکتور مستقل'],
-  ['invoice','فاکتورهای فروش'],['bill','صورتحساب‌های خرید'],
+  ['orders','سفارش‌ها'],['invoice','فاکتورهای فروش'],
+  ['invoiceDesign','طراحی فرم فاکتور'],['bill','صورتحساب‌های خرید'],
   ['contractors','کارهای پیمانکاران'],
   ['parties','اشخاص'],['migration','مهاجرت و سوابق'],['cheques','خزانه و چک'],
   ['items','کالا، انبار و کاردکس'],['settlements','دریافت، پرداخت و اقساط'],
@@ -505,6 +512,19 @@ const newId=()=>{
   return 'evt.'+uuid;
 };
 const isConflict=e=>/conflict|stale|version|revision|409|تعارض|نسخه/i.test(String(e?.message||''));
+// Never render arbitrary host/bridge exception text: it may contain tokens,
+// private invoice details, or attacker-controlled payloads. Keep the existing
+// conflict/revision/retry decisions unchanged; only user-facing copy is safe.
+const LOCAL_TEMPLATE_VALIDATIONS=new Set([
+  'حجم فایل قالب از یک مگابایت بیشتر است.',
+  'یک سرفصل در قالب واردشده در دفتر فعلی وجود ندارد.',
+  'یک قلم کاتالوگ در قالب واردشده در دفتر فعلی وجود ندارد.',
+  'جمع تعداد ردیف‌ها از حد مجاز بیشتر است.',
+  'شناسه قلم یا سرفصل قالب متعلق به این دفتر نیست.',
+  'تعداد ردیف‌های فرم از هزار بیشتر می‌شود.',
+]);
+const safeTemplateValidationError=(error,fallback)=>
+  LOCAL_TEMPLATE_VALIDATIONS.has(error?.message)?error.message:fallback;
 function Field({label,children,wide=false}){return <label className={'sac-field'+(wide?' sac-wide':'')}>
   <span>{label}</span>{children}</label>;}
 function Panel({title,description,children,compact=false}){return <section
@@ -592,15 +612,21 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const [tab,setTab]=useState('overview');
   const [fiscalYear,setFiscalYear]=useState('1405');
   const [invoiceComposerOpen,setInvoiceComposerOpen]=useState(false);
-  const [invoiceWizardMode,setInvoiceWizardMode]=useState('guided');
+  const [invoiceWizardMode,setInvoiceWizardMode]=useState('beginner');
   const [invoiceWizardStep,setInvoiceWizardStep]=useState(0);
   const [invoiceWizardChecked,setInvoiceWizardChecked]=useState({});
   const [invoiceWizardError,setInvoiceWizardError]=useState('');
+  const [beginnerDocumentType,setBeginnerDocumentType]=useState('invoice');
+  const [extraInvoiceExplanation,setExtraInvoiceExplanation]=useState('');
+  const [savedDocumentPreview,setSavedDocumentPreview]=useState(null);
   const [invoiceListSearch,setInvoiceListSearch]=useState('');
   const [invoiceListStatus,setInvoiceListStatus]=useState('all');
   const [snapshot,setSnapshot]=useState(null);
   const [taxPreflight,setTaxPreflight]=useState(null);
   const [state,setState]=useState({loading:true,error:'',notice:''});
+  // Only the settings view sees this proxy; no backend authorization or data
+  // is changed. There is still one root Toaster for the entire application.
+  const integrationFeedbackApi=useMemo(()=>tarazIntegrationFeedbackApi(api),[api]);
   const [busy,setBusy]=useState(false);
   const [childDrafts,setChildDrafts]=useState({});
   const childDraftsLive=useRef({});
@@ -672,6 +698,11 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const [invoiceCatalogSearch,setInvoiceCatalogSearch]=useState('');
   const [printTemplate,setPrintTemplate]=useState(DEFAULT_PRINT_TEMPLATE);
   const [printDesignerOpen,setPrintDesignerOpen]=useState(false);
+  // A blob URL belongs to the current viewing session and is released on close.
+  const previewUrl=useRef('');
+  useEffect(()=>()=>{
+    if(previewUrl.current)globalThis.URL?.revokeObjectURL?.(previewUrl.current);
+  },[]);
   const live=useRef(true),request=useRef(0),locked=useRef(false),latest=useRef(null),
     pending=useRef(null),nativeClosePending=useRef(false);
   const view=snapshot?.view;
@@ -722,7 +753,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       const choice=print.templates.find(t=>t.id===print.defaultId);
       if(choice){setPrintTemplate(validatePrintTemplate(choice.data));
         setInvoicePrintLayout(old=>old==='madar'?'custom':old);}
-    }catch(error){setState(p=>({...p,error:'بارگذاری کتابخانه قالب‌ها: '+error.message}));}
+    }catch(_error){setState(p=>({...p,error:'بارگذاری کتابخانه قالب‌های دفتر از میزبان انجام نشد.'}));}
   };
   useEffect(()=>{void loadTemplateLibraries();},[api]);
   const unitLabel=ledgerCurrency==='RIAL'?'ریال':'تومان';
@@ -782,12 +813,14 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const selectedTaxRule=view?.taxRules?.[forms.document.taxRuleId]||null;
   const selectedRuleVersion=selectedTaxRule?.history?.filter(r=>
     r.effectiveFrom<=forms.document.documentDate).slice(-1)[0]||null;
-  const untaxedPreview=previewAccountingTotal(rows,forms.document.discount,'0');
+  const effectiveInvoiceRows=invoiceWizardMode==='beginner'&&!correctionTarget&&
+    tab==='invoice'?invoiceRowsForSubmission(rows):rows;
+  const untaxedPreview=previewAccountingTotal(effectiveInvoiceRows,forms.document.discount,'0');
   const documentTax=(selectedRuleVersion&&untaxedPreview)?
     String(Number((BigInt(untaxedPreview.subtotal-untaxedPreview.discount)*
       BigInt(selectedRuleVersion.rateBasisPoints)+5000n)/10000n)):
     forms.document.tax;
-  const documentPreview=previewAccountingTotal(rows,forms.document.discount,documentTax);
+  const documentPreview=previewAccountingTotal(effectiveInvoiceRows,forms.document.discount,documentTax);
   const proformaPreview=previewAccountingTotal(proformaRows,forms.proforma.discount,forms.proforma.tax);
   const displayHistoricDetails=ident=>{
     // Historic-account shortcuts must honor the unsaved-editor navigation veto.
@@ -811,6 +844,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       formatAccountingJalali(today,{digits:'ascii'}).replace(/\//g,'-')+'.csv',
       blob:new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})});
     setState(p=>({...p,error:'',notice:'خروجی CSV گردش‌های فیلترشده آماده شد.'}));
+    tarazToast({kind:'requested',section:'reports'});
   };
   const exportPeriodSummary=()=>{
     if(!periodReport||periodReport.error)return;
@@ -826,10 +860,12 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       formatAccountingJalali(today,{digits:'ascii'}).replace(/\//g,'-')+'.csv',
       blob:new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'})});
     setState(p=>({...p,error:'',notice:'خروجی مانده اول دوره و پایان دوره آماده شد.'}));
+    tarazToast({kind:'requested',section:'reports'});
   };
   const suggestedInvoiceId=nextAccountingNumber(view?.invoices||{},'INV',
     formatAccountingJalali(today,{digits:'ascii'}).slice(0,4));
-  const hasUnsavedInvoice=Boolean(editTarget||correctionTarget||
+  const hasUnsavedInvoice=Boolean(editTarget||correctionTarget||extraInvoiceExplanation.trim()||
+    beginnerDocumentType==='proforma'||
     (forms.document.documentId.trim()&&forms.document.documentId!==suggestedInvoiceId)||
     forms.document.partyId||forms.document.note.trim()||forms.document.dueDate||
     forms.document.discount!=='0'||forms.document.tax!=='0'||
@@ -929,6 +965,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       'اطلاعات واردشده در فاکتور هنوز ذخیره نشده است. بدون ذخیره به فهرست بازگردیم؟'))return false;
     setInvoiceComposerOpen(false);setEditTarget('');setCorrectionTarget('');
     setCorrectionReason('');setPartyQuery('');setRows([makeLine()]);reset('document');
+    setBeginnerDocumentType('invoice');setExtraInvoiceExplanation('');
     setInvoiceWizardStep(0);setInvoiceWizardChecked({});setInvoiceWizardError('');
     return true;
   };
@@ -1028,9 +1065,29 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     setForms(p=>({...p,document:{...DEFAULTS.document,documentDate:today,
       documentId:suggestedInvoiceId}}));
     setRows([makeLine()]);setEditTarget('');setCorrectionTarget('');
+    setBeginnerDocumentType('invoice');setExtraInvoiceExplanation('');
     setPartyQuery('');
     setCorrectionReason('');setInvoiceComposerOpen(true);setTab('invoice');
+    setInvoiceWizardMode('beginner');
     setInvoiceWizardStep(0);setInvoiceWizardChecked({});setInvoiceWizardError('');
+    return true;
+  };
+  const startMadarInvoiceSuggestion=proposal=>{
+    if((!canManage&&!canDraft)||busy||pendingRetry||state.loading)return false;
+    let suggestion;
+    try{suggestion=madarProposalInvoiceSuggestion(proposal);}
+    catch(_error){
+      setState(p=>({...p,error:'اطلاعات ارجاع مدار برای آماده‌سازی پیش‌نویس معتبر نیست.'}));
+      tarazToast({kind:'draftError',section:'settings'});return false;
+    }
+    if(!openQuickInvoice())return false;
+    // This is an ephemeral text-only suggestion, not a recorded document.
+    // Do not pre-select a party, amount, account, item or ledger currency.
+    setRows([suggestion.row]);
+    setForms(p=>({...p,document:{...p.document,note:suggestion.note}}));
+    setState(p=>({...p,error:'',notice:
+      'شرح پیشنهادی مدار در فرم قرار گرفت؛ طرف‌حساب، مبلغ و ثبت پیش‌نویس را خودتان تکمیل و تأیید کنید.'}));
+    tarazToast({kind:'draft',section:'settings'});
     return true;
   };
   useEffect(()=>{
@@ -1073,7 +1130,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       latest.current=null;
       setSnapshot(null);
       setState({loading:false,
-        error:err?.message||'خواندن دفترکل ناموفق بود.',notice:''});
+        error:'خواندن اطلاعات دفتر از میزبان انجام نشد؛ اتصال و مجوز را بررسی و دوباره بازخوانی کنید.',notice:''});
     }}
     return null;
   },[api]);
@@ -1110,12 +1167,29 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     try{
       if(typeof api?.standaloneAccountingCommand!=='function')
         throw new Error('مسیر ثبت حسابداری مستقل در میزبان موجود نیست.');
+      const attemptedRevision=latest.current.revision;
       const payload=await api.standaloneAccountingCommand({
-        command,expectedRevision:latest.current.revision});
+        command,expectedRevision:attemptedRevision});
       const result=validateStandaloneResponse(payload);
+      // Do not treat a well-shaped but unchanged/stale revision as a saved
+      // command. This also covers an ambiguous idempotent resend: preserve
+      // the exact original command/eventId for *manual* query-first recovery.
+      // Never mint a new event or dismiss a user's draft on an unknown result.
+      if(result.revision<=attemptedRevision){
+        pending.current=command;
+        if(live.current){
+          setPendingRetry(true);
+          setState({loading:false,
+            error:'نسخهٔ دفتر پس از فرمان پیش نرفت؛ نتیجه ثبت تأیید نشده است.',
+            notice:'این فرمان با همان شناسه برای بررسی دستی نگه داشته شد. درخواست جدید نفرستید.'});
+          tarazToast({kind:'uncertain',section:tab});
+        }
+        return false;
+      }
       if(live.current){
         latest.current=result;setSnapshot(result);
         setState({loading:false,error:'',notice:message});
+        tarazToast({kind:'commit',commandType:command.type,section:tab});
       }
       pending.current=null;if(live.current)setPendingRetry(false);
       return true;
@@ -1133,11 +1207,14 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         }catch(_ignored){/* Keep the draft. Explicit refresh remains available. */}
       }
       if(live.current)setState({loading:false,
-        error:err?.message||'نتیجه ثبت نامشخص است؛ قبل از تلاش دوباره بازخوانی کنید.',
+        error:conflict?
+          'تعارض نسخه دفتر رخ داد؛ وضعیت سند را بررسی و قبل از ثبت تازه همگام‌سازی کنید.':
+          'نتیجه فرمان در میزبان نامشخص است؛ قبل از تکرار، بازیابی با همان شناسه عملیات را انجام دهید.',
         notice:conflict?(synced?
           'تعارض نسخه: داده تازه بازخوانی شد. فرم ارسال نشده است؛ قبل از ثبت دوباره بررسی کنید.':
           'تعارض نسخه: بازخوانی ناموفق بود. ابتدا داده‌های دفتر را بازخوانی کنید.'):
           'ممکن است فرمان در میزبان اجرا شده باشد. قبل از تکرار، بازخوانی کنید.'});
+      if(live.current)tarazToast({kind:conflict?'conflict':'uncertain',section:tab});
       return false;
     }finally{locked.current=false;if(live.current)setBusy(false);}
   };
@@ -1157,14 +1234,20 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     }
     try{
       const out=builder(newId());
-      if(out.error){setState(p=>({...p,error:out.error,notice:''}));return false;}
+      if(out.error){
+        setState(p=>({...p,error:out.error,notice:''}));
+        tarazToast({kind:'invalid',section:tab});return false;
+      }
       if(!canManage&&(!canDraft||!['party.register','invoice.create','bill.create',
         'proforma.create','proforma.update'].includes(out.command?.type))){
         setState(p=>({...p,error:'دسترسی شما فقط به ثبت پیش‌نویس و شخص جدید محدود است.'}));
         return false;
       }
       return await send(out.command,message);
-    }catch(err){setState(p=>({...p,error:err?.message||'فرمان معتبر نیست.'}));return false;}
+    }catch(_err){
+      setState(p=>({...p,error:'اطلاعات فرمان معتبر نیست؛ فیلدهای فرم و شناسه سند را بررسی کنید.'}));
+      tarazToast({kind:'invalid',section:tab});return false;
+    }
   };
   const submit=fn=>e=>{e.preventDefault();if(!busy)void fn();};
   const textInput=(group,name,hint='',maxLength=300)=>
@@ -1235,6 +1318,38 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     if(locked.current||pendingRetry)return;
     setRows(p=>p.map((l,i)=>i===idx?{...l,[key]:val}:l));
   };
+  const beginnerRowUpdate=(idx,key,val)=>{
+    if(locked.current||pendingRetry)return;
+    setRows(previous=>previous.map((row,index)=>index!==idx?row:{...row,
+      [key]:val,...(key==='description'&&row.itemId&&row.description!==val?
+        {itemId:''}:{})}));
+  };
+  const completeBeginnerRow=index=>{
+    if(index!==rows.length-1||rows.length>=1000||busy||pendingRetry)return;
+    const row=rows[index];
+    if(validText(row?.description)&&parse(row?.quantity)!==null&&
+      parse(row?.unitPrice,true)!==null)addInvoiceRow();
+  };
+  const chooseBeginnerDocumentType=kind=>{
+    if(!['invoice','proforma'].includes(kind)||kind===beginnerDocumentType||busy||pendingRetry)return;
+    const prefix=kind==='proforma'?'PF':'INV';
+    const year=formatAccountingJalali(today,{digits:'ascii'}).slice(0,4);
+    const number=nextAccountingNumber(kind==='proforma'?view?.proformas:view?.invoices,
+      prefix,year);
+    setBeginnerDocumentType(kind);
+    setForms(p=>({...p,document:{...p.document,documentId:number,taxRuleId:''}}));
+    setInvoiceWizardError('');
+  };
+  const continueProformaAdvanced=()=>{
+    if(hasUnsavedProforma&&!window.confirm('فرم پیش‌فاکتور قبلی ذخیره نشده است. اطلاعات آن را با فرم فعلی جایگزین کنیم؟'))return;
+    setForms(p=>({...p,proforma:{...DEFAULTS.proforma,
+      proformaId:p.document.documentId,partyId:p.document.partyId,
+      documentDate:p.document.documentDate,discount:p.document.discount,
+      tax:documentTax,note:composeInvoiceExplanation(p.document.note,extraInvoiceExplanation)}}));
+    setProformaRows(effectiveInvoiceRows.map(row=>({...row})));
+    setProformaEditing('');setInvoiceComposerOpen(false);setTab('proforma');
+    setInvoiceWizardError('');
+  };
   const focusInvoiceCell=(index,column=0)=>{
     window.requestAnimationFrame(()=>{
       document.querySelector(`.sac-invoice-editor [data-invoice-row="${index}"][data-invoice-col="${column}"]`)?.focus();
@@ -1294,6 +1409,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const blocked=!canManage||busy||pendingRetry||nativeClosePending.current;
   const draftBlocked=(!canManage&&!canDraft)||busy||pendingRetry||nativeClosePending.current;
   const wizardEnabled=tab==='invoice'&&invoiceComposerOpen&&invoiceWizardMode==='guided';
+  const beginnerEnabled=tab==='invoice'&&invoiceComposerOpen&&
+    invoiceWizardMode==='beginner'&&!correctionTarget;
   const wizardIssues=invoiceWizardIssues({document:forms.document,rows,
     accounts,items,today,kind:docKind,tax:documentTax,
     correctionTarget,correctionReason,correctionDate});
@@ -1329,9 +1446,14 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         return false;
       }
     }
+    const mergedNote=composeInvoiceExplanation(forms.document.note,extraInvoiceExplanation);
+    if(mergedNote.length>1000){
+      setInvoiceWizardError('مجموع یادداشت و توضیح تکمیلی نباید از ۱۰۰۰ نویسه بیشتر باشد.');
+      return false;
+    }
     const preflight=buildStandaloneInvoiceCommand({
-      kind:docKind,...forms.document,tax:documentTax,
-      documentId:editTarget||forms.document.documentId,lines:rows,
+      kind:docKind,...forms.document,note:mergedNote,tax:documentTax,
+      documentId:editTarget||forms.document.documentId,lines:effectiveInvoiceRows,
       eventId:'UX-INVOICE-PREFLIGHT',accounts,items,today,
     });
     if(preflight.error){
@@ -1353,12 +1475,16 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const startEditingDocument=(d,{discardConfirmed=false}={})=>{
     if(!discardConfirmed&&!confirmEditorReplacement())return false;
     setInvoiceComposerOpen(true);
+    if(docKind==='invoice')setInvoiceWizardMode('advanced');
     setInvoiceWizardStep(0);setInvoiceWizardChecked({});setInvoiceWizardError('');
     setEditTarget(d.id);
     setCorrectionTarget('');
+    setBeginnerDocumentType('invoice');
+    const parsedNote=splitInvoiceExplanation(d.note||'');
+    setExtraInvoiceExplanation(parsedNote.extraExplanation);
     setForms(p=>({...p,document:{
       documentId:d.id,partyId:d.partyId,documentDate:d.documentDate,
-      dueDate:d.dueDate||'',note:d.note||'',discount:String(d.discount),tax:String(d.tax),
+      dueDate:d.dueDate||'',note:parsedNote.note,discount:String(d.discount),tax:String(d.tax),
       taxRuleId:d.taxRuleId||''}}));
     setRows(d.lines.map(l=>({description:l.description,
       quantity:String(l.quantity),unitPrice:String(l.unitPrice),
@@ -1368,27 +1494,31 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const startCorrectingDocument=d=>{
     if(!confirmEditorReplacement())return false;
     setInvoiceComposerOpen(true);
+    if(docKind==='invoice')setInvoiceWizardMode('advanced');
     setInvoiceWizardStep(0);setInvoiceWizardChecked({});setInvoiceWizardError('');
     const prefix=(docKind==='invoice'?'INV':'BILL')+'-COR';
     const year=formatAccountingJalali(today,{digits:'ascii'}).slice(0,4);
     const newNumber=nextAccountingNumber(currentDocs,prefix,year);
     setEditTarget('');setCorrectionTarget(d.id);
+    setBeginnerDocumentType('invoice');
+    const parsedNote=splitInvoiceExplanation(d.note||'');
+    setExtraInvoiceExplanation(parsedNote.extraExplanation);
     setCorrectionReason('');setCorrectionDate(today);
     setForms(p=>({...p,document:{
       documentId:newNumber,partyId:d.partyId,documentDate:today,
-      dueDate:d.dueDate&&d.dueDate>=today?d.dueDate:'',note:d.note||'',
+      dueDate:d.dueDate&&d.dueDate>=today?d.dueDate:'',note:parsedNote.note,
       discount:String(d.discount),tax:String(d.tax),
       taxRuleId:d.taxRuleId||''}}));
     setRows(d.lines.map(l=>({description:l.description,quantity:String(l.quantity),
       unitPrice:String(l.unitPrice),accountId:l.accountId||'',itemId:l.itemId||''})));
     return true;
   };
-  const exportDocument=async(doc,format,kind=docKind)=>{
-    try{
+  const documentPrintOutput=async(doc,format,kind=docKind)=>{
       const useParsian=kind==='invoice'&&invoicePrintLayout==='parsian-karma'&&ledgerCurrency==='RIAL';
       const common={kind,doc,party:parties[doc.partyId]?.name||doc.partyId,
-        company:printCompanyProfile,currency:ledgerCurrency,pattern:filenamePattern,format};
-      const output=['xlsx','rtf'].includes(format)?
+        company:printCompanyProfile,currency:ledgerCurrency,pattern:filenamePattern,format,
+        items};
+      return ['xlsx','rtf'].includes(format)?
         await buildAccountingStructuredExport(common):
         (invoicePrintLayout==='custom'&&kind==='invoice')?
         await buildCustomPrintExport({...common,template:validatePrintTemplate(printTemplate)}):
@@ -1402,9 +1532,39 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         kind,doc,party:parties[doc.partyId]?.name||doc.partyId,
         pattern:filenamePattern,format,currency:ledgerCurrency,
         company:printCompanyProfile});
+  };
+  const exportDocument=async(doc,format,kind=docKind)=>{
+    try{
+      const output=await documentPrintOutput(doc,format,kind);
       downloadStandaloneBlob(output);
       setState(p=>({...p,error:'',notice:'دانلود '+output.filename+' در مرورگر درخواست شد؛ ذخیره نهایی به مرورگر بستگی دارد.'}));
-    }catch(err){setState(p=>({...p,error:err.message||'خروجی سند ناموفق بود.',notice:''}));}
+      tarazToast({kind:'requested',section:tab});
+    }catch(_err){
+      setState(p=>({...p,error:'تهیه خروجی سند انجام نشد؛ تنظیمات چاپ و قالب را بررسی کنید.',notice:''}));
+      tarazToast({kind:'exportError',section:tab});
+    }
+  };
+  const openSavedDocumentPreview=async(documentId,kind='invoice')=>{
+    const saved=latest.current?.view?.[kind==='proforma'?'proformas':'invoices']?.[documentId];
+    if(!saved){
+      setState(p=>({...p,error:'سند تازه در پاسخ میزبان پیدا نشد؛ وضعیت فهرست را بررسی کنید.'}));
+      return false;
+    }
+    if(kind==='invoice')setDetailTarget(documentId);
+    try{
+      const output=await documentPrintOutput(saved,'pdf',kind);
+      if(!(output?.blob instanceof Blob)||output.blob.type!=='application/pdf')
+        throw Error('PDF preview not available');
+      const url=globalThis.URL.createObjectURL(output.blob);
+      if(previewUrl.current)globalThis.URL.revokeObjectURL(previewUrl.current);
+      previewUrl.current=url;
+      setSavedDocumentPreview({documentId,kind,url});
+      return true;
+    }catch(_err){
+      setSavedDocumentPreview(null);
+      setState(p=>({...p,error:'سند ذخیره شد، اما پیش‌نمایش PDF باز نشد. از فهرست سند گزینه PDF را بزنید.'}));
+      return false;
+    }
   };
   const exportInvoiceEntryTemplate=()=>{
     try{
@@ -1417,8 +1577,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       });
       setState(p=>({...p,error:'',
         notice:'قالب اقلام برای ذخیره در فایل JSON ارسال شد؛ برای استفاده مجدد آن را فراخوانی کنید.'}));
-    }catch(err){
-      setState(p=>({...p,error:err.message||'ذخیره قالب ناموفق بود.',notice:''}));
+    }catch(_err){
+      setState(p=>({...p,error:'تهیه فایل قالب اقلام انجام نشد؛ اطلاعات فرم را بررسی کنید.',notice:''}));
     }
   };
   const importInvoiceEntryTemplate=async(file)=>{
@@ -1439,7 +1599,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       setState(p=>({...p,error:'',notice:'قالب «'+template.title+
         '» به فرم اضافه شد. هیچ سند مالی ثبت نشده؛ برای ذخیره فاکتور باید «ثبت پیش‌نویس» را بزنید.'}));
     }catch(err){
-      setState(p=>({...p,error:err.message||'فراخوانی قالب ناموفق بود.',notice:''}));
+      setState(p=>({...p,error:safeTemplateValidationError(err,
+        'فراخوانی قالب ناموفق بود؛ قالب و اطلاعات دفتر را بررسی کنید.'),notice:''}));
     }
   };
   const loadEntryFromLibrary=template=>{
@@ -1453,7 +1614,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       setRows(invoiceTemplateImportMode==='append'?[...rows,...parsed.lines]:parsed.lines);
       setInvoiceTemplateTitle(template.title);setEntryTemplateId(template.id);
       setState(p=>({...p,error:'',notice:'قالب اقلام باز شد؛ هیچ سند مالی ثبت نشده است.'}));
-    }catch(err){setState(p=>({...p,error:err.message,notice:''}));}
+    }catch(err){setState(p=>({...p,error:safeTemplateValidationError(err,
+      'بازکردن قالب اقلام انجام نشد؛ قالب انتخابی را بررسی کنید.'),notice:''}));}
   };
   const saveTemplateToLibrary=async kind=>{
     if(!templateBridge)return;
@@ -1466,11 +1628,16 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       const id=kind==='entry'?entryTemplateId:kind==='print'?printTemplateId:issuerId;
       const saved=await api.standaloneAccountingTemplateSave(kind,title,data,id);
       if(kind==='entry')setEntryTemplateId(saved.id);
-      else if(kind==='print')setPrintTemplateId(saved.id);
+      else if(kind==='print'){setPrintTemplateId(saved.id);setInvoicePrintLayout('custom');}
       else setIssuerId(saved.id);
       await loadTemplateLibraries();
-      setState(p=>({...p,error:'',notice:'قالب «'+title+'» در کتابخانه خصوصی این دفتر ذخیره شد.'}));
-    }catch(err){setState(p=>({...p,error:'ذخیره قالب: '+err.message,notice:''}));}
+      setState(p=>({...p,error:'',notice:'قالب «'+title+'» در کتابخانه خصوصی این دفتر ذخیره شد.'+
+        (kind==='print'?' خروجی PDF فاکتورهای فروش از این قالب استفاده می‌کند.':'')}));
+      tarazToast({kind:'template',section:tab});
+    }catch(_err){
+      setState(p=>({...p,error:'ذخیره قالب در کتابخانه دفتر انجام نشد؛ مجوز و ارتباط میزبان را بررسی کنید.',notice:''}));
+      tarazToast({kind:'failed',section:tab});
+    }
   };
   const libraryAction=async(kind,action,id)=>{
     if(!templateBridge||!id)return;
@@ -1489,14 +1656,15 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       }
       await loadTemplateLibraries();
       setState(p=>({...p,error:'',notice:'عملیات کتابخانه انجام شد.'}));
-    }catch(err){setState(p=>({...p,error:err.message,notice:''}));}
+    }catch(_err){setState(p=>({...p,error:'عملیات کتابخانه قالب‌ها انجام نشد؛ وضعیت دفتر را بازخوانی کنید.',notice:''}));}
   };
 
   return <div dir="rtl" className={'sac-root taraz-vt-app'+(tab==='invoice'?' sac-invoice-work-mode':
     tab==='overview'?' sac-overview-work-mode sac-vtr-overview':'')+
-    (wizardEnabled?' sac-invoice-wizard-guided':'')}
+    (wizardEnabled?' sac-invoice-wizard-guided':'')+
+    (beginnerEnabled?' sac-invoice-beginner':'')}
     aria-label="تراز، برنامه مستقل حسابداری">
-    <AccountingTopRibbon tab={tab} sections={SECTIONS}
+    <AccountingTopRibbon tab={tab} sections={SECTIONS.filter(([name])=>name!=='invoiceDesign'||canManage)}
       searchView={view} onSearchSelect={openSearchRecord}
       onQuickAction={quickAccountingAction}
       onNavigate={gotoTab} onNewInvoice={openQuickInvoice}
@@ -1516,9 +1684,9 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       <div className="sac-brand"><div className="sac-brand-icon"><Building2 size={24}/></div>
         <div><strong>تراز <span>حسابداری</span></strong><small>میز مستقل مالی</small></div></div>
       <p className="sac-nav-caption">محیط کار</p>
-      <nav aria-label="ناوبری میز حسابداری" tabIndex={0}>{SECTIONS.map(([name,label],i)=>{
-        const icons={overview:Landmark,company:Building2,proforma:FileText,
-          invoice:FileText,bill:FileText,contractors:Layers3,parties:Users,
+      <nav aria-label="ناوبری میز حسابداری" tabIndex={0}>{SECTIONS.filter(([name])=>name!=='invoiceDesign'||canManage).map(([name,label],i)=>{
+        const icons={overview:Landmark,madar:Layers3,company:Building2,proforma:FileText,
+          orders:Layers3,invoice:FileText,invoiceDesign:FileText,bill:FileText,contractors:Layers3,parties:Users,
           migration:BookOpen,cheques:Wallet,items:Layers3,settlements:Wallet,
           cash:Landmark,accounts:BookOpen,journal:BookOpen,reports:BookOpen,
           payroll:Wallet,period:ShieldAlert,settings:Settings2};
@@ -1578,9 +1746,18 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             بازیابی با همان شناسه عملیات</button>
         </div>}
         {!view&&!state.loading&&<Empty>اطلاعات قابل اتکایی از میزبان دریافت نشده است. سند یا مبلغ نمایشی ساخته نمی‌شود.</Empty>}
-        {tab==='settings'&&<TarazSettings api={api} currentUser={snapshot?.currentUser}
-          canAdmin={canAdmin} canManage={canManage} onManageUsers={onManageUsers}/>}
+        {tab==='settings'&&<TarazSettings api={integrationFeedbackApi} currentUser={snapshot?.currentUser}
+          canAdmin={canAdmin} canManage={canManage} canDraft={canDraft}
+          onDraftFromMadar={startMadarInvoiceSuggestion}
+          onManageUsers={onManageUsers}/>}
+        {tab==='madar'&&<TarazMadarDashboard api={integrationFeedbackApi}
+          canReview={canManage} canDraft={canManage||canDraft} canAdmin={canAdmin}
+          onDraftFromMadar={startMadarInvoiceSuggestion}/>}
         {view&&<>
+          {tab==='orders'&&<TarazOrderWorkspace api={api}
+            canEdit={canManage||canDraft}
+            canAdmin={canAdmin}
+            currency={view?.companyProfile?.currency||view?.currency||'RIAL'}/>}
           {tab==='proforma'&&<>
             <Panel title="پیش‌فاکتورهای فروش مستقل"
               description="این پیشنهادها بدون ساخت تسک، پروژه یا سفارش عملیاتی صادر می‌شوند. هیچ پیش‌فاکتوری بدهی مشتری یا سند دفترکل ایجاد نمی‌کند.">
@@ -1651,6 +1828,14 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                   </td>
                 </tr>)}/>}
             </Panel>
+              {savedDocumentPreview?.kind==='proforma'&&
+                <section className="sac-saved-print-preview" aria-label="پیش‌نمایش چاپ پیش‌فاکتور">
+                  <div><strong>پیش‌نمایش پیش‌فاکتور ذخیره‌شده: {savedDocumentPreview.documentId}</strong>
+                    <button type="button" onClick={()=>setSavedDocumentPreview(null)}>بستن پیش‌نمایش</button></div>
+                  <iframe title="پیش‌نمایش PDF پیش‌فاکتور" src={savedDocumentPreview.url}/>
+                  <a href={savedDocumentPreview.url} target="_blank" rel="noopener noreferrer">
+                    باز کردن فایل PDF برای چاپ</a>
+                </section>}
             {(canManage||canDraft)&&<Panel title={proformaEditing?'ویرایش پیش‌فاکتور '+proformaEditing:'ایجاد پیش‌فاکتور مستقل جدید'}
               description="بدون کارت و تسک. قیمت، تخفیف و مالیات با واحد واقعی دفترکل محاسبه می‌شود؛ فقط فاکتور صادرشده اثر مالی دارد.">
               <form onSubmit={submit(async()=>{
@@ -1820,6 +2005,10 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               onFiscalYearChange={setFiscalYear} onNavigate={gotoTab}
               onNewInvoice={openQuickInvoice} canDraft={canManage||canDraft}
               disabled={busy||pendingRetry||state.loading}/>
+            <TarazMadarDashboard api={integrationFeedbackApi}
+              canReview={canManage} canDraft={canManage||canDraft} canAdmin={canAdmin}
+              onDraftFromMadar={startMadarInvoiceSuggestion} compact
+              onOpenSection={()=>gotoTab('madar')}/>
             <details className="sac-vtr-management-details">
               <summary>تحلیل پیشرفته عملیات و یادآورهای حسابداری</summary>
               <AccountingVitreaHome api={api} fiscalYear={fiscalYear} view={view}
@@ -1866,7 +2055,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                   <td>{creditText(j.lines.reduce((s,x)=>s+x.credit,0))}</td></tr>)}/></Panel>
             </details>
           </>}
-          {['invoice','bill'].includes(tab)&&<>
+          {['invoice','bill','invoiceDesign'].includes(tab)&&<>
+            {tab!=='invoiceDesign'&&<>
             {tab==='invoice'&&<PersonalParsianInvoices api={api} section="invoices" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             {(tab==='bill'||!invoiceComposerOpen)&&<Panel title={tab==='invoice'?'فاکتورهای فروش':'صورتحساب‌های خرید'}
               description="پیش‌نویس، تأیید و صدور مراحل جداگانه‌اند؛ مبلغ صرفاً با صدور وارد دفترکل می‌شود.">
@@ -1981,7 +2171,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                             setDetailTarget(d.id);setTaxPreflight(null);
                             void api.standaloneAccountingTaxPreflight(d.id).then(result=>{
                               setTaxPreflight({invoiceId:d.id,...result});
-                            }).catch(err=>setState(p=>({...p,error:err.message||String(err)})));
+                            }).catch(_err=>setState(p=>({...p,error:'تهیه خروجی فاکتور انجام نشد؛ تنظیمات چاپ را بررسی کنید.'})));
                           }}>مشاور مالیاتی (پیش‌بررسی)</button>}
                         {canManage&&<>
                           <button type="button" disabled={busy} onClick={()=>void exportDocument(d,'png')}>خروجی PNG</button>
@@ -1995,6 +2185,15 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                       </div>
                     </details>
                   </td></tr>)} />
+              {tab==='invoice'&&savedDocumentPreview?.kind==='invoice'&&
+                <section className="sac-saved-print-preview" aria-label="پیش‌نمایش چاپ فاکتور">
+                  <div><strong>پیش‌نمایش فاکتور ذخیره‌شده: {savedDocumentPreview.documentId}</strong>
+                    <button type="button" onClick={()=>setSavedDocumentPreview(null)}>بستن پیش‌نمایش</button></div>
+                  <iframe title="پیش‌نمایش PDF فاکتور" src={savedDocumentPreview.url}/>
+                  <a href={savedDocumentPreview.url} target="_blank" rel="noopener noreferrer">
+                    باز کردن فایل PDF برای چاپ</a>
+                  <small>وضعیت سند در نسخهٔ چاپی نمایش داده می‌شود؛ برای ثبت مالی، تأیید و صدور جداگانه لازم است.</small>
+                </section>}
               {detailedDocument&&<section className="sac-document-detail" aria-label="مشاهده فاکتور">
                 {taxPreflight?.invoiceId===detailedDocument.id&&<aside className="sac-tax-preflight" role="status">
                   <h4>مشاور مالیاتی تراز | ارزیابی مقدماتی</h4>
@@ -2012,6 +2211,16 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                   <div><dt>تاریخ سند</dt><dd>{displayAccountingDate(detailedDocument.documentDate)}</dd></div>
                   <div><dt>وضعیت</dt><dd>{STATES[detailedDocument.status]||detailedDocument.status}</dd></div>
                   <div><dt>شماره قطعی</dt><dd>{detailedDocument.number||'هنوز صادر نشده'}</dd></div>
+                  {detailedDocument.createdAt&&<div><dt>زمان ثبت واقعی سند</dt>
+                    <dd dir="auto">{detailedDocument.createdAt}</dd></div>}
+                  {detailedDocument.createdBy&&<div><dt>ثبت‌کننده سند</dt>
+                    <dd dir="auto">{detailedDocument.createdBy}</dd></div>}
+                  {detailedDocument.editedAt&&<div><dt>آخرین زمان ویرایش ثبت‌شده</dt>
+                    <dd dir="auto">{detailedDocument.editedAt}</dd></div>}
+                  {detailedDocument.editedBy&&<div><dt>آخرین ویرایش‌کننده</dt>
+                    <dd dir="auto">{detailedDocument.editedBy}</dd></div>}
+                  {detailedDocument.lastChangedAt&&<div><dt>آخرین تغییر وضعیت ثبت‌شده</dt>
+                    <dd dir="auto">{detailedDocument.lastChangedAt}</dd></div>}
                   <div><dt>تاریخ ثبت دفترکل</dt><dd>{detailedDocument.postingDate?
                     displayAccountingDate(detailedDocument.postingDate):'ثبت نشده'}</dd></div>
                   <div><dt>شناسه سند حسابداری</dt><dd dir="ltr">{detailedDocument.postedEntryId||'—'}</dd></div>
@@ -2215,15 +2424,23 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             {(canManage||canDraft)&&(tab==='bill'||invoiceComposerOpen)&&<Panel compact={tab==='invoice'} title={correctionTarget?'اصلاح فاکتور '+correctionTarget:
               editTarget?'ویرایش فاکتور '+editTarget:tab==='invoice'?'ثبت فاکتور جدید':'ثبت صورتحساب خرید'}
               description="۱. مشتری و تاریخ را مشخص کنید. ۲. شرح، تعداد و قیمت اقلام را بنویسید. ۳. پیش‌نویس را ذخیره کنید.">
-              <form className="sac-invoice-editor" noValidate={wizardEnabled}
+              <form className="sac-invoice-editor" noValidate={wizardEnabled||beginnerEnabled}
                 inert={busy||pendingRetry} aria-busy={busy||pendingRetry}
                 onSubmit={submit(async()=>{
                 if(!validateInvoiceSubmission())return;
+                const savingProforma=beginnerEnabled&&beginnerDocumentType==='proforma';
+                const savedDocumentId=editTarget||forms.document.documentId;
                 if(await execute(id=>{
+                  const note=composeInvoiceExplanation(forms.document.note,extraInvoiceExplanation);
+                  if(savingProforma)return buildStandaloneProformaCommand({
+                    proformaId:savedDocumentId,partyId:forms.document.partyId,
+                    documentDate:forms.document.documentDate,lines:effectiveInvoiceRows,
+                    discount:forms.document.discount,tax:documentTax,note,eventId:id,
+                    accounts,items,today});
                   const built=buildStandaloneInvoiceCommand({
-                    kind:docKind,...forms.document,tax:documentTax,
-                    documentId:editTarget||forms.document.documentId,
-                    lines:rows,eventId:id,accounts,items,today});
+                    kind:docKind,...forms.document,note,tax:documentTax,
+                    documentId:savedDocumentId,
+                    lines:effectiveInvoiceRows,eventId:id,accounts,items,today});
                   if(built.error)return built;
                   if(correctionTarget){
                     built.command={
@@ -2237,20 +2454,62 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                       ...(built.command.note?{note:built.command.note}:{})};
                   }else if(editTarget)built.command.type=docKind+'.update';
                   return built;
-                },correctionTarget?'سند قبلی برگشت داده شد و پیش‌نویس جایگزین ایجاد شد؛ برای اثر مالی جدید آن را تأیید و صادر کنید.':
+                },savingProforma?'پیش‌فاکتور ذخیره شد؛ هنوز اثر مالی ندارد.':
+                  correctionTarget?'سند قبلی برگشت داده شد و پیش‌نویس جایگزین ایجاد شد؛ برای اثر مالی جدید آن را تأیید و صادر کنید.':
                   editTarget?'اصلاح پیش‌نویس با رویداد جدید ثبت شد.':
                   'پیش‌نویس سند در میزبان ثبت شد.')){
                     reset('document');setRows([makeLine()]);setEditTarget('');
                     setCorrectionTarget('');setCorrectionReason('');
                     if(tab==='invoice')setInvoiceComposerOpen(false);
                     setInvoiceWizardStep(0);setInvoiceWizardChecked({});
+                    setExtraInvoiceExplanation('');setBeginnerDocumentType('invoice');
+                    if(savingProforma)setTab('proforma');
+                    if(tab==='invoice'&&!correctionTarget){
+                      setInvoiceListSearch('');setInvoiceListStatus('all');
+                    }
+                    if(tab==='invoice')void openSavedDocumentPreview(savedDocumentId,
+                      savingProforma?'proforma':'invoice');
                   }
               })}>
                 {tab==='invoice'&&<InvoiceWizardNavigation
                   step={invoiceWizardStep} mode={invoiceWizardMode}
-                  onModeChange={mode=>{setInvoiceWizardMode(mode);setInvoiceWizardError('');}}
+                  onModeChange={mode=>{
+                    if(correctionTarget&&mode==='beginner'){
+                      setInvoiceWizardError('اصلاح سند قطعی فقط در حالت حرفه‌ای انجام می‌شود.');
+                      return;
+                    }
+                    setInvoiceWizardMode(mode);setInvoiceWizardError('');}}
                   onStepChange={goWizardStep} disabled={busy||pendingRetry}
                   hasUnsavedChanges={hasUnsavedInvoice}/>}
+                {beginnerEnabled&&<BeginnerInvoiceEditor
+                  document={forms.document} customers={customers} rows={rows}
+                  accounts={accounts} items={items} tax={documentTax}
+                  documentType={beginnerDocumentType} onDocumentTypeChange={chooseBeginnerDocumentType}
+                  preview={documentPreview} unitLabel={unitLabel} moneyText={moneyText}
+                  error={invoiceWizardError} disabled={busy||pendingRetry}
+                  saveDisabled={draftBlocked} dateControl={dateInput('document','documentDate')}
+                  onDocumentChange={(key,value)=>f('document',key,value)}
+                  extraExplanation={extraInvoiceExplanation} onExtraExplanationChange={setExtraInvoiceExplanation}
+                  onRegisterCustomer={async customer=>{
+                    if(!validId(customer.partyId)||!validText(customer.name)||
+                      parties[customer.partyId]||busy||pendingRetry)return false;
+                    return await execute(id=>({command:{type:'party.register',eventId:id,
+                      partyId:customer.partyId,name:customer.name.trim(),kind:'customer',
+                      creditLimit:null}}),'مشتری جدید ثبت شد؛ فرم فاکتور حفظ شد.');
+                  }}
+                  onCatalogAccept={(index,itemId)=>{
+                    if(items[itemId]?.active!==true||busy||pendingRetry)return;
+                    setRows(previous=>previous.map((row,i)=>i===index?{...row,itemId}:row));
+                  }}
+                  onRowChange={beginnerRowUpdate} onCompleteRow={completeBeginnerRow}
+                  onAddRow={()=>{
+                    if(rows.length<1000)setRows(p=>[...p,makeLine()]);
+                  }} onRemoveRow={removeInvoiceRow}
+                  onAdvanced={()=>{
+                    if(beginnerDocumentType==='proforma')continueProformaAdvanced();
+                    else{setInvoiceWizardMode('advanced');setInvoiceWizardError('');}
+                  }}
+                  onClose={closeInvoiceComposer}/>}
                 {tab==='invoice'&&invoiceWizardError&&<p role="alert"
                   className="sac-wizard-alert">{invoiceWizardError}</p>}
                 {tab==='invoice'&&<div className="sac-invoice-commandbar"
@@ -2536,9 +2795,13 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                   </button>
                 </div>
               </form></Panel>}
-            {canManage&&tab==='invoice'&&!invoiceComposerOpen&&
-              <details className="sac-disclosure sac-admin-tools">
-                <summary>قالب‌ها و سربرگ فاکتور (ابزارهای پیشرفته)</summary>
+            </>}
+            {canManage&&(tab==='invoiceDesign'||(tab==='invoice'&&!invoiceComposerOpen))&&
+              <section className="sac-invoice-template-studio" aria-label="استودیوی طراحی فرم چاپ فاکتور">
+              {tab==='invoice'&&<button type="button" className="sac-primary" onClick={()=>gotoTab('invoiceDesign')}>
+                ورود به طراحی فرم فاکتور
+              </button>}
+              {tab==='invoiceDesign'&&<p>سربرگ، عنوان‌ها، ستون‌های اقلام و امضا را تغییر دهید. پیش‌نمایش روی همان قالب PDF ساخته می‌شود.</p>}
               <Panel title="هویت‌های صادرکننده و سربرگ"
               description="صادرکننده چاپی از دفتر حسابداری مستقل است؛ انتخاب آن فقط سربرگ و فایل خروجی را تغییر می‌دهد، نه ثبت حسابداری را.">
               {templateBridge&&<div className="sac-template-library">
@@ -2576,18 +2839,19 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               <Panel title="طراح بصری قالب فاکتور"
               description="قالب چاپ، بدون ایجاد رویداد مالی، فقط برای شرکت انتخاب‌شده ذخیره می‌شود. پس از انتخاب قالب سفارشی، خروجی PDF/PNG از همین طرح ساخته می‌شود.">
               <div className="sac-template-library">
-                <button type="button" onClick={()=>setPrintDesignerOpen(p=>!p)}>
-                  {printDesignerOpen?'بستن طراح':'باز کردن طراح قالب چاپ'}</button>
+                {tab==='invoice'&&<button type="button" onClick={()=>setPrintDesignerOpen(p=>!p)}>
+                  {printDesignerOpen?'بستن طراح':'باز کردن طراح قالب چاپ'}</button>}
+                {!templateBridge&&<small role="status">ذخیره در دفتر روی این نسخه از میزبان فعال نیست؛ فقط طراحی و دریافت فایل نمونه در دسترس است.</small>}
                 {templateBridge&&<><select aria-label="قالب چاپ ذخیره‌شده" value={printTemplateId}
                   onChange={e=>{const id=e.target.value;setPrintTemplateId(id);
                     const t=printLibrary.templates.find(t=>t.id===id);
                     if(t){try{setPrintTemplate(validatePrintTemplate(t.data));setInvoicePrintLayout('custom');}
-                      catch(err){setState(p=>({...p,error:err.message}));}}}}>
+                      catch(_err){setState(p=>({...p,error:'قالب چاپ انتخاب‌شده معتبر نیست؛ قالب دیگری انتخاب کنید.'}));}}}}>
                   <option value="">قالب جدید</option>
                   {printLibrary.templates.map(t=><option value={t.id} key={t.id}>{t.title}
                     {t.id===printLibrary.defaultId?' ★':''}</option>)}
                 </select>
-                <button type="button" onClick={()=>void saveTemplateToLibrary('print')}>ذخیره قالب چاپ</button>
+                <button type="button" disabled={busy} onClick={()=>void saveTemplateToLibrary('print')}>ذخیره قالب چاپ</button>
                 <button type="button" disabled={!printTemplateId}
                   onClick={()=>void libraryAction('print','default',printTemplateId)}>پیش‌فرض شرکت</button>
                 <button type="button" disabled={!printTemplateId}
@@ -2599,19 +2863,31 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                     fields:DEFAULT_PRINT_TEMPLATE.fields.map(f=>({...f})),table:{...DEFAULT_PRINT_TEMPLATE.table}});
                   setPrintDesignerOpen(true);
                 }}>قالب چاپ جدید</button>
+                <button type="button" disabled={busy} onClick={()=>{
+                  const demo={id:'FORM-PREVIEW',number:'نمونه طراحی',documentDate:today,
+                    status:'نمونه فاقد اعتبار مالی',
+                    lines:[{description:'کالا یا خدمات آزمایشی',quantity:2,unitPrice:500000,total:1000000}],
+                    subtotal:1000000,discount:0,tax:0,total:1000000};
+                  void buildCustomPrintExport({template:printTemplate,kind:'invoice',
+                    doc:demo,party:'مشتری نمونه',company:printCompanyProfile,
+                    currency:ledgerCurrency,format:'pdf',pattern:'taraz-form-{kind}-{id}-{date}',items})
+                    .then(downloadStandaloneBlob)
+                    .then(()=>setState(p=>({...p,error:'',notice:'دانلود PDF نمونه درخواست شد؛ این فایل سند حسابداری نیست.'})))
+                    .catch(()=>setState(p=>({...p,error:'ساخت فایل نمونه چاپ انجام نشد؛ فرم را اصلاح کنید.',notice:''})));
+                }}>دانلود PDF نمونه فرم</button>
                 {detailedDocument&&<><button type="button" disabled={busy}
                   onClick={()=>{setInvoicePrintLayout('custom');void buildCustomPrintExport({
                     template:printTemplate,kind:'invoice',doc:detailedDocument,
                     party:parties[detailedDocument.partyId]?.name||detailedDocument.partyId,
                     company:printCompanyProfile,currency:ledgerCurrency,
-                    format:'pdf',pattern:filenamePattern}).then(downloadStandaloneBlob)
-                    .catch(err=>setState(p=>({...p,error:err.message})));}}>PDF قالب سفارشی</button></>}
+                    format:'pdf',pattern:filenamePattern,items}).then(downloadStandaloneBlob)
+                    .catch(_err=>setState(p=>({...p,error:'ساخت PDF قالب سفارشی انجام نشد؛ قالب چاپ را بررسی کنید.'})));}}>PDF قالب سفارشی</button></>}
               </div>
-              {printDesignerOpen&&<AccountingPrintDesigner value={printTemplate} onChange={setPrintTemplate}
+              {(printDesignerOpen||tab==='invoiceDesign')&&<AccountingPrintDesigner value={printTemplate} onChange={setPrintTemplate}
                 disabled={busy} context={{kind:'invoice',doc:detailedDocument,
                   party:detailedDocument?parties[detailedDocument.partyId]?.name:'مشتری نمونه',
-                  company:printCompanyProfile,currency:ledgerCurrency}}/>}
-            </Panel></details>}
+                  company:printCompanyProfile,currency:ledgerCurrency,items}}/>}
+            </Panel></section>}
           </>}
           {tab==='parties'&&<>
             <PersonalParsianInvoices api={api} section="parties" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>

@@ -7,6 +7,7 @@ import {readTarazSettings,saveTarazSettings,applyTarazSettings}
   from './taraz_settings_preferences.js';
 import {ACCOUNTING_PRIMARY_SECTIONS,accountingVisibleSections,
   buildAccountingSearchIndex} from './accounting_nav_search.js';
+import TarazContextHelp from './taraz_context_help.jsx';
 import './accounting_navigation_shell.css';
 
 const SHORT_LABELS={overview:'خانه',invoice:'فروش',bill:'خرید',
@@ -210,6 +211,11 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
       <button type="button" disabled={disabled} data-accounting-tab="settings"
         title="تنظیمات" aria-label="تنظیمات" onClick={()=>navigate('settings')}>
         <Settings2 size={20}/></button>
+      <TarazContextHelp tab={tab} sections={sections} role={role}
+        sectionAccess={sectionAccess}
+        disabled={disabled}
+        capabilities={{canDraft:permittedDraft,canManage:permittedManage,
+          canAdmin:permittedAdmin,canPrint:hasPrintableInvoice}}/>
       <button type="button" title="جست‌وجو" aria-label="بازکردن جست‌وجو" disabled={disabled}
         onClick={()=>setSearchOpen(true)}><Search size={20}/></button>
     </div>

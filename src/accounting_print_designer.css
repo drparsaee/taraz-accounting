@@ -14,4 +14,28 @@
 .sac-print-canvas-shell small{color:#536e72;font-size:12px}
 .sac-print-canvas-shell canvas{display:block;background:#fff;width:100%;max-width:590px;height:auto;box-shadow:0 6px 18px #20323926;border:1px solid #d1dedf;touch-action:none;cursor:move}
 .sac-print-error{color:#a32f29;font-size:12px}
+.sac-print-options-group{grid-column:1/-1;min-width:0;border:1px solid #dbe8e7;border-radius:8px;display:grid;gap:10px;padding:12px}
+.sac-print-options-group legend{font-weight:700;color:#174b56;padding:0 6px}
+.sac-print-options-group small{font-size:12px;line-height:1.7;color:#47646b}
+.sac-print-options-group>button{border:1px solid #b4d2d3;border-radius:7px;background:white;padding:8px;cursor:pointer}
+.sac-print-options-group>button[aria-pressed=true]{border-color:#0b7d8c;background:#e6f6f7}
+.sac-print-column-editor{grid-column:1/-1;display:grid;gap:8px;border:1px solid #d1e4e4;border-radius:9px;padding:10px;background:#fff}
+.sac-print-column-editor>strong{font-size:13px;color:#184954}
+.sac-print-column-editor>small{font-size:11px;color:#47646b}
+.sac-print-column-line{display:grid;grid-template-columns:minmax(0,1fr) 30px 30px 64px;align-items:center;gap:5px}
+.sac-print-column-line>label{display:flex;flex-direction:row;align-items:center;gap:8px}
+.sac-print-column-line>button{min-height:29px;border:1px solid #d0dfe0;border-radius:5px;background:#f4fafb;cursor:pointer}
+.sac-print-column-line>button:disabled{opacity:.35;cursor:default}
+.sac-print-column-line>span{font-size:11px;color:#527277;text-align:center}
+.sac-print-preview-actions{display:flex!important;flex-direction:row!important;justify-content:center;flex-wrap:wrap;gap:8px}
+.sac-print-preview-actions button{padding:9px 12px;border-radius:8px;border:1px solid #98babb;background:#f0f9fa;color:#134c52;cursor:pointer}
+.sac-print-preview-actions button:disabled{opacity:.4;cursor:default}
+.sac-print-ai>label{grid-column:1/-1}
+.sac-print-ai textarea{min-height:70px;width:100%;resize:vertical;padding:8px;border:1px solid #cbdfe1;border-radius:6px;font:inherit}
+.sac-print-ai-proposal{display:grid;gap:8px;padding:10px;background:#fff;border:1px solid #bcd6d7;border-radius:8px;font-size:12px}
+.sac-print-ai-proposal canvas{width:100%;max-width:220px;height:auto;justify-self:center;border:1px solid #d7e3e3}
+.sac-print-ai-proposal button{padding:7px;border:1px solid #aacbcc;border-radius:6px;background:#eff8f9}
+.sac-invoice-template-studio{display:grid;gap:14px}
+.sac-invoice-template-studio>.sac-primary{justify-self:start}
 @media(max-width:1000px){.sac-print-designer{grid-template-columns:1fr}.sac-print-canvas-shell{position:static}}
+@media(max-width:480px){.sac-print-controls,.sac-print-fields{grid-template-columns:1fr}.sac-print-column-line{grid-template-columns:minmax(0,1fr) 26px 26px 53px}}

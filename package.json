@@ -9,18 +9,24 @@
     "build": "vite build",
     "dist": "npm run dist:rc",
     "dist:rc": "python -B scripts/build_integrated_v122.py --webview2 release/.madar-inno-prereq/MicrosoftEdgeWebView2RuntimeInstallerX64.exe",
-    "test": "python -B tools/safe_test_runner.py"
+    "test": "node scripts/run_taraz_p1_checks_20261112.mjs",
+    "test:p1": "node scripts/run_taraz_p1_checks_20261112.mjs",
+    "test:p1:all": "node scripts/run_taraz_p1_checks_20261112.mjs --native-source",
+    "test:orders": "node scripts/run_taraz_orders_aaas_20261112.mjs",
+    "test:orders:all": "node scripts/run_taraz_orders_aaas_20261112.mjs --native-source"
   },
   "dependencies": {
     "@fontsource-variable/estedad": "5.3.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sileo": "0.1.6",
     "vazirmatn": "^33.0.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.5.0",
     "axe-core": "4.14.0",
+    "playwright": "1.64.1",
     "vite": "^6.0.0"
   }
 }

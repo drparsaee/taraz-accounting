@@ -1,0 +1,33 @@
+/* One visual host only, mounted beside the authenticated accounting shell.
+   The library itself already uses a polite live region and reduced-motion
+   handling. These overrides preserve RTL and disable any leftover effects. */
+.taraz-feedback-host [data-sileo-viewport]{
+  direction:rtl;
+  font-family:var(--taraz-font, 'Vazirmatn','Estedad',Tahoma,sans-serif);
+  z-index:9999;
+}
+.taraz-feedback-host [data-sileo-title],
+.taraz-feedback-host [data-sileo-description]{
+  direction:rtl;
+  text-align:right;
+  text-transform:none;
+  unicode-bidi:plaintext;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.taraz-feedback-host [data-sileo-viewport][data-theme="dark"] [data-sileo-description]{
+  color:#dce7f6;
+}
+.taraz-feedback-host [data-sileo-viewport]{
+  --sileo-width:min(350px,calc(100vw - 32px));
+}
+@media (prefers-reduced-motion: reduce){
+  .taraz-feedback-host [data-sileo-viewport],
+  .taraz-feedback-host [data-sileo-viewport] *,
+  .taraz-feedback-host [data-sileo-viewport]::before,
+  .taraz-feedback-host [data-sileo-viewport]::after{
+    animation:none !important;
+    transition:none !important;
+    scroll-behavior:auto !important;
+  }
+}
