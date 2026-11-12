@@ -2,7 +2,7 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Check,ChevronLeft,CircleHelp,ExternalLink,Link2,Monitor,
   Moon,RefreshCw,ShieldCheck,Sun,Users,Wallet,SlidersHorizontal} from 'lucide-react';
 import {readTarazSettings,saveTarazSettings,applyTarazSettings} from './taraz_settings_preferences.js';
-import {integrationCapabilities,listTarazIntegration,reviewTarazIntegration}
+import {integrationCapabilities,listTarazIntegration,reviewTarazIntegration,recoverTarazIntegration}
   from './taraz_settings_integration.js';
 import './taraz_settings.css';
 
@@ -41,7 +41,7 @@ function Section({eyebrow,title,description,children}){
   </section>;
 }
 
-function IntegrationSettings({api,canReview}){
+function IntegrationSettings({api,canReview,canDraft=false,onDraftFromMadar=null}){
   const capability=integrationCapabilities(api);
   const [enabled,setEnabled]=useState(false);
   const [loading,setLoading]=useState(false);
@@ -53,23 +53,25 @@ function IntegrationSettings({api,canReview}){
   const refresh=useCallback(async()=>{
     setLoading(true);setError('');setStatus('');
     try{setResult(await listTarazIntegration(api));}
-    catch(e){setResult(null);setError(e?.message||String(e));}
+    catch(_error){setResult(null);setError('خواندن صندوق مدار ناموفق بود؛ اتصال و دسترسی را بررسی کنید.');}
     finally{setLoading(false);}
   },[api]);
   async function decide(){
     if(!selected||busy||!enabled)return;
-    const {id,decision}=selected;
+    const {id,decision,recovery=false}=selected;
     setBusy(true);setError('');setStatus('');
     try{
-      await reviewTarazIntegration(api,id,decision);
+      if(recovery)await recoverTarazIntegration(api,id,decision);
+      else await reviewTarazIntegration(api,id,decision);
       setSelected(null);
       // Only metadata is acknowledged. A second explicit read updates the visible queue.
-      setStatus('ارجاع در صندوق اتصال بررسی شد. هیچ سند مالی ایجاد نشد.');
+      setStatus(recovery?'تصمیم قبلی از ثبت پایدار بازیابی شد. هیچ سند مالی ایجاد نشد.':
+        'ارجاع در صندوق اتصال بررسی شد. هیچ سند مالی ایجاد نشد.');
       setLoading(true);
       try{setResult(await listTarazIntegration(api));}
-      catch(e){setResult(null);setError('بررسی انجام شد اما بازخوانی صندوق ناموفق بود: '+(e?.message||String(e)));}
+      catch(_error){setResult(null);setError('تصمیم به میزبان ارسال شد، اما بازخوانی صندوق ناموفق بود. پیش از تکرار وضعیت را بررسی کنید.');}
       finally{setLoading(false);}
-    }catch(e){setError(e?.message||String(e));}
+    }catch(_error){setError('نتیجه تصمیم نامشخص است؛ قبل از تکرار، وضعیت صندوق و بازیابی‌ها را بررسی کنید.');}
     finally{setBusy(false);}
   }
   return <Section eyebrow="Madar + Taraz" title="اتصال اختیاری مدار به تراز"
@@ -99,7 +101,11 @@ function IntegrationSettings({api,canReview}){
       <div className="taraz-settings-connection-summary" role="status">
         <span>صندوق مدار: <strong>{result.connected?'در دسترس':'متصل نیست'}</strong></span>
         <span>ارجاع‌های منتظر بررسی: <strong>{result.requests.length.toLocaleString('fa-IR')}</strong></span>
+        {result.pendingTruncated&&<span role="alert">فهرست ارجاع‌های در انتظار ناقص است؛ پس از تعیین تکلیف موارد موجود، صندوق را دوباره بازخوانی کنید.</span>}
+        {result.recovery?.length>0&&<span>تصمیم‌های ناتمام قابل بازیابی: <strong>{result.recovery.length.toLocaleString('fa-IR')}</strong></span>}
         {result.invalidCount>0&&<span>ارجاع‌های نامعتبر کنار گذاشته‌شده: {result.invalidCount.toLocaleString('fa-IR')}</span>}
+        {result.recoveryInvalidCount>0&&<span>بازیابی‌های نامعتبر یا متعارض: {result.recoveryInvalidCount.toLocaleString('fa-IR')}</span>}
+        {result.recoveryTruncated&&<span>فهرست بازیابی بیش از حد بزرگ است؛ بازیابی خودکار ممنوع است.</span>}
       </div>
       {result.connected&&result.requests.length===0&&
         <p className="taraz-settings-muted">ارجاع بررسی‌نشده‌ای در صندوق وجود ندارد.</p>}
@@ -108,16 +114,33 @@ function IntegrationSettings({api,canReview}){
           {Number.isSafeInteger(item.amountRial)&&
             <small>مبلغ پیشنهادی: {item.amountRial.toLocaleString('fa-IR')} ریال؛ ثبت‌نشده</small>}</div>
         <div className="taraz-settings-request-actions">
+          {canDraft&&typeof onDraftFromMadar==='function'&&
+            <button type="button" disabled={busy||loading||!enabled}
+              onClick={()=>onDraftFromMadar(item)}
+              title="فقط شرح را در فرم پیش‌نویس وارد می‌کند؛ طرف حساب، قیمت، مالیات و ثبت سند با شماست.">
+              آماده‌سازی پیش‌نویس فروش
+            </button>}
           <button type="button" disabled={!capability.canReview||!canReview||busy}
             onClick={()=>setSelected({id:item.id,decision:'reviewed',title:item.title})}>بررسی شد</button>
           <button type="button" disabled={!capability.canReview||!canReview||busy}
             onClick={()=>setSelected({id:item.id,decision:'rejected',title:item.title})}>رد ارجاع</button>
         </div>
       </article>)}
+      {(result.recovery||[]).map(item=><article className="taraz-settings-request" key={'recover-'+item.id}>
+        <div><strong>{item.title}</strong>
+          <small>تصمیم ثبت‌شده اما ناتمام: {item.state==='reviewed'?'بررسی شد':'رد ارجاع'}</small>
+          <small>این عملیات فقط همان تصمیم قبلی را تکمیل می‌کند؛ سند حسابداری ایجاد نمی‌شود.</small></div>
+        <div className="taraz-settings-request-actions">
+          <button type="button" disabled={!enabled||!capability.canRecover||!canReview||busy}
+            onClick={()=>setSelected({id:item.id,decision:item.state,title:item.title,recovery:true})}>
+            بازیابی دستی تصمیم ناتمام
+          </button>
+        </div>
+      </article>)}
     </>}
     {selected&&enabled&&<div className="taraz-settings-review" role="group"
       aria-label="تأیید تصمیم ارجاع">
-      <strong>تأیید دستی {selected.decision==='reviewed'?'بررسی':'رد'} ارجاع</strong>
+      <strong>{selected.recovery?'تأیید بازیابی تصمیم پایدار':'تأیید دستی '+(selected.decision==='reviewed'?'بررسی':'رد')+' ارجاع'}</strong>
       <p>{selected.title}؛ این عملیات تنها وضعیت ارجاع را تغییر می‌دهد و سند حسابداری نمی‌سازد.</p>
       <div><button type="button" disabled={busy} className="taraz-settings-action"
         onClick={()=>void decide()}>{busy?'در حال ثبت تصمیم...':'تأیید تصمیم'}</button>
@@ -129,7 +152,7 @@ function IntegrationSettings({api,canReview}){
 }
 
 export default function TarazSettings({api,currentUser=null,canAdmin=false,canManage=false,
-  onManageUsers=null}){
+  canDraft=canManage,onDraftFromMadar=null,onManageUsers=null}){
   const [page,setPage]=useState('general');
   const [prefs,setPrefs]=useState(()=>readTarazSettings());
   const localOnly=currentUser?.username==='local';
@@ -207,7 +230,8 @@ export default function TarazSettings({api,currentUser=null,canAdmin=false,canMa
           </Row>
         </Section>}
         {page==='integration'&&<IntegrationSettings api={api}
-          canReview={canManage||canAdmin}/>}
+          canReview={canManage||canAdmin} canDraft={canDraft||canManage}
+          onDraftFromMadar={onDraftFromMadar}/>}
         {page==='subscription'&&<Section eyebrow="Plans & billing"
           title="اشتراک و خرید" description="اطلاعات خرید فقط پس از اتصال به سرویس واقعی نمایش داده می‌شود.">
           <Row title="وضعیت اشتراک" description="در این نسخه سرویس استعلام اشتراک ارائه نشده است.">
