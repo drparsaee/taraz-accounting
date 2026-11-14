@@ -96,7 +96,8 @@ class AutomaticStandaloneBackups:
     def __init__(self, explicit_data_root: Path, *,
                  interval_seconds: float = BACKUP_INTERVAL_SECONDS,
                  max_backups: int = MAX_BACKUPS,
-                 plaintext_acknowledged: bool = False):
+                 plaintext_acknowledged: bool = False,
+                 preserve_existing: bool = False):
         root = _absolute_path(Path(explicit_data_root), "accounting data root")
         if plaintext_acknowledged is not True:
             raise PermissionError("Automatic plaintext financial backups require explicit acknowledgement")
@@ -104,11 +105,16 @@ class AutomaticStandaloneBackups:
             raise ValueError("Backup interval must be positive")
         if type(max_backups) is not int or not 1 <= max_backups <= MAX_BACKUPS:
             raise ValueError("Backup retention must be between 1 and 60")
+        if type(preserve_existing) is not bool:
+            raise ValueError("Backup preservation must be explicit boolean")
         self.root = root
         self.source = root / SOURCE_FILENAME
         self.folder = root / BACKUP_FOLDER
         self.interval_seconds = interval_seconds
         self.max_backups = max_backups
+        # An unclaimed migrated legacy profile must not silently retire any
+        # historical backup on launch/exit while ownership remains unresolved.
+        self.preserve_existing = preserve_existing
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -216,8 +222,10 @@ class AutomaticStandaloneBackups:
                     verify_completion_manifest(created)
                     # The validated new copy must not be selected for deletion,
                     # even after a clock adjustment or older timestamp.
-                    for obsolete in [p for p in candidates if p != created][
-                            :max(0, len(candidates) - self.max_backups)]:
+                    obsolete_files = ([] if self.preserve_existing else
+                        [p for p in candidates if p != created][
+                            :max(0, len(candidates) - self.max_backups)])
+                    for obsolete in obsolete_files:
                         # Only companion names derived from our own strict
                         # managed filename are eligible for rotation. Retire
                         # SQLite first: if it is locked or unlink fails, its

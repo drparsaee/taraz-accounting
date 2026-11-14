@@ -1676,7 +1676,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       hasPrintableInvoice={tab==='invoice'&&!!detailedDocument}
       canManage={canManage} canDraft={canManage||canDraft} canAdmin={canAdmin}
       currentUser={snapshot?.currentUser}
-      currency={unitLabel} companyName={view?.companyProfile?.legalName||
+      currency={unitLabel} companyName={view?.legacyWorkspaceState?.label||view?.companyProfile?.legalName||
         view?.companyWorkspaceLabel||''}
       onRefresh={()=>void requestManualRefresh()} onExit={requestExit} onSwitchCompany={requestCompanySwitch}
       onManageUsers={onManageUsers}
@@ -1754,7 +1754,9 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         {tab==='madar'&&<TarazMadarDashboard api={integrationFeedbackApi}
           canReview={canManage} canDraft={canManage||canDraft} canAdmin={canAdmin}
           onDraftFromMadar={startMadarInvoiceSuggestion}/>}
-        {tab==='ai'&&<TarazAiChatWorkspace api={api} canEdit={canManage||canDraft}/>}
+        {tab==='ai'&&<TarazAiChatWorkspace api={api}
+          canEdit={canManage||canDraft||view?.legacyWorkspaceState?.identityStatus==='identity_pending'}
+          canApprove={canManage||canDraft}/>}
         {view&&<>
           {tab==='orders'&&<TarazOrderWorkspace api={api}
             canEdit={canManage||canDraft}

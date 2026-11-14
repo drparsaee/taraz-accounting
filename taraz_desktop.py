@@ -96,7 +96,8 @@ def private_qa_cdp_port(data, environment=None):
 
 class TarazAPI(AccountingDesktopAPI):
     def __init__(self, path, *, company_name="", company_workspace_id="",
-                 authenticated_user=None, identity_store=None, identity_token=None):
+                 authenticated_user=None, identity_store=None, identity_token=None,
+                 legacy_workspace=None):
         # The production launcher always supplies an authenticated company
         # principal. The original one-argument constructor remains available
         # to legacy isolated API fixtures, never used by run().
@@ -106,6 +107,18 @@ class TarazAPI(AccountingDesktopAPI):
                          identity_store=identity_store,
                          identity_token=identity_token)
         self._requires_migration = (path / "taraz-migration-manifest.json").exists()
+        self._legacy_workspace = legacy_workspace
+
+    def _with_migration(self, result):
+        result = super()._with_migration(result)
+        if getattr(self, '_legacy_workspace', None) is not None:
+            result['view']['legacyWorkspaceState'] = {
+                'identityStatus': 'identity_pending',
+                'ownershipStatus': 'ownership_unclaimed',
+                'label': self._legacy_workspace['label'],
+                'readOnly': True,
+            }
+        return result
 
     def tarazEcosystemStatus(self):
         """Authenticated, read-only truth about this local ecosystem boundary.
@@ -839,6 +852,32 @@ def open_authenticated_taraz_company(registry_root, *, choose=None, login=None):
         raise
 
 
+def open_identity_pending_legacy_workspace(root):
+    """Open a proven migrated *local* legacy ledger with viewer rights only.
+
+    No password, company administrator, financial approval or network identity
+    is synthesized. An independent clone migration must have created the
+    provenance-bound versioned sidecar before this path can become available.
+    """
+    from taraz_legacy_workspace_bridge import (
+        LegacyLocalViewerIdentity, verify_workspace)
+    directory = Path(root)
+    if directory.resolve() != taraz_data_root().resolve():
+        raise PermissionError('Legacy viewing is restricted to the local Taraz profile')
+    workspace = verify_workspace(directory)
+    identity = LegacyLocalViewerIdentity(directory)
+    user, token = identity.session()
+    try:
+        api = TarazAPI(directory, company_name=workspace['label'],
+                       company_workspace_id=workspace['workspaceId'],
+                       authenticated_user=user, identity_store=identity,
+                       identity_token=token, legacy_workspace=workspace)
+        return api, identity, token
+    except BaseException:
+        identity.logout(token)
+        raise
+
+
 def _run_authenticated_taraz_api(api):
     """Existing Taraz financial/UI lifecycle, now bound to a real login."""
     import msvcrt
@@ -848,7 +887,16 @@ def _run_authenticated_taraz_api(api):
     if getattr(api, "_identity_store", None) is None or not api._identity_token:
         raise PermissionError("Production Taraz startup requires a live company user session")
     api._require_authenticated("viewer")
-    if (not api.company_workspace_id or data.parent.name != "books" or
+    from taraz_legacy_workspace_bridge import LegacyLocalViewerIdentity, verify_workspace
+    is_pending_legacy = isinstance(api._identity_store, LegacyLocalViewerIdentity)
+    if is_pending_legacy:
+        current = verify_workspace(data)
+        if (current['workspaceId'] != api.company_workspace_id or
+                data.resolve() != taraz_data_root().resolve() or
+                api._actor != LegacyLocalViewerIdentity.USER or
+                api._accounts[api._actor].get('role') != 'viewer'):
+            raise PermissionError('Unverified legacy workspace or viewer permission')
+    elif (not api.company_workspace_id or data.parent.name != "books" or
             StandaloneCompanyRegistry(data.parent.parent).company_data_directory(
                 api.company_workspace_id) != data):
         raise PermissionError("Taraz book is not bound to its registered company")
@@ -883,7 +931,9 @@ def _run_authenticated_taraz_api(api):
             raise RuntimeError("Taraz is already running using this accounting book")
         os.environ["TARAZ_DATA_DIR"] = str(data)
         from standalone_accounting_auto_backup import AutomaticStandaloneBackups
-        backups = AutomaticStandaloneBackups(data, plaintext_acknowledged=True)
+        backups = AutomaticStandaloneBackups(
+            data, plaintext_acknowledged=True,
+            preserve_existing=is_pending_legacy)
         prepare_offline_accounting_on_launch(api, backups)
         backups.start()
         root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -978,7 +1028,13 @@ def run():
     An unregistered legacy profile stays untouched; no implicit local admin,
     company creation, or finance DB migration occurs in this entrypoint.
     """
-    session = open_authenticated_taraz_company(taraz_data_root())
+    root = taraz_data_root()
+    # An unclaimed historical book is a viewer-only mode, not an admin bypass.
+    # The marker must already exist from a separately verified migration.
+    if (root / 'legacy-workspace.json').is_file() and not (root / 'companies.json').exists():
+        session = open_identity_pending_legacy_workspace(root)
+    else:
+        session = open_authenticated_taraz_company(root)
     if session is None:  # User cancelled the native selection/login UI.
         return
     api, identity, token = session

@@ -49,6 +49,7 @@ MANDATORY = {
     "standalone_accounting_identity.py",
     "standalone_accounting_company_registry.py",
     "standalone_accounting_secure_login.py",
+    "taraz_legacy_workspace_bridge.py",
     "taraz_llm_order_suggest.py", "taraz_llm_print_suggest.py",
     "src/taraz_order_workspace.jsx", "src/taraz_order_workspace.css",
     "src/accounting_invoice_wizard.jsx", "src/accounting_invoice_wizard.css",
@@ -57,6 +58,7 @@ MANDATORY = {
     "src/taraz_order_intake.js", "src/accounting_print_designer.jsx",
     "src/accounting_print_template.js",
     "src/standalone_main.jsx", "package.json", "package-lock.json",
+    "src/accounting_navigation_shell.jsx",
     "accounting.html", "vite.config.js",
 }
 REQUIRED_ORDER_API = {
@@ -71,6 +73,7 @@ REQUIRED_ORDER_API = {
     "tarazAiChatList", "tarazAiChatRead", "tarazAiChatCommand",
 }
 REQUIRED_PYZ = {
+    "taraz_legacy_workspace_bridge": {"verify_workspace", "LegacyLocalViewerIdentity"},
     "taraz_ai_chat_store": {"TarazAiChatStore", "create", "append", "read", "replay"},
     "taraz_ai_business_service": {"AiBusinessService", "command"},
     "taraz_ai_invoice_intake": {"invoice_preview", "preview_reply"},
@@ -554,6 +557,7 @@ def build(*, freeze_sha: str) -> Path:
              "--hidden-import", "standalone_accounting_identity",
              "--hidden-import", "standalone_accounting_company_registry",
              "--hidden-import", "standalone_accounting_secure_login",
+             "--hidden-import", "taraz_legacy_workspace_bridge",
              "--hidden-import", "taraz_llm_order_suggest",
              "--hidden-import", "taraz_llm_print_suggest",
              "--hidden-import", "taraz_madar_data_reader",

@@ -26,7 +26,7 @@ function newClientRequestId(){
 
 /** The native bridge owns the authenticated user/company boundary.
  * This UI never keeps chat content in localStorage or a browser cache. */
-export default function TarazAiChatWorkspace({api,canEdit=false}){
+export default function TarazAiChatWorkspace({api,canEdit=false,canApprove=canEdit}){
   const [items,setItems]=useState([]);
   const [selected,setSelected]=useState('');
   const [history,setHistory]=useState(null);
@@ -224,7 +224,7 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
                   <label><input type="checkbox" checked={confirmReviewed[record.id]===true}
                     onChange={e=>setConfirmReviewed(p=>({...p,[record.id]:e.target.checked}))}/>
                     مشتری، اقلام، قیمت‌های منبع، مالیات و تخفیف را بررسی کردم.</label>
-                  <button type="button" disabled={busy||!canEdit||confirmReviewed[record.id]!==true}
+                  <button type="button" disabled={busy||!canApprove||confirmReviewed[record.id]!==true}
                     onClick={()=>decide(record.id,true)}>تأیید و ذخیره پیش‌نویس</button>
                   <button type="button" disabled={busy||!canEdit}
                     onClick={()=>decide(record.id,false)}>رد پیشنهاد</button>
@@ -232,7 +232,7 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
                 {record.approval==='approved'&&record.status==='uncertain'&&
                   <div className="taraz-ai-review">
                     <p>نتیجه ذخیره قبلی نامشخص است؛ برای جلوگیری از ثبت تکراری فقط تطبیق خواندنی مجاز است.</p>
-                    <button type="button" disabled={busy||!canEdit}
+                    <button type="button" disabled={busy||!canApprove}
                       onClick={()=>reconcile(record.id)}>تطبیق نتیجه نامشخص بدون ثبت دوباره</button>
                   </div>}
               </React.Fragment>}

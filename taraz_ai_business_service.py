@@ -10,6 +10,7 @@ import re
 
 from taraz_ai_chat_store import TarazAiChatStore, AiChatError, _valid_text
 from taraz_ai_invoice_intake import invoice_preview, preview_reply
+from taraz_legacy_workspace_bridge import LegacyLocalViewerIdentity
 
 _ID = re.compile(r"^[a-f0-9]{32}$")
 
@@ -24,6 +25,14 @@ class AiBusinessService:
             raise PermissionError("AI chat requires a verified company user session")
         host._require_authenticated("viewer")
         self.host = host
+        # Proven same-principal historical books may keep private, encrypted
+        # conversations without claiming a company owner. This does NOT grant
+        # the ability to approve or create an accounting draft.
+        self.local_legacy_chat = isinstance(
+            host._identity_store, LegacyLocalViewerIdentity)
+        if self.local_legacy_chat and (host._actor != LegacyLocalViewerIdentity.USER or
+                                      not host._legacy_workspace):
+            raise PermissionError('Unverified local legacy chat context')
         # NEVER derive encryption entropy from a filesystem path: moving a
         # backup to an isolated restore directory would make same-user DPAPI
         # ciphertext undecipherable. A registry-verified immutable company ID
@@ -63,7 +72,12 @@ class AiBusinessService:
         if "clientRequestId" in request and request["clientRequestId"] is None:
             raise AiChatError("Explicit clientRequestId must be a valid cryptographic ID")
         if action in {"create", "send", "approve", "reject", "reconcile", "delete"}:
-            self.host._require_authenticated("editor")
+            if self.local_legacy_chat and action in {"create", "send", "reject", "delete"}:
+                # The trust boundary is the owner-restricted local WebView
+                # bridge + Windows principal, not a fabricated editor role.
+                self.host._require_authenticated("viewer")
+            else:
+                self.host._require_authenticated("editor")
             if self.host._exit_backed_up:
                 raise RuntimeError("Accounting desktop is closing")
         else:

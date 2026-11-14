@@ -175,6 +175,11 @@ export default function AccountingNavigationShell({tab,sections=[],groups=[],gro
         })}
       </nav>
       <div className="taraz-vt-top-actions">
+        {currentUser?.username==='legacy_local_viewer'&&
+          <span className="taraz-vt-user" role="status"
+            title="دفتر قدیمی: مالکیت و هویت مدیریتی هنوز تأیید نشده‌اند؛ ثبت مالی غیرفعال است">
+            <ShieldCheck size={16}/><span>دفتر قدیمی | فقط مشاهده | مالکیت تأییدنشده</span>
+          </span>}
         {currentUser?.username&&<span className="taraz-vt-user" title={currentUser.username}>
           <Users size={16}/><span>{currentUser.username}</span></span>}
         <span className="taraz-vt-currency" title="واحد دفتر حسابداری">{currency}</span>
