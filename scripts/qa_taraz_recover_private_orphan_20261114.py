@@ -137,7 +137,7 @@ def main() -> int:
         hashlib.sha256(EXE.read_bytes()).hexdigest()!=EXE_SHA):
         raise PermissionError('Exact synthetic EXE process identity mismatch')
     owner = json.loads((RUN/'synthetic-ownership.json').read_text(encoding='utf-8'))
-    if owner != {'syntheticOnly':True,'candidate':'build-8ad80825928e',
+    if owner != {'syntheticOnly':True,'candidate':EXE.parent.parent.name,
                   'exeSha256':EXE_SHA}:
         raise PermissionError('Private test ownership evidence mismatch')
     user32=ctypes.WinDLL('user32',use_last_error=True)

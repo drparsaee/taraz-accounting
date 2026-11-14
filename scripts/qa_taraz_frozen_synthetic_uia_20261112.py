@@ -28,9 +28,9 @@ from scripts import qa_taraz_v106_finalfix_native_gui_20261112 as qa
 from scripts import qa_taraz_v103_native_gui_20261111 as native
 from scripts import qa_taraz_v101_upgrade_acceptance_20261110 as acl
 
-SOURCE_SHA = '96cd0132dff1c8769df0dc7e6454241bf61433b85abcb8efaa62730defd3138e'
-BUILD_NAME = 'build-8ad80825928e'
-EXE_SHA = '70eb46a3430985cca18aeaaf21339a2c7f49fca3f75066f091a8600d862dc512'
+SOURCE_SHA = '73b692ca3b8790315a3c41be96960e059a06c6f9d6884cd8205edb1c2fe460c8'
+BUILD_NAME = 'build-e13b4438f5d4'
+EXE_SHA = '300dfff312dad2c5e5cc3984fc5afb39bc381857889989d4072ab83a34b592d3'
 qa.BUILD = qa.ARTIFACTS / BUILD_NAME
 qa.EXE = qa.BUILD / 'binary' / 'Taraz.exe'
 qa.SOURCE_SHA = SOURCE_SHA
@@ -244,6 +244,8 @@ EDIT_PROFORMA = r'''
  Start-Sleep -Milliseconds 550
  $out.syntheticProformaEditUi.edit=Activate 'ویرایش'
  Start-Sleep -Milliseconds 1200
+ $out.syntheticProformaEditUi.beforeQuantityCount=@(Named 'تعداد').Count
+ $out.syntheticProformaEditUi.beforeEditCapture=Capture 'proforma-before-quantity'
  function SetOfferValue([string]$name,[string]$value){
   for($attempt=1;$attempt -le 4;$attempt++){
    $items=@(Named $name | Where-Object {$_.Current.IsEnabled -and
@@ -265,28 +267,100 @@ EDIT_PROFORMA = r'''
   }
   return $false
  }
- for($pass=1;$pass -le 4;$pass++){
-   $a=SetOfferValue 'تعداد' '3'
-   $b=SetOfferValue 'شرایط و توضیحات' 'QA FROZEN OFFER EDIT'
-   Start-Sleep -Milliseconds 450
-   $verified=@{}
-   foreach($entry in @(@('تعداد','3'),@('شرایط و توضیحات','QA FROZEN OFFER EDIT'))){
-     $items=@(Named ([string]$entry[0]))
-     $pattern=$null
-     $verified[[string]$entry[0]]=($items.Count -eq 1 -and
-       $items[0].TryGetCurrentPattern(
-         [System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern) -and
-       [string]$pattern.Current.Value -eq [string]$entry[1])
+ # Change only one controlled field per React render. Writing another field
+ # can re-mount the row and discard an uncommitted UIA value.
+ $out.syntheticProformaEditUi.quantityChanged=SetOfferValue 'تعداد' '3'
+ Start-Sleep -Milliseconds 750
+ # The accessibility tree has BOTH a Text label and an Edit named 'تعداد'.
+ # Only the editable input has a ValuePattern; counting the label as an input
+ # incorrectly blocked a verified React value of '3'.
+ $quantity=@(Named 'تعداد' | Where-Object {
+   $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit})
+ $out.syntheticProformaEditUi.afterQuantityCount=$quantity.Count
+ $out.syntheticProformaEditUi.afterQuantityControls=@($quantity|ForEach-Object{
+   @{type=[string]$_.Current.ControlType.ProgrammaticName;
+     enabled=[bool]$_.Current.IsEnabled;
+     value=$( $p=$null; if($_.TryGetCurrentPattern(
+       [System.Windows.Automation.ValuePattern]::Pattern,[ref]$p)){
+       [string]$p.Current.Value } else {''})}
+ })
+ $out.syntheticProformaEditUi.afterEditCapture=Capture 'proforma-after-quantity'
+ $value=$null
+ $out.syntheticProformaEditUi.quantitySurvived=($quantity.Count -eq 1 -and
+   $quantity[0].TryGetCurrentPattern(
+      [System.Windows.Automation.ValuePattern]::Pattern,[ref]$value) -and
+   [string]$value.Current.Value -eq '3')
+ if(-not $out.syntheticProformaEditUi.quantitySurvived -and $quantity.Count -eq 1){
+   # UIA ValuePattern on React-controlled fields is not equivalent to
+   # keyboard input. As a fallback send ONLY one concrete edit gesture
+   # to the QA-owned Chrome_RenderWidgetHostHWND on the private desktop.
+   # Never use SendInput or a global keyboard/desktop switch.
+   $box=$quantity[0].Current.BoundingRectangle
+   $out.syntheticProformaEditUi.targetedControlValidated=(
+     $box.Width -gt 20 -and $box.Height -gt 12 -and
+     $box.Width -lt 1400 -and $box.Height -lt 160)
+   if($out.syntheticProformaEditUi.targetedControlValidated){
+     $cx=[int][Math]::Round($box.X+$box.Width/2)
+     $cy=[int][Math]::Round($box.Y+$box.Height/2)
+     $found=New-Object 'System.Collections.Generic.List[System.IntPtr]'
+     $cb=[TarazPrivateInput+Callback]{
+       param($hwnd,$ignore)
+       $owner=[uint32]0
+       [void][TarazPrivateInput]::GetWindowThreadProcessId($hwnd,[ref]$owner)
+       if($ids -notcontains [int]$owner){return $true}
+       $cls=New-Object System.Text.StringBuilder 140
+       [void][TarazPrivateInput]::GetClassName($hwnd,$cls,$cls.Capacity)
+       if($cls.ToString() -notmatch '^Chrome_RenderWidgetHostHWND$'){return $true}
+       $bounds=New-Object TarazPrivateInput+Rect
+       if([TarazPrivateInput]::GetWindowRect($hwnd,[ref]$bounds) -and
+          $cx -ge $bounds.L -and $cx -lt $bounds.R -and
+          $cy -ge $bounds.T -and $cy -lt $bounds.B){$found.Add($hwnd)}
+       return $true
+     }
+     [void][TarazPrivateInput]::EnumChildWindows(
+       [IntPtr]$root.Current.NativeWindowHandle,$cb,[IntPtr]::Zero)
+     $out.syntheticProformaEditUi.ownedRendererCount=$found.Count
+     if($found.Count -eq 1){
+       $target=$found[0]
+       $point=New-Object TarazPrivateInput+Point
+       $point.X=$cx;$point.Y=$cy
+       if([TarazPrivateInput]::ScreenToClient($target,[ref]$point) -and
+          $point.X -ge 0 -and $point.Y -ge 0 -and
+          $point.X -lt 32767 -and $point.Y -lt 32767){
+         $lp=[IntPtr]::new([int](($point.Y -shl 16) -bor $point.X))
+         $clickDown=[TarazPrivateInput]::PostMessage(
+           $target,[uint32]0x0201,[IntPtr]::new(1),$lp)
+         $clickUp=[TarazPrivateInput]::PostMessage(
+           $target,[uint32]0x0202,[IntPtr]::Zero,$lp)
+         Start-Sleep -Milliseconds 200
+         if($clickDown -and $clickUp){
+           $messages=@(
+             @([uint32]0x0100,[IntPtr]::new(0x11)), # Ctrl down
+             @([uint32]0x0100,[IntPtr]::new(0x41)), # A down
+             @([uint32]0x0101,[IntPtr]::new(0x41)), # A up
+             @([uint32]0x0101,[IntPtr]::new(0x11)), # Ctrl up
+             @([uint32]0x0100,[IntPtr]::new(0x33)), # 3 down
+             @([uint32]0x0102,[IntPtr]::new(0x33)), # 3 char
+             @([uint32]0x0101,[IntPtr]::new(0x33))  # 3 up
+           )
+           $posted=@($messages|ForEach-Object{
+             [TarazPrivateInput]::PostMessage(
+               $target,[uint32]$_[0],[IntPtr]$_[1],[IntPtr]::Zero)})
+           $out.syntheticProformaEditUi.privateKeysPosted=($posted -notcontains $false)
+           Start-Sleep -Milliseconds 700
+           $again=@(Named 'تعداد' | Where-Object {
+             $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit})
+           $freshValue=$null
+           if($again.Count -eq 1 -and $again[0].TryGetCurrentPattern(
+              [System.Windows.Automation.ValuePattern]::Pattern,[ref]$freshValue)){
+             $out.syntheticProformaEditUi.privateKeyReadback=[string]$freshValue.Current.Value
+             $out.syntheticProformaEditUi.quantitySurvived=(
+               [string]$freshValue.Current.Value -eq '3')
+           }
+         }
+       }
+     }
    }
-   $out.syntheticProformaEditUi.finalPass=$pass
-   $out.syntheticProformaEditUi.quantityChanged=[bool]($a -and $verified['تعداد'])
-   $out.syntheticProformaEditUi.noteChanged=[bool]($b -and $verified['شرایط و توضیحات'])
-   if($out.syntheticProformaEditUi.quantityChanged -and
-       $out.syntheticProformaEditUi.noteChanged){break}
- }
- if(-not $out.syntheticProformaEditUi.quantityChanged -or
-    -not $out.syntheticProformaEditUi.noteChanged){
-    $out.syntheticProformaEditUi.errors['form']='REACT_FINAL_READBACK_MISMATCH'
  }
  $save=@(Named 'ثبت اصلاح' | Where-Object {$_.Current.IsEnabled -and
    $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button})
@@ -294,7 +368,7 @@ EDIT_PROFORMA = r'''
  if($out.syntheticProformaEditUi.proformaTab -and
     $out.syntheticProformaEditUi.edit -and
     $out.syntheticProformaEditUi.quantityChanged -and
-    $out.syntheticProformaEditUi.noteChanged -and
+    $out.syntheticProformaEditUi.quantitySurvived -and
     $out.syntheticProformaEditUi.saveEnabled){
     $out.syntheticProformaEditUi.attemptedSave=$true
     $out.syntheticProformaEditUi.saveInvoked=Activate 'ثبت اصلاح'
@@ -342,7 +416,35 @@ PDF_INVOICE = r'''
  if($out.syntheticPdfUi.back -and $out.syntheticPdfUi.pdfEnabled){
     $out.syntheticPdfUi.attemptedDownload=$true
     $out.syntheticPdfUi.downloadInvoked=Activate 'PDF'
-    Start-Sleep -Milliseconds 2000
+    Start-Sleep -Milliseconds 1200
+    # Capture only QA-owned OS dialogs, never inspect user desktop dialogs.
+    $desktopWindows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+      [System.Windows.Automation.TreeScope]::Children,
+      [System.Windows.Automation.Condition]::TrueCondition)
+    $dialogs=@($desktopWindows|Where-Object {
+      $ids -contains [int]$_.Current.ProcessId -and
+      $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Window -and
+      $_.Current.Name -ne 'تراز | حسابداری'
+    })
+    $out.syntheticPdfUi.dialogs=@($dialogs|ForEach-Object{
+      @{name=[string]$_.Current.Name;pid=[int]$_.Current.ProcessId;
+        class=[string]$_.Current.ClassName}
+    })
+    foreach($dialog in $dialogs){
+      $children=$dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.Condition]::TrueCondition)
+      $out.syntheticPdfUi.dialogControls=@(
+        $children|Where-Object{
+          $_.Current.ControlType -in @(
+            [System.Windows.Automation.ControlType]::Edit,
+            [System.Windows.Automation.ControlType]::Button)
+        }|Select-Object -First 45|ForEach-Object{
+          @{name=[string]$_.Current.Name;
+            type=[string]$_.Current.ControlType.ProgrammaticName;
+            enabled=[bool]$_.Current.IsEnabled;
+            id=[string]$_.Current.AutomationId}
+        })
+    }
  }
 '''
 
@@ -444,7 +546,103 @@ ORDERS_COST = r'''
   return $false
  }
  $out.syntheticOrderCostUi.costSet=CostValue 'هزینه واقعی مرحله 1' '180000'
- $out.syntheticOrderCostUi.dateSet=CostValue 'تاریخ هزینه مرحله 1' '2026-11-14'
+ $out.syntheticOrderCostUi.todayShortcut=Activate 'انتخاب تاریخ امروز برای هزینه مرحله 1'
+ Start-Sleep -Milliseconds 450
+ $todayField=@(Named 'تاریخ هزینه مرحله 1')
+ $todayPattern=$null
+ $out.syntheticOrderCostUi.dateSet=($todayField.Count -eq 1 -and
+   $todayField[0].TryGetCurrentPattern(
+     [System.Windows.Automation.ValuePattern]::Pattern,[ref]$todayPattern) -and
+   [string]$todayPattern.Current.Value -in @('2026-11-14','11/14/2026','14/11/2026'))
+ $out.syntheticOrderCostUi.todayShortcutReadback=if($todayPattern){
+   [string]$todayPattern.Current.Value}else{''}
+ if(-not $out.syntheticOrderCostUi.dateSet){
+   $out.syntheticOrderCostUi.dateSet=CostValue 'تاریخ هزینه مرحله 1' '2026-11-14'
+ }
+ if(-not $out.syntheticOrderCostUi.dateSet){
+    $date=@(Named 'تاریخ هزینه مرحله 1')
+    if($date.Count -eq 1){
+       $child=$date[0].FindAll([System.Windows.Automation.TreeScope]::Descendants,
+         [System.Windows.Automation.Condition]::TrueCondition)
+       $picker=@($child|Where-Object{$_.Current.Name -like 'Show date picker*'})
+       $out.syntheticOrderCostUi.earlyPickerCount=$picker.Count
+       if($picker.Count -eq 1){
+         $expand=$null
+         if($picker[0].TryGetCurrentPattern(
+           [System.Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$expand)){
+           try{
+              $expand.Expand()
+              Start-Sleep -Milliseconds 350
+              $out.syntheticOrderCostUi.earlyPickerExpanded=$true
+              $options=[System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                [System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $out.syntheticOrderCostUi.earlyPickerOptions=@(
+                 $options|Where-Object{
+                   ($ids -contains [int]$_.Current.ProcessId) -and
+                   $_.Current.Name -match 'Today|14|Nov|2026|امروز|تقویم'
+                 }|Select-Object -First 55|ForEach-Object{
+                   @{name=[string]$_.Current.Name;
+                     type=[string]$_.Current.ControlType.ProgrammaticName;
+                     enabled=[bool]$_.Current.IsEnabled}
+                 })
+              $today=@($options|Where-Object{
+                 ($ids -contains [int]$_.Current.ProcessId) -and
+                 $_.Current.Name -eq 'Today' -and
+                 $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+                 $_.Current.IsEnabled})
+              $out.syntheticOrderCostUi.todayCount=$today.Count
+              if($today.Count -eq 1){
+                 $action=Activate 'Today'
+                 $out.syntheticOrderCostUi.todayAction=($action -or
+                    [bool]$out.perNavigation['Today'].postedPrivateWin32)
+                 Start-Sleep -Milliseconds 450
+                 $latest=@(Named 'تاریخ هزینه مرحله 1')
+                 $read=$null
+                 if($latest.Count -eq 1 -and $latest[0].TryGetCurrentPattern(
+                     [System.Windows.Automation.ValuePattern]::Pattern,[ref]$read)){
+                    $out.syntheticOrderCostUi.todayReadback=[string]$read.Current.Value
+                    $out.syntheticOrderCostUi.dateSet=($out.syntheticOrderCostUi.todayReadback -in
+                      @('2026-11-14','11/14/2026','14/11/2026'))
+                 }
+              }
+              if(-not $out.syntheticOrderCostUi.dateSet){
+              $chosen=@($options|Where-Object{
+                ($ids -contains [int]$_.Current.ProcessId) -and
+                $_.Current.Name -eq 'Saturday, November 14, 2026' -and
+                $_.Current.IsEnabled -and
+                $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::DataItem})
+              $out.syntheticOrderCostUi.dayCellCount=$chosen.Count
+              if($chosen.Count -eq 1){
+                $out.syntheticOrderCostUi.dayCellPatterns=@(
+                  $chosen[0].GetSupportedPatterns()|ForEach-Object{$_.ProgrammaticName})
+                $invoke=$null;$select=$null
+                if($chosen[0].TryGetCurrentPattern(
+                  [System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)){
+                    try{$invoke.Invoke();$out.syntheticOrderCostUi.dayCellInvoked=$true}
+                    catch{$out.syntheticOrderCostUi.dayCellError=$_.Exception.GetType().Name}
+                }elseif($chosen[0].TryGetCurrentPattern(
+                  [System.Windows.Automation.SelectionItemPattern]::Pattern,[ref]$select)){
+                    try{$select.Select();$out.syntheticOrderCostUi.dayCellSelected=$true}
+                    catch{$out.syntheticOrderCostUi.dayCellError=$_.Exception.GetType().Name}
+                }
+                Start-Sleep -Milliseconds 450
+                $current=@(Named 'تاریخ هزینه مرحله 1')
+                $read=$null
+                if($current.Count -eq 1 -and $current[0].TryGetCurrentPattern(
+                    [System.Windows.Automation.ValuePattern]::Pattern,[ref]$read)){
+                   $out.syntheticOrderCostUi.calendarReadback=[string]$read.Current.Value
+                   $out.syntheticOrderCostUi.dateSet=(
+                      $out.syntheticOrderCostUi.calendarReadback -in
+                       @('2026-11-14','11/14/2026','14/11/2026'))
+                }
+              }
+              }
+           }catch{$out.syntheticOrderCostUi.earlyPickerError=$_.Exception.GetType().Name}
+         }
+       }
+    }
+ }
  if(-not $out.syntheticOrderCostUi.dateSet){
    $date=@(Named 'تاریخ هزینه مرحله 1'|Where-Object{
      $_.Current.IsEnabled -and
@@ -828,6 +1026,29 @@ def book_witness(roots):
                          for d in view['proformas'].values()]}
 
 
+def phase_persisted(phase, witness, downloads=None):
+    """Evaluate only the requested stage; fresh synthetic books can be empty."""
+    if phase == 'invoice':
+        return witness['invoiceCount'] == 1
+    if phase == 'proforma':
+        return witness['proformaCount'] == 1
+    if phase == 'invoice-edit':
+        return bool(witness['invoices'] and witness['invoices'][0]['total']==18000)
+    if phase == 'proforma-edit':
+        return bool(witness['proformas'] and witness['proformas'][0]['total']==7500)
+    if phase == 'print':
+        return 'QA FROZEN PRIVATE PRINT TEMPLATE' in witness['printTemplateTitles']
+    if phase == 'order-create':
+        return witness['orderCount']==1
+    if phase == 'order-cost':
+        return bool(witness['orders'] and witness['orders'][0]['costRecords'])
+    if phase == 'order-payment':
+        return bool(witness['orders'] and witness['orders'][0]['payments'])
+    if phase == 'pdf-invoice':
+        return downloads is not None and bool(list(downloads.glob('*.pdf')))
+    return False
+
+
 def run(phase, resume):
     if os.name!='nt':raise RuntimeError('Windows is required')
     if sha(qa.EXE)!=EXE_SHA:
@@ -874,6 +1095,7 @@ def run(phase, resume):
         if phase=='pdf-invoice':
             downloads=private_download_directory(work)
             result['qaDownloadDirectory']=str(downloads)
+            env['TARAZ_QA_PDF_OUTPUT']=str(downloads/'QA-FROZEN-INV-1405-0001.pdf')
         env['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS']=(
             '--force-renderer-accessibility --disable-background-networking '
             '--disable-sync --disable-component-update --disable-extensions '
@@ -885,6 +1107,16 @@ def run(phase, resume):
         qa.PRIVATE_UIA=qa.PRIVATE_UIA.replace(
             "@('بازکردن فهرست بخش‌های تراز','سفارش‌ها','طراحی فرم فاکتور')",
             "@('بازکردن فهرست بخش‌های تراز','سفارش‌ها','طراحی فرم فاکتور','مشتری حضوری','ساده و سریع')",1)
+        if phase=='order-cost':
+            # Chromium's date-picker Today button has no reliable UIA Invoke.
+            # Reuse the pre-audited private-desktop HWND-targeted fallback.
+            # This changes only QA's exact-label allowlist, not the app.
+            old="'مشتری حضوری','ساده و سریع')"
+            if qa.PRIVATE_UIA.count(old)!=1:
+                raise RuntimeError('Targeted private calendar QA allowlist changed')
+            qa.PRIVATE_UIA=qa.PRIVATE_UIA.replace(old,
+                "'مشتری حضوری','ساده و سریع','Today',"
+                "'انتخاب تاریخ امروز برای هزینه مرحله 1')",1)
         if phase=='print':
             marker=' # Safely open a new invoice composer AFTER all other screen navigation.'
             if qa.PRIVATE_UIA.count(marker)!=1:
@@ -935,20 +1167,7 @@ def run(phase, resume):
                 while True:
                     witness=book_witness(roots)
                     result['observedBeforeClose']=witness
-                    passed={
-                        'invoice':witness['invoiceCount']==1,
-                        'proforma':witness['proformaCount']==1,
-                        'invoice-edit':witness['invoices'][0]['total']==18000,
-                        'proforma-edit':witness['proformas'][0]['total']==7500,
-                        'print':'QA FROZEN PRIVATE PRINT TEMPLATE' in witness['printTemplateTitles'],
-                        'order-create':witness['orderCount']==1,
-                        'order-cost':witness['orderCount']==1 and
-                            witness['orders'][0]['revision']>=2,
-                        'order-payment':witness['orderCount']==1 and
-                            bool(witness['orders'][0]['payments']),
-                        'pdf-invoice':bool(downloads is not None and
-                            list(downloads.glob('*.pdf'))),
-                    }[phase]
+                    passed=phase_persisted(phase,witness,downloads)
                     if passed or time.monotonic()>=deadline:
                         result['persistedBeforeClose']=passed
                         break

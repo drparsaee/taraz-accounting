@@ -699,6 +699,12 @@ def run():
         server = serve_accounting_page(root / "dist")
         Thread(target=server.serve_forever, daemon=True).start()
         import webview
+        # PyWebView's EdgeChromium backend cancels every browser download
+        # while ALLOW_DOWNLOADS is False (its default). The accounting UI
+        # generates an in-memory PDF and requests a normal anchor download;
+        # enabling this path invokes the OS SaveFileDialog, which requires
+        # an explicit destination choice. It does not write financial data.
+        webview.settings['ALLOW_DOWNLOADS'] = True
         private_cdp_port = private_qa_cdp_port(data)
         if private_cdp_port is not None:
             # pywebview's EdgeChromiumCreationProperties only recognizes this

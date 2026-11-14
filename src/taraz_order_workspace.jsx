@@ -44,6 +44,11 @@ function clientId(){
 }
 const dateOk=value=>!value||(/^\d{4}-\d{2}-\d{2}$/.test(value)&&
   !Number.isNaN(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value);
+const localToday=()=>{
+  const date=new Date();
+  return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),
+    String(date.getDate()).padStart(2,'0')].join('-');
+};
 const emptyMadarCredentials=()=>({url:'',fingerprint:'',username:'',password:''});
 
 /** Accept only an authenticated, ACL-filtered host page with actual project IDs. */
@@ -1382,6 +1387,13 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
                     onChange={e=>setCostDrafts(old=>({...old,
                       [index]:{...old[index],costDate:e.target.value}}))}/>
                 </label>
+                <button type="button"
+                  aria-label={'انتخاب تاریخ امروز برای هزینه مرحله '+(index+1)}
+                  disabled={!canEdit||busy||dirty}
+                  onClick={()=>setCostDrafts(old=>({...old,
+                    [index]:{...old[index],costDate:localToday()}}))}>
+                  امروز
+                </button>
                 <label>شناسه رسید (اختیاری)
                   <input aria-label={'رسید هزینه مرحله '+(index+1)}
                     maxLength={120} value={draft.receiptReference??''}

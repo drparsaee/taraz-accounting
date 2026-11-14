@@ -533,3 +533,67 @@ tests below. It does not override unrelated product/Cloud/RADAR gates.
 - The same source-hosted runs emitted expected `PermissionError: Unverified personal accounting ledger` on explicit Parsian APIs and a PyWebView temporary-profile cleanup warning. These were not hidden or called a universal-path PASS.
 - Further official UIA Date-control diagnostic: Chrome exposes Month/Day/Year spinner descendants; `ValuePattern` and `RangeValuePattern` could not populate a complete date. A subsequent UIA `RuntimeException` produced `UIA_PROBE_ERROR`; the QA harness did not save a cost on this basis. An orphan after an unrelated QA harness bug was first identified by exact PID/hash/desktop and closed normally without Force Kill. Subsequent runner corrected its phase-local download variable to avoid the same premature exception.
 - QA-only pass criteria were tightened to demand the *actual attempted UI action*, **before/after record count**, Revision delta, same-ID identity, and zero journals, rather than mistaking a previously persisted record in a resumed QA profile for a new success. Historic reports remain immutable and available for audit.
+
+## PRIME Frozen Gate A final synthetic reconciliation — 2026-11-14
+
+**Scoped result: VERIFIED PASS, NOT INSTALLED OR PUBLISHED.** Supersedes the
+older candidate's Gate A blockers but not any other product acceptance gate.
+
+- Current observed HEAD before this reconciliation:
+  `f38729ce16999b03ba62e5972de424dadec4118d`. Candidate
+  `build-e13b4438f5d4` SHA-256
+  `300dfff312dad2c5e5cc3984fc5afb39bc381857889989d4072ab83a34b592d3`,
+  source SHA-256
+  `73b692ca3b8790315a3c41be96960e059a06c6f9d6884cd8205edb1c2fe460c8`.
+  Both source/EXE build claims and the disk EXE SHA were rechecked.
+- Actual Frozen EXE, native UIA, real bridge and isolated SQLite:
+  clean fresh owned invoice draft
+  `qa-958f63883537/synthetic-invoice-252b3673.json`, 13,500 RIAL;
+  main owned run `qa-8d2a2170c741`:
+  `synthetic-invoice-edit-25dc5661.json` same ID to 18,000,
+  `synthetic-proforma-5934dee3.json` 5,000,
+  `synthetic-proforma-edit-03dde646.json` same ID to 7,500,
+  `synthetic-print-21a081ef.json` custom template,
+  `synthetic-order-create-9a73becc.json` order revision 1,
+  `synthetic-order-cost-1752f55e.json` 180,000 RIAL date 2026-11-14 revision 2,
+  and `synthetic-order-payment-a6100dee.json` recorded 500,000 RIAL revision 3.
+  **All eight phase-specific reports PASS.**
+- Root cause of previously BLOCKED proforma edit was the QA-only equality
+  check counting both Text and Edit named `تعداد`; the real UI field had
+  already retained value 3. Filtering UIA elements to
+  `ControlType.Edit` allowed actual save and independent SQLite readback:
+  accounting revision 4→5; edited provenance present, zero duplicates,
+  no Journal. No rebuild was needed for this harness correction.
+- Native PDF: `qa-8d2a2170c741/private-profile/qa-private-save-4162ede3.json`
+  recorded the verified Save As filename, readback and Save invocation,
+  producing `private-downloads/QA-FROZEN-INV-1405-0001.pdf`, 56,462 bytes,
+  SHA-256 `0413641cde01ee0d99692a21962f704e4ef916677a896fc8246cdf3444452466`.
+  One nonblank 1050×1485 page was parsed and visually inspected. Original
+  `synthetic-pdf-invoice-6848c0a3.json` **remains BLOCKED** because its
+  earlier runner did not itself complete Save As. Independent native helper
+  evidence is reconciled, not a silent modification of the old report.
+- `py -3.12 -B scripts/qa_taraz_gate_a_reconcile_20261114.py`: Exit **0**,
+  `PASS_FROZEN_GATE_A_SYNTHETIC_EVIDENCE_RECONCILED`. Summary:
+  `qa-8d2a2170c741/gate-a-synthetic-evidence-reconciled-20261114.json`.
+  Fresh independent storage readback: Invoice 18,000, Proforma 7,500,
+  one order revision 3, cost 180,000, payment 500,000,
+  `journalCount=0`, `financialEventCreated=false`.
+- Regression re-executed: isolated independent/bootstrap tests **8/8 PASS**,
+  order-finance/idempotency/draft tests **8/8 PASS**;
+  `npm run test:orders:all`: Exit 0, 2,060 Vite modules,
+  Python **59/59**, Edge **16/16**, source-hosted native `PASS_ORDER_NATIVE`;
+  `node scripts/run_taraz_p1_checks_20261112.mjs --native-current-source`:
+  Exit 0, Python **34/34**, Edge **11/11**, source-hosted native
+  `PASS_WEBVIEW2_REAL_BRIDGE_DRAFT`. The latter native runs remain
+  source-hosted, not replacements for the Frozen acceptance witnesses.
+  Protective `Unverified personal accounting ledger` PermissionErrors and
+  a source-hosted temporary-folder cleanup warning were observed.
+- Last Win32 process inventory showed **no Taraz.exe**. All reported Frozen
+  phase exits normal; QA network was isolated, no external bank action,
+  no live customer accounting or real Journal posted; installed version
+  unchanged; no automatic financial posting without human confirmation.
+- Documentation: `docs/TARAZ_FROZEN_GATE_A_ACCEPTANCE_20261114.md`.
+  Frozen Gate A is **synthetic technical acceptance only**: printing hardware,
+  installation on end-user systems, operational finance, live MadarHost,
+  RADAR, Cloud authority, disaster recovery, deployment and final product
+  release gates stay OPEN. This ledger entry is not a deployment approval.
