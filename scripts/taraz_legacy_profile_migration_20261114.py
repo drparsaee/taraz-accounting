@@ -28,6 +28,13 @@ import sqlite3
 import stat
 import sys
 
+# Direct invocation from scripts/ must resolve the project modules exactly as
+# `python -m scripts.taraz_legacy_profile_migration_20261114` does.  This does
+# not relax the rehearsal-only path and identity guards below.
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
 from standalone_accounting_backup import _check_snapshot, StandaloneBackupError
 from standalone_accounting import StandaloneAccountingError
 from standalone_accounting_company_registry import StandaloneCompanyRegistry
