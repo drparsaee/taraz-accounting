@@ -86,8 +86,10 @@ Owned tools: `scripts/taraz_upgrade_profile_safety_20261114.py` and
    company workspace ID. The confidential AI service deliberately refuses
    this legacy implicit-admin identity. End-user login/selection must be
    genuinely connected and tested before shipping this UI; no bypass is
-   permitted. The existing auto-backup policy also has not been proven
-   to include the new AI SQLite and its required key recovery.
+   permitted. Source inspection of `standalone_accounting_auto_backup.py`
+   confirms that its current automatic backup members are accounting
+   SQLite plus optional templates/users JSON. **It does not back up
+   `taraz-ai-chat.sqlite3`**, nor recover its Windows DPAPI key.
 
 **Gate status:** `UPGRADE-DATA-PRESERVATION=BLOCKED`;
 `LATEST_NONINSTALLED_CANDIDATE=1.0.6`;
