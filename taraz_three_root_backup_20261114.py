@@ -201,6 +201,26 @@ def _scan(root: Path, *, allow_manifest: bool = False):
     return tuple(sorted(directories)), dict(sorted(files.items())), dict(sorted(sidecars.items()))
 
 
+def _same_source_inventory(before, after) -> bool:
+    """Ignore ONLY read-only SQLite's SHM timestamp/lock-metadata churn.
+
+    SQLite readers are allowed to touch shared-memory sidecars. They are not
+    durable database content and are never copied into the portable backup.
+    Main databases, every other file and WAL stamps must still match exactly;
+    SHM paths, inode identities and sizes must remain unchanged.
+    """
+    if before[:2] != after[:2] or before[2].keys() != after[2].keys():
+        return False
+    for name, original in before[2].items():
+        current = after[2][name]
+        if name.endswith('-shm'):
+            if original[:3] != current[:3]:
+                return False
+        elif original != current:
+            return False
+    return True
+
+
 def _roaming_mode(root: Path) -> tuple[str, list[str]]:
     registry = os.path.lexists(root / 'companies.json')
     books = os.path.lexists(root / 'books')
@@ -423,14 +443,15 @@ def create_three_root_backup(roaming_taraz: Path, local_taraz: Path,
             os.chmod(target, 0o600)
             sha, size = _secure_digest(target)
             descriptors.append({'path': name, 'size': size, 'sha256': sha, 'kind': kind})
-        if _scan(root) != scans[role]:
+        if not _same_source_inventory(scans[role], _scan(root)):
             raise ThreeRootBackupError('Source root changed during snapshot: ' + role)
         _readback(copied, role=role, mode=mode if role == 'roaming_taraz' else 'data',
                   ids=ids if role == 'roaming_taraz' else [], files=_scan(copied)[1])
         manifest_roles[role] = {'mode': mode if role == 'roaming_taraz' else 'data',
                                 'company_ids': ids if role == 'roaming_taraz' else [],
                                 'directories': list(dirs), 'files': descriptors}
-    if any(_scan(sources[role]) != scans[role] for role in ROLES):
+    if any(not _same_source_inventory(scans[role], _scan(sources[role]))
+           for role in ROLES):
         raise ThreeRootBackupError('Cross-root source changed before completion')
     doc = {'format': FORMAT, 'version': VERSION,
            'created_utc': datetime.now(timezone.utc).isoformat(),

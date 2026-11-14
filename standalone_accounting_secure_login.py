@@ -37,7 +37,7 @@ class PremiumAccountingLogin:
         self.setup=not identity.initialized()
         self.root=root or tk.Tk()
         PERSIAN_FACE=_use_installed_persian_font(self.root)
-        self.root.title('مدار | ورود امن حسابداری')
+        self.root.title('تراز | ورود امن حسابداری')
         self.root.geometry('780x585' if self.setup else '780x530')
         self.root.minsize(650,545 if self.setup else 470)
         self.root.configure(bg=PAPER)
@@ -54,9 +54,9 @@ class PremiumAccountingLogin:
         left=tk.Frame(shell,width=240,bg=NIGHT)
         left.pack(side='left',fill='y')
         left.pack_propagate(False)
-        tk.Label(left,text='M',font=('Segoe UI',38,'bold'),bg=SEA,fg=NIGHT,
+        tk.Label(left,text='T',font=('Segoe UI',38,'bold'),bg=SEA,fg=NIGHT,
                  width=3).pack(anchor='w',padx=24,pady=(42,38))
-        tk.Label(left,text='MADAR / SECURE',font=('Segoe UI',10,'bold'),bg=NIGHT,
+        tk.Label(left,text='TARAZ / SECURE',font=('Segoe UI',10,'bold'),bg=NIGHT,
                  fg='#55d5cc').pack(anchor='e',padx=24)
         tk.Label(left,text='دفتر امن\nبرای هر شرکت',font=(PERSIAN_FACE,19,'bold'),
                  bg=NIGHT,fg=WHITE,justify='right').pack(anchor='e',padx=24,pady=22)

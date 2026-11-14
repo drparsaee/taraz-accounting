@@ -226,3 +226,75 @@ post-run Windows process check found no `Taraz.exe` PID.
 
 No live company data, actual finance store, installed executable, bank
 workflow, original profile or production installer was modified.
+
+## Final recovery continuation — actual 1.0.4 profile (14 November 2026)
+
+This section supersedes the earlier **no live backup taken** observation;
+that earlier statement remains accurate only for its preceding run.
+
+- Start: `ef065b9c70b82cba6d4cbe68bd575962c2a7396b`.
+  Installed v1.0.4 unchanged; no production Taraz.exe running.
+- Three verified real data roots: 181 files, 67 SQLite, 124,011,875 bytes.
+  The isolated user-visible source preview runs from its own QA directories,
+  not the installed data roots. Unrelated processes were not terminated.
+- `scripts/taraz_live_three_root_backup_20261114.py` held Windows
+  deny-write file handles on all existing non-sidecar files across three roots,
+  captured each SQLite database via its online backup API, independently
+  verified every manifest SHA and SQLite integrity, restored all three roots
+  under separate private destinations, and compared every SQL row from real
+  source and restored clone without disclosing the row contents.
+- The first create-only attempt (`TARAZ-REAL-BACKUP-20261114-GATE-A`)
+  produced no accepted completion marker. The reason was read-only SQLite
+  updating the ephemeral `-shm` timestamp. The backup library was narrowed
+  to tolerate **only SHM mtime churn**, not WAL, SQLite file stamps, membership,
+  SHM identity or size. All 16 existing tests and three new focused tests
+  passed. The failed snapshot remains isolated, not published as valid.
+- The independent completed backup and restore:
+  `D:/CoS-Test/TARAZ-REAL-BACKUP-20261114-GATE-B`.
+  `snapshot/TARAZ_THREE_ROOT_MANIFEST.json` SHA-256
+  `ba8c16f1ae83bc270d4b3910fbd124e5e8c6c570f1c1012f8db1a30a6673248d`.
+  Readback: 67/67 databases, 85 SQL tables, 25,745/25,745 rows;
+  179 portable snapshot files (two volatile WAL/SHM sidecars excluded from
+  original 181-file inventory). Real restored finance history intact.
+- An independent **second** restore into fresh
+  `rollback_roaming_taraz`/`rollback_local_taraz`/`rollback_local_bridge`
+  revalidated the same 67 DBs, 85 tables, 25,745 rows and pinned
+  installed v1.0.4 EXE SHA
+  `9712ac008e6b68ddf8a7331bee2d412f3a788750a2cd02e529088e5603e624ce`.
+  This proves data/baseline recovery, **NOT** rollback after an actual
+  migration or installer interruption.
+- Limits: cross-root VSS atomicity and transient external create/delete are
+  not proven; DPAPI recovery remains bound to the same Windows principal
+  and machine. No actual user AI chat files existed in these three roots.
+  These limits must not be reported as verified capabilities.
+- Real SQLite v1.0.4 clone has revision 609, 609 immutable accounting events,
+  including 387 `journal.manual`, one `journal.reverse`, 52
+  `party.register`, 95 `item.create` and one `invoice.create`.
+  The live-clone source history did not change during an attempted
+  `select_existing_taraz_company` call.
+- Real root has **no** `companies.json`, `books/`, `local-users.json`
+  or `taraz-ai-chat.sqlite3`. Its historical Parsian source contains a
+  stable registration code and economic code but a **null verified legal
+  company name**. The historical `taraz-migration-manifest.json` ledger
+  digest and revision are also stale relative to current revision 609,
+  although its Parsian-source SHA still matches. No verified company owner
+  or existing administrator can be derived from this data. The current
+  executable correctly fails closed with
+  `No registered Taraz company; offline migration/setup required`;
+  no company ID, user or credentials were invented.
+- UX corrections: registered single-company startups now skip the redundant
+  chooser, but retain genuine local-user login. Native login branding now
+  says TARAZ rather than MADAR. Relevant native startup tests: 13/13 PASS.
+- Rebuilt **newer actual source** into
+  `build-15700927a727`, version 1.0.6;
+  source SHA `31f4aeec6dc69b999d2815a4b7d4d4f9573233e1c8c8bf902c0b4fe01edde82b`,
+  EXE SHA `473d3f5360896862a6d75a2437fa2c03109b06fbb416960481ac8f99a669f397`,
+  ZIP SHA `e829ef99874a1c80248d9cd9873e4ac7f8446c0fc9c1a98d0a5ed321d55a4242`.
+  Exact manifest/payload/EXE SHA parity independently confirmed. Installer
+  and activator **still hard-block Apply** by design, pending real company
+  ownership/identity migration, live authenticated Frozen acceptance,
+  real post-migration clone rollback and financial regression.
+
+**Release/install conclusion: BLOCKED.** These observations prove
+recovery progress, not a successful production upgrade. No production
+installation, publication, real finance posting, or backup deletion occurred.

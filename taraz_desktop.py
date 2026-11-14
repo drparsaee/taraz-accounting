@@ -774,7 +774,11 @@ def select_existing_taraz_company(registry_root, *, choose=None):
     companies = registry.list_companies()
     if not companies:
         raise PermissionError("No registered Taraz company; offline migration/setup required")
-    selected = (choose or _pick_existing_taraz_company)([dict(c) for c in companies])
+    # For one verified registered company, there is nothing meaningful to pick.
+    # Continue to the real credential gate; never infer a company from an
+    # unregistered legacy ledger or bypass identity authentication.
+    selected = (companies[0]["id"] if len(companies) == 1 and choose is None else
+                (choose or _pick_existing_taraz_company)([dict(c) for c in companies]))
     if selected is None:
         return None
     if type(selected) is not str or selected not in {c["id"] for c in companies}:

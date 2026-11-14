@@ -75,6 +75,22 @@ class RealNativeTarazStartupTests(unittest.TestCase):
         self.assertEqual(self.inventory(self.hub), before)
         self.assertFalse((self.hub / "local-users.json").exists())
 
+    def test_single_registered_company_skips_chooser_but_not_real_login(self):
+        record, directory, identity = self.company()
+        before = self.inventory(self.hub)
+        with patch('taraz_desktop._pick_existing_taraz_company',
+                   side_effect=AssertionError('Single company picker must not open')):
+            session = open_authenticated_taraz_company(
+                self.hub, login=self.login_as('qa_admin', 'strong-qa-only'))
+        api, actual_identity, token = session
+        try:
+            self.assertEqual(api.path.parent, directory)
+            self.assertEqual(api.company_workspace_id, record['id'])
+            self.assertEqual(actual_identity.require_session(token)['username'], 'qa_admin')
+        finally:
+            actual_identity.logout(token)
+        self.assertEqual(self.inventory(self.hub), before)
+
     def test_existing_company_login_binds_true_actor_and_registry_id(self):
         record, directory, identity = self.company()
         before = self.inventory(self.hub)
