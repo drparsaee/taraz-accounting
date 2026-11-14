@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>پیش‌نمایش دستیار تجاری تراز | ۱۴ نوامبر ۲۰۲۶</title>
+  <style>
+    :root{color-scheme:dark}
+    *{box-sizing:border-box}
+    body{font:16px/1.95 Tahoma,Arial,sans-serif;background:#0d121a;color:#e4eaf2;margin:0}
+    main{max-width:1160px;margin:auto;padding:32px 22px 72px}
+    h1{font-size:clamp(24px,3vw,36px);line-height:1.6;margin:0 0 10px}
+    h2{font-size:21px;margin-top:34px}
+    p{max-width:850px;margin:10px 0 18px;color:#c4cdd9}
+    strong{color:#fff}
+    .meta{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 26px;font-size:13px}
+    .meta span{border:1px solid #4a5566;border-radius:8px;padding:4px 10px}
+    figure{margin:0;padding:12px;border:1px solid #465263;border-radius:16px;background:#19202c}
+    figure img{display:block;width:100%;height:auto;border-radius:9px}
+    figcaption{margin-top:10px;color:#acbacb;font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .panel{padding:15px 19px;border:1px solid #424c5d;border-radius:12px;background:#161e2a}
+    .panel h3{margin:0 0 8px;font-size:16px}
+    .panel p{margin:0;font-size:14px}
+    code{direction:ltr;unicode-bidi:embed;background:#232d3b;border-radius:5px;padding:2px 6px}
+    .warning{border-right:4px solid #d6ac65;padding-right:14px}
+    a{color:#a9d3fc}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}main{padding:20px 12px}}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>دستیار تجاری تراز</h1>
+    <p>پیش‌نمایش واقعی رابط توسعه روی Windows WebView2، همراه با شواهد و محدودیت‌های تأییدشده. این صفحه یک گالری مشاهده است، نه نسخهٔ نصب‌شدهٔ نرم‌افزار.</p>
+    <div class="meta">
+      <span>۱۴ نوامبر ۲۰۲۶</span>
+      <span>Source-hosted Windows QA: PASS</span>
+      <span>Frozen EXE AI: NOT TESTED</span>
+      <span>Installed: 1.0.4</span>
+      <span>Production upgrade: BLOCKED</span>
+    </div>
+    <figure>
+      <img src="./assets/taraz-ai-chat-native-qa-20261114.png" width="1490" height="960"
+           alt="تصویر واقعی آزمایش خصوصی دستیار تجاری تراز: گفتگوی فارسی، وضعیت مدل غیرفعال، پیش‌نمایش قیمت‌گذاری و منبع فاکتور">
+      <figcaption>
+        تصویر اصلی از پنجرهٔ خصوصی QA با دادهٔ کاملاً ساختگی ثبت و بازبینی شد.
+        شناسهٔ تصویر:
+        <code>b5babd045f3f5b0dca5a9dd792a9381ff5bbff2522a8ed3cbf356902cff60b0a</code>
+      </figcaption>
+    </figure>
+    <h2>در این نمونه چه چیزی واقعاً اجرا شد؟</h2>
+    <div class="grid">
+      <div class="panel"><h3>گفتگوی فارسی با حافظه</h3><p>تاریخچه در SQLite مجزا ذخیره شد؛ متن پیام و پیشنهاد با Windows DPAPI رمزگذاری شدند. بازخوانی پس از ساخت دوباره API در آزمون موفق بود.</p></div>
+      <div class="panel"><h3>قیمت مستند از فروش قبلی</h3><p>از فاکتور صادرشدهٔ همان مشتری، کالاهای دارای شناسه دقیق و قیمت منبع یافت شدند. جستجو طبق شمارهٔ ترتیب صدور است و قیمت مبهم رد می‌شود.</p></div>
+      <div class="panel"><h3>تأیید انسانی قبل از ذخیره</h3><p>از درخواست «۱۰۰ عدد جعبه و ۲۰۰ عدد لیبل»، پیشنهاد ۲۰۰٬۰۰۰ ریالی ساخته شد. فقط پس از بررسی و تأیید، پیش‌نویس در دفتر آزمایشی ثبت شد.</p></div>
+      <div class="panel"><h3>حفاظت از دفترکل</h3><p>ثبت پیش‌نویس، صدور رسمی یا Journal جدید ایجاد نکرد. API اصلی Revision و دسترسی را کنترل کرد. هیچ مدل آنلاین یا محلی در این گردش‌کار اجرا نشد.</p></div>
+    </div>
+    <h2>موانع قبل از عرضه</h2>
+    <p class="warning">ورود معتبر و شناسه ثابت شرکت هنوز در مسیر اجرای عادی EXE به دستیار متصل نشده‌اند. همچنین Backup خودکار فعلی تاریخچهٔ جدید چت را پوشش نمی‌دهد و Restore کلید DPAPI روی دستگاه دیگر اثبات نشده است. ارتقای واقعی از ۱.۰.۴ نیز گیت کامل حفاظت داده را نگذرانده. بنابراین <strong>این قابلیت هنوز روی سیستم کاربر نصب و فعال نشده است.</strong></p>
+    <p>گزارش توسعه و گیت‌ها:
+      <a href="./TARAZ_AI_CHAT_PHASE1_20261114.md">AI Phase 1</a> و
+      <a href="./TARAZ_UPGRADE_104_TO_106_GATE_20261114.md">Upgrade Safety</a>
+    </p>
+  </main>
+</body>
+</html>

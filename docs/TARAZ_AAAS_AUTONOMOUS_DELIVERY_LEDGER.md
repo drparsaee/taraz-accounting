@@ -653,11 +653,14 @@ requires release security review.
   a 200,000-RIAL Draft created only after a visible checkbox
   and explicit Save; accounting journal count unchanged from synthetic
   issued-price seed. No model or cloud API invoked. **Not Frozen EXE.**
-- Private QA screenshot: `qa-b129dbe78d6f/ai-chat-native.png` was
-  **visually inspected** with nonblank content (dark Taraz AI chat UI);
-  its original synthetic book had default TOMAN, while a subsequent
-  UI→bridge→SQLite test verified the explicit RIAL fixture. The first
-  white ImageGrab capture was rejected.
+- Private native screenshot from `qa-760c5985023e/ai-chat-native.png`
+  was **visually inspected**, contained the actual dark Taraz AI UI and
+  visibly showed a synthetic **200,000-RIAL** proposal. The original
+  Windows capture SHA-256 and the create-only doc copy SHA-256 both match
+  `b5babd045f3f5b0dca5a9dd792a9381ff5bbff2522a8ed3cbf356902cff60b0a`.
+  A read-only preview is at
+  `docs/TARAZ_AI_VISUAL_PREVIEW_FA_20261114.html`.
+  The first all-white ImageGrab frame was explicitly rejected.
 - Detailed AI limitations and scope: `docs/TARAZ_AI_CHAT_PHASE1_20261114.md`;
   Persian preview release notes:
   `docs/TARAZ_WHATS_NEW_AI_PREVIEW_FA_20261114.md`.
