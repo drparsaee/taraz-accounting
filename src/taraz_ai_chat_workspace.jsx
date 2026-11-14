@@ -2,6 +2,17 @@ import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {MessageSquarePlus,Search,ShieldCheck,Send,Download,Trash2,RefreshCw} from 'lucide-react';
 import './taraz_ai_chat_workspace.css';
 
+const ACTION_STATES={
+  proposed:'در انتظار بررسی',
+  executed:'پیش‌نویس ذخیره‌شده',
+  rejected:'ردشده',
+  uncertain:'نیازمند بررسی نتیجه',
+};
+const APPROVAL_STATES={pending:'تأییدنشده',approved:'تأییدشده',rejected:'ردشده'};
+const formatAmount=value=>Number.isSafeInteger(value)?
+  value.toLocaleString('fa-IR'):String(value??'نامشخص');
+const currencyName=value=>value==='RIAL'?'ریال':value==='TOMAN'?'تومان':String(value||'');
+
 function newClientRequestId(){
   // An unpredictable 128-bit ID is required for durable replay protection.
   // Never fall back to Math.random or a timestamp if WebCrypto is unavailable.
@@ -137,11 +148,11 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
   const proposals=history?.executions||[];
   return <section dir="rtl" className="taraz-ai-chat" aria-label="دستیار تجاری و تاریخچه گفتگو">
     <header className="taraz-ai-head">
-      <div><h2>دستیار تجاری تراز</h2>
-        <p>حافظه رمزگذاری‌شده محلی، پیشنهاد قابل بازبینی و ثبت پیش‌نویس فقط با تأیید شما</p></div>
+      <div><h2>دستیار تراز</h2>
+        <p>درخواست خود را فارسی بنویسید؛ تراز ابتدا پیشنهاد می‌دهد و فقط پس از تأیید شما پیش‌نویس را ذخیره می‌کند.</p></div>
       <div className="taraz-ai-provider" role="status">
-        <ShieldCheck size={17}/> حالت پردازش: قواعد محلی (بدون اجرای مدل)
-        <small>مدل: {provider?.availability||'تأیید نشده'}؛ ارسال ابری: انجام نمی‌شود</small>
+        <ShieldCheck size={17}/> پیشنهاد مبتنی بر اطلاعات همین دفتر
+        <small>فعلاً گفتگوی آزاد با مدل زبانی فعال نیست؛ اطلاعات برای مدل ابری ارسال نمی‌شود.</small>
       </div>
     </header>
     {!supported?<div role="alert" className="taraz-ai-alert">
@@ -195,13 +206,16 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
             {proposals.map(record=><article className="taraz-ai-proposal" key={record.id}
               aria-label="پیشنهاد قابل تأیید">
               <strong>پیشنهاد عملیات: {record.proposal?.ready?'پیش‌نویس فاکتور':'نیازمند تکمیل اطلاعات'}</strong>
-              <p>وضعیت: {record.status} / مجوز: {record.approval} / Revision منبع: {record.sourceRevision}</p>
+              <p>وضعیت: {ACTION_STATES[record.status]||'نیازمند بررسی'} ·
+                {' '}{APPROVAL_STATES[record.approval]||'در انتظار'} ·
+                {' '}نسخهٔ اطلاعات مرجع: {record.sourceRevision??'نامشخص'}</p>
               {record.proposal?.ready&&<React.Fragment>
-                <p>مشتری: {record.proposal.customerName} | مبلغ: {record.proposal.total} {record.proposal.currency}</p>
+                <p data-amount={record.proposal.total}>مشتری: {record.proposal.customerName} | جمع پیشنهادی:
+                  {' '}{formatAmount(record.proposal.total)} {currencyName(record.proposal.currency)}</p>
                 <table><thead><tr><th>کالا / تعداد</th><th>قیمت واحد</th><th>فاکتور منبع و تاریخ</th></tr></thead>
                   <tbody>{record.proposal.lines.map((line,index)=><tr key={index}>
                     <td>{line.description} / {line.quantity} {line.unit}</td>
-                    <td>{line.unitPrice}</td>
+                    <td>{formatAmount(line.unitPrice)}</td>
                     <td>{record.proposal.sources[index]?.invoiceId} | {record.proposal.sources[index]?.invoiceDate}</td>
                   </tr>)}</tbody></table>
                 <p className="taraz-ai-alert">تخفیف و مالیات پیشنهادی صفر است. این مقادیر باید بررسی شوند.
@@ -235,7 +249,8 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
               <Send size={16}/> ثبت درخواست و تهیه پیشنهاد</button>
           </form>
         </React.Fragment>:<div className="taraz-ai-empty">
-          یک گفتگوی جدید ایجاد کنید یا تاریخچه قبلی را باز کنید. تا قبل از تأیید، چیزی در دفترکل ثبت نمی‌شود.
+          برای ساخت فاکتور از متن فارسی، «گفتگوی جدید» را انتخاب کنید.
+          گفتگوهای قبلی هم در همین صفحه باقی می‌مانند.
         </div>}
         {error&&<p className="taraz-ai-alert" role="alert">{error}</p>}
         {notice&&<p role="status" className="taraz-ai-notice">{notice}</p>}

@@ -2,7 +2,8 @@
 
 No changes to installed Taraz, ambient APPDATA/LOCALAPPDATA or real books.
 The demo's seeded issued invoice is synthetic; draft creation still requires
-a genuine company login and the application's explicit review confirmation.
+the application's explicit review confirmation. A real QA identity session
+is established automatically ONLY for this isolated, single-company fixture.
 This preview is not a production update or a Frozen EXE acceptance witness.
 """
 from __future__ import annotations
@@ -121,6 +122,10 @@ def verify():
     user = LocalCompanyIdentity(book)
     if not user.initialized() or set(user.accounting_accounts()) != {QA_USER}:
         raise PreviewBlocked('Preview company identity drift')
+    companies = StandaloneCompanyRegistry(PROFILE).list_companies()
+    if (len(companies) != 1 or companies[0]['id'] != data['companyId'] or
+            companies[0]['name'] != QA_COMPANY):
+        raise PreviewBlocked('Preview must contain exactly one synthetic company')
     state = StandaloneAccountingStore(book / 'standalone-accounting.sqlite3',
                                      default_currency='RIAL').read(
                                          actor=QA_USER, accounts=user.accounting_accounts())
@@ -158,6 +163,7 @@ def isolated_environment():
             raise PreviewBlocked('Preview would reuse ambient ' + key)
     variables['TARAZ_QA_MODE'] = '1'
     variables['TARAZ_QA_DATA_DIR'] = str(PROFILE)
+    variables['TARAZ_QA_REPORT'] = str(PREVIEW / 'preview-ui-qa-report.json')
     variables['PYTHONDONTWRITEBYTECODE'] = '1'
     # No CDP listener, no cloud provider, no ambient Madar/Taraz API secrets.
     variables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = (
@@ -166,6 +172,48 @@ def isolated_environment():
         '--proxy-bypass-list=<-loopback>')
     assert 'TARAZ_QA_CDP_PORT' not in variables
     return variables
+
+
+def _synthetic_demo_password():
+    """Extract only the fixture's private password, never log or return it to UI."""
+    data = CREDENTIALS.read_text(encoding='utf-8').splitlines()
+    if (len(data) != 3 or
+            data[0] != 'ONLY SYNTHETIC TARAZ PREVIEW; NOT A REAL LOGIN' or
+            data[1] != 'Username: ' + QA_USER or
+            not data[2].startswith('Password: ')):
+        raise PreviewBlocked('Invalid synthetic fixture credential marker')
+    value = data[2].removeprefix('Password: ')
+    if not 4 <= len(value) <= 256:
+        raise PreviewBlocked('Invalid synthetic fixture password')
+    return value
+
+
+def run_synthetic_demo_child():
+    """Use authenticated Taraz API directly; skip only irrelevant QA login UI."""
+    if (os.environ.get('TARAZ_QA_MODE') != '1' or
+            Path(os.environ.get('TARAZ_QA_DATA_DIR', '')).resolve() != PROFILE.resolve() or
+            Path(os.environ.get('APPDATA', '')).resolve() != (RUNTIME / 'roaming').resolve() or
+            Path(os.environ.get('LOCALAPPDATA', '')).resolve() !=
+                (RUNTIME / 'localappdata').resolve()):
+        raise PreviewBlocked('Synthetic preview child is not on the isolated profile')
+    verify()
+    from taraz_desktop import TarazAPI, _run_authenticated_taraz_api
+    reg = StandaloneCompanyRegistry(PROFILE)
+    book = reg.company_data_directory(
+        json.loads(MANIFEST.read_text(encoding='utf-8'))['companyId'])
+    identity = LocalCompanyIdentity(book)
+    token = identity.login(QA_USER, _synthetic_demo_password())
+    try:
+        logged_in = identity.require_session(token, 'viewer')
+        if logged_in.get('username') != QA_USER:
+            raise PreviewBlocked('Synthetic user identity mismatch')
+        api = TarazAPI(book, company_name=QA_COMPANY,
+                       company_workspace_id=book.name,
+                       authenticated_user=logged_in, identity_store=identity,
+                       identity_token=token)
+        return _run_authenticated_taraz_api(api)
+    finally:
+        identity.logout(token)
 
 
 @contextmanager
@@ -191,17 +239,14 @@ def preview_lock():
 
 
 def launch():
-    info = prepare()
+    prepare()
     env = isolated_environment()
-    print('\nTARAZ SOURCE PREVIEW — ONLY SYNTHETIC DATA', flush=True)
-    print('Company: ' + QA_COMPANY.encode('ascii', 'backslashreplace').decode('ascii'), flush=True)
-    print('Username: ' + QA_USER, flush=True)
-    print('Open demo password file: ' + str(CREDENTIALS), flush=True)
-    print('Try AI input (Persian): ' + QA_REQUEST.encode('ascii', 'backslashreplace').decode('ascii'), flush=True)
-    print('Installed Taraz 1.0.4 and real data are NOT used.', flush=True)
+    print('TARAZ PREVIEW - direct accounting workspace, synthetic data only.', flush=True)
+    print('No company-selection or login screen in this demonstration.', flush=True)
+    print('Installed Taraz 1.0.4 and real data are not used.', flush=True)
     with preview_lock():
-        # This opens visible Tk login and real WebView2, unlike private QA desktop.
-        result = subprocess.run([sys.executable, '-B', str(ROOT / 'taraz_desktop.py')],
+        result = subprocess.run([sys.executable, '-B', str(Path(__file__).resolve()),
+                                 '--demo-child'],
                                 env=env, cwd=ROOT, check=False)
     return result.returncode
 
@@ -212,10 +257,14 @@ def main(argv=None):
     mode.add_argument('--prepare', action='store_true')
     mode.add_argument('--verify', action='store_true')
     mode.add_argument('--launch', action='store_true')
+    mode.add_argument('--demo-child', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     try:
         if args.launch:
             return launch()
+        if args.demo_child:
+            run_synthetic_demo_child()
+            return 0
         print(json.dumps(prepare() if args.prepare else verify(),
                          ensure_ascii=True, indent=2))
         return 0

@@ -1,7 +1,7 @@
 import React from 'react';
 import {ArrowRight,Building2,FilePlus2,Landmark,Menu,Printer,
   RefreshCw,Search,Settings2,ShieldCheck,Users,Wallet,FileText,Layers3,
-  Sun,Moon,X,CheckCircle2,ChevronLeft,BookOpen,ReceiptText} from 'lucide-react';
+  Sun,Moon,X,CheckCircle2,ChevronLeft,BookOpen,ReceiptText,Sparkles,ClipboardList} from 'lucide-react';
 import AccountingGlobalSearch from './accounting_global_search.jsx';
 import {readTarazSettings,saveTarazSettings,applyTarazSettings}
   from './taraz_settings_preferences.js';
@@ -11,9 +11,10 @@ import TarazContextHelp from './taraz_context_help.jsx';
 import './accounting_navigation_shell.css';
 
 const SHORT_LABELS={overview:'خانه',invoice:'فروش',bill:'خرید',
-  settlements:'دریافت و پرداخت',reports:'گزارش‌ها'};
+  settlements:'دریافت و پرداخت',reports:'گزارش‌ها',
+  orders:'سفارش‌ها',ai:'دستیار تراز'};
 const NAV_ICONS={overview:Landmark,invoice:FileText,bill:Layers3,
-  settlements:Wallet,reports:FileText};
+  settlements:Wallet,reports:FileText,orders:ClipboardList,ai:Sparkles};
 
 /**
  * Wiring contract (host-authorized, company-scoped data only):

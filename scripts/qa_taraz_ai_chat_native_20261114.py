@@ -256,7 +256,11 @@ JS_TEST = r'''(() => {
     await until(()=>button('ثبت درخواست و تهیه پیشنهاد'));
     button('ثبت درخواست و تهیه پیشنهاد').click();
     qa.phase='PROPOSAL';
-    await until(()=>pane.querySelector('.taraz-ai-proposal')?.textContent.includes('200000'));
+    await until(()=>{
+      const proposal=pane.querySelector('.taraz-ai-proposal');
+      return proposal?.querySelector('[data-amount="200000"]') ||
+        proposal?.textContent.includes('200000');
+    });
     if(!pane.textContent.includes('QA-SOURCE-INV'))throw Error('MISSING_INVOICE_SOURCE');
     const before=await window.madar.standaloneAccountingRead();
     if(Object.keys(before.view.invoices).length!==1)throw Error('AUTOMATIC_DRAFT_BEFORE_APPROVAL');

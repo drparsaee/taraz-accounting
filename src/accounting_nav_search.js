@@ -1,7 +1,9 @@
 /** Navigation is a client convenience. The authenticated accounting host alone
  * determines which records the current user may read or mutate. Never fetch or
  * cache a second company, and never index raw imports, notes or ledger lines. */
-export const ACCOUNTING_PRIMARY_SECTIONS=['overview','invoice','bill','settlements','reports'];
+// Give the two delivered workspaces a visible entry; buying/payment remain
+// available in the full drawer. A tab's existence is not release acceptance.
+export const ACCOUNTING_PRIMARY_SECTIONS=['overview','invoice','orders','ai','reports'];
 const PRIVATE_SECTION_ROLES={migration:'admin'};
 const CATEGORY_DEFS=[
   {key:'invoices',tab:'invoice',type:'invoice',label:'فاکتور فروش'},

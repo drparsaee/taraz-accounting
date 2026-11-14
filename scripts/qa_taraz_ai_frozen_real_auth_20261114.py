@@ -579,8 +579,11 @@ async function main(){
    await send.click();
    const proposal=chat.locator('.taraz-ai-proposal');
    await proposal.waitFor({state:'visible',timeout:15000});
-   await page.waitForFunction(()=>document.querySelector('.taraz-ai-proposal')?.textContent
-     ?.includes('200000'),undefined,{timeout:15000});
+   await page.waitForFunction(()=>{
+     const proposal=document.querySelector('.taraz-ai-proposal');
+     return proposal?.querySelector('[data-amount="200000"]') ||
+       proposal?.textContent.includes('200000');
+   },undefined,{timeout:15000});
    assert((await proposal.innerText()).includes('QA-SOURCE-INV'),'SOURCE_REFERENCE_NOT_SHOWN');
    const beforeApproval=await page.evaluate(()=>window.madar.standaloneAccountingRead());
    assert(beforeApproval.revision===before.revision &&
