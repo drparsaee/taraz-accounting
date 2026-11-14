@@ -659,6 +659,17 @@ class TarazAPI(AccountingDesktopAPI):
                 offset=offset, limit=limit)
 
 
+def prepare_offline_accounting_on_launch(api, backups):
+    """Initialize only the selected book and its backup, never personal history.
+
+    History APIs keep their independent _source_guard(). This function is
+    intentionally usable with a freshly initialized legitimate RIAL book.
+    """
+    with api._lock:
+        api.standaloneAccountingRead()
+        backups.backup_now()
+
+
 def run():
     import msvcrt
     data = taraz_data_root()
@@ -682,10 +693,7 @@ def run():
         api = TarazAPI(data)
         from standalone_accounting_auto_backup import AutomaticStandaloneBackups
         backups = AutomaticStandaloneBackups(data, plaintext_acknowledged=True)
-        with api._lock:
-            api.standaloneAccountingRead()
-            api.standaloneAccountingParsianHistory()
-            backups.backup_now()
+        prepare_offline_accounting_on_launch(api, backups)
         backups.start()
         root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
         server = serve_accounting_page(root / "dist")

@@ -89,7 +89,7 @@ def _attach_record_audit(view, state):
     transitions use the authenticated actor and trusted clock in the events.
     This projection is deliberately never written back into the event chain.
     """
-    edited = {"party.update", "invoice.update", "bill.update"}
+    edited = {"party.update", "invoice.update", "bill.update", "proforma.update"}
     for event in state["events"]:
         command = event["command"]
         kind = command["type"]
@@ -98,6 +98,8 @@ def _attach_record_audit(view, state):
             targets.append(("parties", command["partyId"], kind == "party.register"))
         elif kind.startswith("invoice.") and "invoiceId" in command:
             targets.append(("invoices", command["invoiceId"], kind == "invoice.create"))
+        elif kind.startswith("proforma.") and "proformaId" in command:
+            targets.append(("proformas", command["proformaId"], kind == "proforma.create"))
         elif kind.startswith("bill.") and "billId" in command:
             targets.append(("bills", command["billId"], kind == "bill.create"))
         elif kind == "proforma.convert":

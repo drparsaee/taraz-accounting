@@ -458,3 +458,78 @@ described here; historical reports above remain intact.
   appeared on stderr in the isolated QA profile.
 - Release remains **NOT READY FOR APPROVAL**. Installed Taraz, official books,
   office MadarHost, LAN/Firewall and unrelated user worktrees were not changed.
+
+## PRIME Frozen Gate A recovery — 2026-11-14 (non-installed synthetic QA)
+
+**Status: PARTIAL VERIFIED; Gate A NOT READY FOR APPROVAL.** This section supersedes
+the older Frozen Gate-A statuses for the exact candidate and only the scoped
+tests below. It does not override unrelated product/Cloud/RADAR gates.
+
+- Start HEAD `862d35b7c9e37dccb1b1802c9043f41cb7c8289c`.
+  Frozen `build-8ad80825928e` hash independently re-read as
+  `70eb46a3430985cca18aeaaf21339a2c7f49fca3f75066f091a8600d862dc512`;
+  current 145-file source freeze `96cd0132dff1c8769df0dc7e6454241bf61433b85abcb8efaa62730defd3138e`
+  matches Build report. Installed baseline remains 1.0.4.
+- Recovered interrupted private run `qa-3edf86189818`: its original invoice
+  test was **BLOCKED**, not a lost PASS. UIA readback of price did not match and
+  `attemptedSave=false`. SQLite stayed Revision 1 with no invoice. The
+  private unsaved-form browser confirm blocked normal WM_CLOSE. Exact PID,
+  EXE hash and private desktop were checked before accepting the app's
+  explicit discard confirmation through standard Windows UIAutomation.
+  Both Frozen processes subsequently exited normally. No Force Kill or
+  global input was used.
+- QA runner correction (non-Frozen source): re-read React-controlled fields
+  after each UIA SetValue, allow bounded retries, verify final values before
+  invoking Save, extend cold-start timeout and accept only the precise
+  QA-owned unsaved-form discard dialog. These are **QA-only changes**;
+  no new executable was built.
+- Exact Frozen SQLite witnesses after restarts:
+  `synthetic-invoice-fd8552f5.json` created `INV-1405-0001`,
+  13,500 RIAL, one invoice; `synthetic-proforma-63c69fa3.json`
+  created `PF-1405-0001`, 5,000 RIAL, with `createdBy=local`
+  and creation time present in the **actual frozen runtime**;
+  `synthetic-invoice-edit-edd257dc.json` updated the **same**
+  `INV-1405-0001` to 18,000, accounting revision **3→4**,
+  `editedBy=local`, no duplicate; `synthetic-print-0de9c715.json`
+  saved/re-read `QA FROZEN PRIVATE PRINT TEMPLATE`.
+- `synthetic-order-create-d66daa34.json` created one synthetic order,
+  sold 100, planned production 120 and one cost stage, order revision 1.
+  `synthetic-order-payment-4f2d69d4.json` recorded one synthetic incoming
+  500,000 RIAL payment **only** in the order file (status recorded, not
+  settled, no Bank API), same order revision 2.
+  Every independent accounting readback gave **0 journals** and every order
+  readback `financialEventCreated=false`.
+- Not accepted: `synthetic-proforma-edit-a83bc0d2.json` did not persist
+  UIA input changes and did not attempt save; `synthetic-order-cost-6317df45.json`
+  exposed the WebView2 Date input's Month/Day/Year spinner controls but
+  did not establish a complete date via official UIA ValuePattern/RangeValue.
+  Consequently **no cost event** was recorded. A later date-picker diagnostic
+  encountered UIA `RuntimeException`; no success was claimed.
+  `synthetic-pdf-invoice-07e73ca8.json`: PDF button invoked on real
+  Frozen GUI, but **0 PDF files** appeared in the explicit QA-private
+  WebView2 download directory. Page count, content, output bytes and
+  physical printing are **NOT VERIFIED**. Source-hosted PDF result is
+  not substituted.
+- Parsian separation: `taraz_desktop.prepare_offline_accounting_on_launch`
+  now reads the selected independent book and starts its normal backup,
+  without demanding the historical personal `_source_guard` on startup.
+  Every personal-history API still requires that guard. The synthetic
+  negative test rejects Parsian access and a corrupted ledger digest;
+  no historical fake data was inserted. `standalone_accounting` attaches
+  Proforma create/edit provenance from the original authenticated event
+  audit without rewriting events or posting to the journal.
+- Evidence root (preserved, never cleaned):
+  `D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\frozen-synthetic-private-uia-20261112\qa-3edf86189818\`.
+- No production install, release, data migration, real finance posting,
+  actual bank request, network configuration, live MadarHost or printer action.
+  All other Gate C/D/RADAR/Offline Authority/Fencing/Backup/Restore/Rollback
+  acceptance gates remain OPEN. PostgreSQL DB2 not started.
+
+### Post-recovery regression and QA hardening (same source freeze)
+
+- `py -3.12 -B -m unittest tests.test_taraz_independent_frozen_bootstrap_20261112 tests.test_taraz_prime_independent_qa_20261112 -q`: **8/8 PASS**, Exit 0. The negative test first exposed an unclosed connection in the test fixture itself (`sqlite3.connect` context manager does not close); QA fixture corrected to close explicitly with `contextlib.closing`. No production-file change was required.
+- `npm run test:orders:all`: Exit 0, Vite 2060 modules PASS, **59/59** real backend Python, **16/16** Edge and **PASS_ORDER_NATIVE** with synthetic SQLite and Agent memory readback. The native leg is **source-hosted**, not Frozen; actual company ledger unaffected.
+- `node scripts/run_taraz_p1_checks_20261112.mjs --native-current-source`: Exit 0, Vite PASS, **34/34** Python, **11/11** Edge, **PASS_WEBVIEW2_REAL_BRIDGE_DRAFT**. Synthetic same-ID invoice and proforma reopen/edit, custom template and source-hosted PDF **82,360 bytes** (new observed run), 0 journal. No Frozen PDF evidence was gained.
+- The same source-hosted runs emitted expected `PermissionError: Unverified personal accounting ledger` on explicit Parsian APIs and a PyWebView temporary-profile cleanup warning. These were not hidden or called a universal-path PASS.
+- Further official UIA Date-control diagnostic: Chrome exposes Month/Day/Year spinner descendants; `ValuePattern` and `RangeValuePattern` could not populate a complete date. A subsequent UIA `RuntimeException` produced `UIA_PROBE_ERROR`; the QA harness did not save a cost on this basis. An orphan after an unrelated QA harness bug was first identified by exact PID/hash/desktop and closed normally without Force Kill. Subsequent runner corrected its phase-local download variable to avoid the same premature exception.
+- QA-only pass criteria were tightened to demand the *actual attempted UI action*, **before/after record count**, Revision delta, same-ID identity, and zero journals, rather than mistaking a previously persisted record in a resumed QA profile for a new success. Historic reports remain immutable and available for audit.

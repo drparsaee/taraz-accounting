@@ -6,8 +6,8 @@ never substitutes for frozen/native/production acceptance.
 
 | # | User-required scenario | Status | Evidence and limitations |
 | --- | --- | --- | --- |
-| 1 | Frozen EXE invoice/create/edit/reopen/print | BLOCKED | New build-65ee160b5e26 is real and hash-attested, exact embedded CAS code 1/1 PASS, private Frozen navigation view-only PASS; earlier CDP flag reached the WebView2 process but no listener. Direct Save/Edit/Reopen/PDF still NOT verified on this EXE |
-| 2 | Orders, actual costs, production conservation | VERIFIED PASS (isolated); Frozen BLOCKED | Repeated current runtime source 59/59 Python / 16/16 Edge, Native source-hosted PASS, separate raw SQLite five-axis QA |
+| 1 | Frozen EXE invoice/create/edit/reopen/print | PARTIAL VERIFIED / GATE OPEN | `build-8ad80825928e`: actual Frozen GUI + independent SQLite confirms same-ID Invoice create 13,500 → edit 18,000, Revision 3→4, no duplicate; Proforma create 5,000 and its creation audit; print template saved. Proforma **edit** not persisted via this QA method and invoice **PDF file not observed**, so full Gate A BLOCKED |
+| 2 | Orders, actual costs, production conservation | VERIFIED PASS (isolated); Frozen PARTIAL | Exact Frozen creates synthetic order with sold=100/planned=120 and one stage (Revision 1); records 500,000 incoming amount in order file (Revision 2, status=recorded, never bank). Date field `type=date` cannot be set from current UIA ValuePattern/RangeValuePattern; real cost GUI still BLOCKED. Source-hosted costs remain independently tested |
 | 3 | Financial controls, permissions, no unintended posting | VERIFIED PASS (isolated source); live NOT TESTED | Disposable ledgers and draft-only handoffs; official Cloud/Local financial authority OPEN |
 | 4 | Agent with online AI | NOT TESTED | New online status checks make no cloud inference; no provider cost/model quality or actual data-consent proof |
 | 5 | Agent with installed local AI | BLOCKED | Previous qwen3:4b / qwen3:0.6b inference unreliable/timeout; discovery only, not model success |
@@ -20,7 +20,7 @@ never substitutes for frozen/native/production acceptance.
 | 12 | Backup and restore | NOT TESTED ecosystem-wide | Existing Madar tests do not establish a cross-product RPO/RTO |
 | 13 | PostgreSQL parity | NOT TESTED | DB0 five real disposable SQLite schemas and DB1 order read contract; DB2 not authorized until ADR |
 | 14 | Installer, rollback | NOT TESTED for new runtime | Installed 1.0.4 preserved. No production install/activation authorization |
-| 15 | PDF and physical printer | VERIFIED PASS source-hosted PDF only; physical NOT TESTED | Current source-hosted native PDF 82,142 bytes; Frozen GUI and printer hardware gates open |
+| 15 | PDF and physical printer | VERIFIED PASS source-hosted PDF only; Frozen/physical BLOCKED or NOT TESTED | Current source-hosted native PDF 82,142 bytes; on exact Frozen QA, PDF button is accessible and invoked, but no file was found in explicitly configured QA-only Chromium download folder. PDF bytes/pages/content and physical printer remain UNVERIFIED |
 
 ## Commands observed in this continuation
 
@@ -49,3 +49,25 @@ boundaries and RPO/RTO. PostgreSQL DB2, financial cutover and production
 service mutation are blocked or not authorized.
 
 Release decision: NOT READY FOR APPROVAL.
+
+## Update 2026-11-14 — Exact frozen UIA gate, still open
+
+Candidate `build-8ad80825928e`, EXE SHA256 `70eb46a3430985cca18aeaaf21339a2c7f49fca3f75066f091a8600d862dc512`, 145-file source SHA256 `96cd0132dff1c8769df0dc7e6454241bf61433b85abcb8efaa62730defd3138e`.
+Results are independently captured in the disposable Windows profile:
+`D:\CoS-Test\MTR-NEXT-UPDATE-CANDIDATES-20261110\taraz-v1.0.6-aaas\frozen-synthetic-private-uia-20261112\qa-3edf86189818\`.
+
+| Witness file | Status | Grounded claim |
+| --- | --- | --- |
+| `synthetic-invoice-fd8552f5.json` | VERIFIED PASS | Real Frozen GUI created `INV-1405-0001`, 13,500; SQLite 1 invoice / 0 journal |
+| `synthetic-proforma-63c69fa3.json` | VERIFIED PASS | Real Frozen GUI created `PF-1405-0001`, 5,000; `createdBy=local` in new Frozen |
+| `synthetic-invoice-edit-edd257dc.json` | VERIFIED PASS | After restart same invoice changed to 18,000, ledger revision 3→4, `editedBy=local`; still one invoice |
+| `synthetic-print-0de9c715.json` | VERIFIED PASS | Custom print template saved via native UI and re-read from QA template store |
+| `synthetic-order-create-d66daa34.json` | VERIFIED PASS | Stored order quantity 100, planned 120, 1 stage, order Revision 1 |
+| `synthetic-order-payment-4f2d69d4.json` | VERIFIED PASS | Recorded non-bank incoming payment 500,000, same order Revision 2; `financialEventCreated=false` |
+| `synthetic-proforma-edit-a83bc0d2.json` | BLOCKED | Controlled input values reverted before save; UIA did not establish a React state change, so Save was not attempted |
+| `synthetic-order-cost-6317df45.json` | BLOCKED | Date input exposed month/day/year UIA spinner segments, but SetValue/RangeValue did not persist a complete valid date; cost save was not attempted |
+| `synthetic-pdf-invoice-07e73ca8.json` | BLOCKED | Real GUI PDF button was invoked; no PDF in QA-only download directory, so bytes/pages/content not verified |
+
+The initially interrupted Frozen root/child were identified by exact hash, PID, owner-window and private desktop; the QA-only browser discard confirmation was accepted through UIA. Processes exited normally, no Force Kill or global user input occurred. One later transient timeout was likewise recovered without termination. Earlier passing tests were preserved, not restarted en masse.
+
+Only the current disposable accounting book/order files were read/written. Main installed Taraz remained 1.0.4 and unchanged in each completed QA report; journal count stayed zero. Human finance issue, bank API, operational MadarHost, production LAN, install and printer were not touched.

@@ -309,7 +309,19 @@ QA مستقل پنج سناریوی تازه را با Fixtureهای جدا و �
 2. بستن Gate C با ارزیابی مدل واقعی روی درخواست‌های فارسی مصنوعی، کنترل منبع/فیلدهای مفقود و Timeout محدود؛ تا آن زمان اقدام قاعده‌محور باید Human-reviewed بماند.
 3. بستن Gate D فقط با MadarHost آزمایشی مجاز و قابل دسترس؛ بدون استفاده از داده یا Credential واقعی و بدون Retry کور پس از Lost ACK.
 4. آزمون Windows Print Dialog روی EXE و چاپ فیزیکی فقط با چاپگر موجود و مجاز.
-5. تصمیم صریح کاربر دربارهٔ Office LAN در برابر Cloud و سیاست Offline؛ جزئیات در docs/TARAZ_ARCHITECTURE_DECISIONS_20261112.md.
-6. فقط پس از ثبت دو تصمیم فوق، شروع DB2 پایلوت PostgreSQL در محیط ایزوله؛ DB0/DB1 می‌توانند مستقل و بدون تغییر دادهٔ زنده ادامه یابند.
+5. استقرارهای Office LAN، سرور اختصاصی، Cloud + Offline LAN Node و Cloud-only و سیاست Offline-First همگی **مصوب** هستند. باز بودن Financial Single Writer / Fencing، Conflict و RPO/RTO نباید با باز بودن تصمیم LAN-vs-Cloud اشتباه گرفته شود؛ ADR مرجع است.
+6. DB2 پایلوت PostgreSQL فقط پس از بسته‌شدن گیت مرجع مالی، Fencing، Conflict، Tenant و Backup/RPO/RTO آغاز شود؛ DB0/DB1 می‌توانند مستقل و بدون دادهٔ زنده ادامه یابند.
 
 **تعریف پایان کل محصول:** تمام فازهای لازم VERIFIED PASS شده باشند، QA مستقل انجام شده باشد، داده و امنیت قابل بازیابی باشند و بستهٔ نهایی READY FOR APPROVAL باشد. تا آن زمان وضعیت کل مأموریت IN PROGRESS یا NOT ACCEPTED است.
+
+## 11. Gate A Frozen واقعی — بازیابی 2026-11-14
+
+**وضعیت: PARTIAL VERIFIED / GATE A NOT ACCEPTED.**
+
+- SHA256 کاندیدای نصب‌نشده `build-8ad80825928e` برابر `70eb46a3430985cca18aeaaf21339a2c7f49fca3f75066f091a8600d862dc512` و Freeze صد‌وچهل‌وپنج فایل برابر `96cd0132dff1c8769df0dc7e6454241bf61433b85abcb8efaa62730defd3138e` است؛ Build جدید برای اصلاح صرفاً ابزار QA ساخته نشد.
+- **Verified Frozen:** محیط خصوصی WebView2، ایجاد Invoice `INV-1405-0001` به مبلغ ۱۳٬۵۰۰ ریال، Restart و ویرایش همان ID به ۱۸٬۰۰۰ با Revision دفترکل ۳→۴، بدون رکورد تکراری؛ ایجاد Proforma `PF-1405-0001` به مبلغ ۵٬۰۰۰، `createdBy` و `createdAt` از خود Frozen؛ ذخیره و بازخوانی قالب چاپ `QA FROZEN PRIVATE PRINT TEMPLATE`.
+- **Verified Frozen order:** سفارش ساختگی با ۱۰۰ فروش، برنامهٔ تولید ۱۲۰ و یک مرحله (Revision ۱)، سپس ثبت دریافت آزمایشی ۵۰۰٬۰۰۰ ریالی فقط در پرونده سفارش (Revision ۲، وضعیت `recorded` و نه تسویه/بانک). دفترکل حسابداری در تمام این آزمون‌ها `journalCount=0` بود.
+- **BLOCKED:** ویرایش Proforma در UIA حفظ مقادیر کنترل‌شده React را ثابت نکرد؛ هزینه واقعی سفارش به‌علت ناتوانی UIA در انتخاب تاریخ `type=date` ذخیره نشد؛ فراخوانی دکمه PDF مشاهده شد اما فایل خروجی در دایرکتوری دانلود خصوصی به دست نیامد. هیچ Save یا PDF صرفاً از روی Click ادعا نشده است.
+- **Safe recovery:** تست قدیمی با Dialog کنارگذاشتن فرم آزمایشی به‌طور عادی بسته شد؛ هیچ Force Kill یا تغییر حسابداری واقعی/نصب انجام نشد. پروفایل خصوصی `qa-3edf86189818` و فایل‌های گزارش آن برای ممیزی نگه داشته شدند.
+- **Parsian:** راه‌اندازی دفترکل جدید دیگر نیازمند شاهد ۶۰۸ رویداد شخصی نیست؛ همهٔ APIهای تاریخچهٔ شخصی همچنان `_source_guard` دارند. آزمون منفی Digest خراب، بدون اصلاح خودکار، Fail-closed است.
+- سایر Gateهای Agent واقعی، MADAR عملیاتی، RADAR، Cloud Authority/Fencing، LAN چنددستگاهی، Backup/Restore، Rollback و چاپ فیزیکی **OPEN** می‌مانند؛ DB2 آغاز نشده است.
