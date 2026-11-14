@@ -2,6 +2,17 @@
 
 **Owner:** Prime (single decision maker). **Mission:** deliver the user-defined AaaS product, not merely build or package a conventional accounting app.
 
+**آخرین شاهد Prime، ۲۰۲۶-۱۱-۱۴:**
+`docs/TARAZ_PRIME_EXECUTION_EVIDENCE_20261114.md`.
+Source SHA `04a95b21e9c4323c0aae615d76a6d225f6e4ea160ffcc1290f37f822be24c076`؛
+کاندیدای جدید `build-d87b73dc956c` با EXE SHA
+`186d551f35a37a8cdef92ba5d182b4ddc80946e248e0efca198f90473dd450c8`
+ساخته و **نصب نشده** است. Bundle inspection موفق، ولی آزمون واقعی Frozen
+Native Authentication در انتخاب شرکت `BLOCKED_NATIVE_UIA` شد. پشتیبان‌گیری و
+مهاجرت سه Root فقط روی Fixture مصنوعی تأیید شده‌اند؛ Live Upgrade همچنان
+**BLOCKED** و ۱.۰.۴ دست‌نخورده است. این وضعیت بر Snapshotهای قدیمی‌تر زیر
+اولویت دارد.
+
 ## Source and non-destructive rules
 
 - Candidate worktree: `D:/CoS-Test/000- Taraz/taraz-mtr-e2-isolated-20261109`.
