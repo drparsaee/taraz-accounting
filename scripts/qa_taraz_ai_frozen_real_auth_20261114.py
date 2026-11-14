@@ -920,8 +920,8 @@ def _resources_available(parent: Path) -> None:
             [str(powershell), "-NoProfile", "-NonInteractive", "-Command",
              "Add-Type -AssemblyName UIAutomationClient; "
              "Add-Type -AssemblyName UIAutomationTypes; "
-             "$item=[System.Windows.Automation.PropertyCondition]::new(" 
-             "[System.Windows.Automation.AutomationElement]::ControlTypeProperty," 
+             "$item=[System.Windows.Automation.PropertyCondition]::new("
+             "[System.Windows.Automation.AutomationElement]::ControlTypeProperty,"
              "[System.Windows.Automation.ControlType]::Edit); "
              "if($null -eq $item){exit 2}"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
