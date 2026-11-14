@@ -174,3 +174,55 @@ LLM**; no cloud model or live MADAR/RADAR data was invoked.
    of `-Apply` be designed and tested. Do not repurpose the blocked package.
 
 **Release status: NOT READY FOR APPROVAL.**
+
+## Continuation — bounded frozen focus check and private AI reference metadata
+
+This continuation started from Git `1ad973389df8b828e46933db21cb84db075e8ad2`.
+The installed version pointer was read independently as `1.0.4`; the
+post-run Windows process check found no `Taraz.exe` PID.
+
+### Exact frozen QA witness (still BLOCKED)
+
+- Candidate unchanged: `build-d87b73dc956c`, SHA-256
+  `186d551f35a37a8cdef92ba5d182b4ddc80946e248e0efca198f90473dd450c8`.
+- One bounded, owner-scoped focus-recovery experiment was attempted in the
+  private Tk UIA harness. The exact candidate ran once. The experiment did
+  **not** resolve the native login failure, so its source/test modifications
+  were reverted without committing them. No further speculative input
+  retries were made.
+- Raw evidence: `frozen-ai-real-auth-qa-20261114/qa-ad8421476e864e3f/`
+  under the candidate QA root. Company selection was
+  `PASS_NATIVE_OWNED_UIA` with verified login-window transition.
+  The login stage remained `BLOCKED_NATIVE_UIA`,
+  `PRIVATE_TK_GUI_THREAD_UNAVAILABLE`.
+- Frozen report: `status=BLOCKED`, `realNativeLogin=false`,
+  `privateUiTest=false`, `gracefulShutdown=true`,
+  `qaTarazProcessesRemain=0`, `candidateShaUnchanged=true`.
+- This is not a frozen AI acceptance, installer approval or permission
+  to bypass native authentication.
+
+### AI reference storage hardening
+
+- V1 chat-message `references_json` and `context_links` contain plaintext
+  structured references. Previous `append()` wrote arbitrary extra
+  dictionary fields into `references_json` before checking their contents.
+- The new validation accepts only `kind`, `id` and optional bounded integer
+  `sourceRevision`, with known source kinds, a maximum of 32 references,
+  and rejection of control/format characters in IDs. It validates before
+  opening the write connection, rejecting additional metadata rather than
+  persisting potentially private customer/contact fields as plaintext.
+- Independent synthetic Windows DPAPI/SQLite tests:
+  `py -3.12 -B -m unittest tests.test_taraz_ai_context_refs_privacy_20261114 -q`
+  **3/3 PASS**, exit 0.
+- Existing AI vertical, idempotency and search regressions:
+  `py -3.12 -B -m unittest tests.test_taraz_ai_chat_vertical_20261114
+  tests.test_taraz_ai_chat_idempotency_20261114
+  tests.test_taraz_ai_chat_search_20261114 -q`
+  **35/35 PASS**, exit 0.
+- `git diff --check` completed with exit 0 (Windows LF/CRLF warning).
+- This is a **partial DLP safeguard only**: allowed identifiers, titles and
+  other metadata can still be plaintext. DPAPI portability/recovery and
+  production backup and Frozen login remain separate release blockers.
+
+No live company data, actual finance store, installed executable, bank
+workflow, original profile or production installer was modified.

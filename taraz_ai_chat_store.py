@@ -19,6 +19,7 @@ from pathlib import Path
 import re
 import secrets
 import sqlite3
+import unicodedata
 
 from taraz_order_store import _path_ok
 
@@ -111,6 +112,39 @@ def _valid_text(text: str, *, limit=4000) -> str:
     if _SECRET.search(text):
         raise AiChatError("Credentials cannot be stored in AI chat history")
     return text.strip()
+
+
+def _verified_context_refs(refs):
+    """Persist only scoped reference identifiers; never arbitrary client metadata.
+
+    Message references are stored as JSON in V1 rather than as DPAPI blobs.
+    Reject unexpected fields instead of accidentally writing names, contact
+    details, tokens or whole source payloads to a plaintext column.
+    """
+    if refs is None:
+        return []
+    if type(refs) is not list or len(refs) > 32:
+        raise AiChatError("Invalid bounded AI context references")
+    allowed_kinds = {"invoice", "proforma", "order", "item", "party", "madar-task"}
+    verified = []
+    for reference in refs:
+        if (type(reference) is not dict or
+                not {"kind", "id"} <= set(reference) or
+                not set(reference) <= {"kind", "id", "sourceRevision"} or
+                type(reference["kind"]) is not str or
+                reference["kind"] not in allowed_kinds):
+            raise AiChatError("Unverified AI context reference")
+        ident = reference["id"]
+        if (type(ident) is not str or not 1 <= len(ident) <= 96 or
+                any(unicodedata.category(c) in ("Cc", "Cf") for c in ident)):
+            raise AiChatError("Unverified AI context reference")
+        revision = reference.get("sourceRevision")
+        if (revision is not None and
+                (type(revision) is not int or not 0 <= revision < (1 << 63))):
+            raise AiChatError("Unverified AI source revision")
+        verified.append({"kind": reference["kind"], "id": ident,
+                         "sourceRevision": revision})
+    return verified
 
 
 def _canonical_request(payload: dict) -> bytes:
@@ -422,6 +456,7 @@ class TarazAiChatStore:
         identity = self._request_identity(client_request_id, request_payload)
         text = _valid_text(text)
         reply = _valid_text(reply)
+        refs = _verified_context_refs(refs)
         if proposal is not None and not isinstance(proposal, dict):
             raise AiChatError("Invalid proposed action")
         if response_base is not None and type(response_base) is not dict:
@@ -440,10 +475,10 @@ class TarazAiChatStore:
             message_id, assistant_id = secrets.token_hex(16), secrets.token_hex(16)
             db.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?)",
                        (message_id, conversation_id, "user", _protect(text, self.scope),
-                        now, revision + 1, "saved", json.dumps(refs or [])))
+                        now, revision + 1, "saved", json.dumps(refs)))
             db.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?)",
                        (assistant_id, conversation_id, "assistant", _protect(reply, self.scope),
-                        now, revision + 2, "completed", json.dumps(refs or [])))
+                        now, revision + 2, "completed", json.dumps(refs)))
             action_id = None
             if proposal is not None:
                 action_id = secrets.token_hex(16)
@@ -451,17 +486,12 @@ class TarazAiChatStore:
                            (action_id, conversation_id, message_id, "invoice.draft.preview",
                             _protect(json.dumps(proposal, ensure_ascii=False), self.scope),
                             source_revision, "pending", "proposed", None, now, None))
-            for reference in refs or []:
-                if (type(reference) is not dict or reference.get("kind") not in
-                    ("invoice", "proforma", "order", "item", "party", "madar-task") or
-                    not isinstance(reference.get("id"), str) or
-                    not 1 <= len(reference["id"]) <= 96):
-                    raise AiChatError("Unverified AI context reference")
+            for reference in refs:
                 db.execute("""INSERT OR REPLACE INTO context_links
                     (conversation_id,entity_type,entity_id,source_revision)
                     VALUES(?,?,?,?)""",
                     (conversation_id, reference["kind"], reference["id"],
-                     reference.get("sourceRevision")))
+                     reference["sourceRevision"]))
             db.execute("INSERT INTO provider_requests VALUES(?,?,?,?,?,?,?,?,?,?)",
                        (secrets.token_hex(16), conversation_id, "local", "rules-v1",
                         "no_model_called", 0, 0, None, None, now))

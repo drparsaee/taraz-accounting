@@ -682,3 +682,19 @@ requires release security review.
   APIs, Frozen packaging/acceptance of new AI module, upgrade of real
   existing data and end-user installation. Operational release remains
   **NOT READY FOR APPROVAL**.
+
+## 2026-11-14 — Post-handoff bounded continuation
+
+- Started from `1ad9733`. Frozen QA `qa-ad8421476e864e3f` against
+  SHA-pinned `build-d87b73dc956c` selected the genuine private company
+  successfully but native password login remained
+  `PRIVATE_TK_GUI_THREAD_UNAVAILABLE`; shutdown and PID cleanup succeeded.
+  The ineffective focus-only QA change was reverted, and no repeat was
+  attempted. See `docs/TARAZ_PRIME_EXECUTION_EVIDENCE_20261114.md`.
+- AI `references_json` now rejects arbitrary extra metadata before write,
+  bounds source kinds/revisions/identifiers and limits reference count.
+  New isolated test `tests/test_taraz_ai_context_refs_privacy_20261114.py`:
+  3/3 PASS; existing AI vertical/idempotency/search: 35/35 PASS.
+- Installed pointer still `1.0.4`; zero `Taraz.exe` PID at final check.
+  No live backup, live upgrade, migration, installation or publish.
+  Frozen AI acceptance and release remain BLOCKED.
