@@ -44,10 +44,16 @@ MANDATORY = {
     "taraz_ecosystem_protocol.py", "taraz_ecosystem_outbox.py",
     "taraz_repository_contracts.py",
     "taraz_ai_provider_status.py",
+    "taraz_ai_chat_store.py", "taraz_ai_business_service.py",
+    "taraz_ai_invoice_intake.py",
+    "standalone_accounting_identity.py",
+    "standalone_accounting_company_registry.py",
+    "standalone_accounting_secure_login.py",
     "taraz_llm_order_suggest.py", "taraz_llm_print_suggest.py",
     "src/taraz_order_workspace.jsx", "src/taraz_order_workspace.css",
     "src/accounting_invoice_wizard.jsx", "src/accounting_invoice_wizard.css",
     "src/accounting_top_ribbon.jsx", "src/standalone_accounting_workspace.jsx",
+    "src/taraz_ai_chat_workspace.jsx", "src/taraz_ai_chat_workspace.css",
     "src/taraz_order_intake.js", "src/accounting_print_designer.jsx",
     "src/accounting_print_template.js",
     "src/standalone_main.jsx", "package.json", "package-lock.json",
@@ -62,8 +68,15 @@ REQUIRED_ORDER_API = {
     "tarazMadarOrderProgress",
     "tarazMadarOrderSyncHistory", "tarazMadarOrderRecover",
     "tarazEcosystemStatus", "tarazAiProviderStatus",
+    "tarazAiChatList", "tarazAiChatRead", "tarazAiChatCommand",
 }
 REQUIRED_PYZ = {
+    "taraz_ai_chat_store": {"TarazAiChatStore", "create", "append", "read", "replay"},
+    "taraz_ai_business_service": {"AiBusinessService", "command"},
+    "taraz_ai_invoice_intake": {"invoice_preview", "preview_reply"},
+    "standalone_accounting_identity": {"LocalCompanyIdentity", "login", "require_session"},
+    "standalone_accounting_company_registry": {"StandaloneCompanyRegistry", "company_data_directory"},
+    "standalone_accounting_secure_login": {"prompt_premium_accounting_login"},
     "taraz_order_store": {"TarazOrderStore", "list", "command", "get"},
     "taraz_aaas_agent": {"CompanyAgentMemory", "review_order_tools",
                          "interpret_natural_order_request", "list", "command"},
@@ -90,8 +103,10 @@ JS_WITNESSES = (b"tarazOrderList", b"tarazOrderCommand", b"tarazOrderSuggest", b
                 b"tarazMadarOrderPreview", b"tarazMadarOrderProgress",
                 b"tarazMadarOrderSyncHistory", b"tarazMadarOrderRecover",
                 b"tarazEcosystemStatus", b"tarazAiProviderStatus",
+                b"tarazAiChatList", b"tarazAiChatRead", b"tarazAiChatCommand",
+                "دستیار تجاری".encode("utf-8"),
                 b"sac-invoice-beginner", b"invoiceDesign")
-CSS_WITNESSES = (b".taraz-orders", b".sac-invoice-beginner-pane")
+CSS_WITNESSES = (b".taraz-orders", b".sac-invoice-beginner-pane", b".taraz-ai-chat")
 BuildBlocked = legacy.BuildBlocked
 
 
@@ -113,8 +128,12 @@ def source_inventory() -> dict[str, str]:
         raise BuildBlocked("WebView2 JavaScript bridge omits required order methods")
     ui = (ROOT / "src" / "standalone_accounting_workspace.jsx").read_text(encoding="utf-8")
     if ("TarazOrderWorkspace" not in ui or "invoiceWizardMode" not in ui or
-            "beginner" not in ui):
+            "beginner" not in ui or "TarazAiChatWorkspace" not in ui):
         raise BuildBlocked("Order workspace or beginner invoice entry is missing")
+    ai_frontend = (ROOT / "src" / "taraz_ai_chat_workspace.jsx").read_text(encoding="utf-8")
+    if ("tarazAiChatCommand" not in ai_frontend or
+            "manualConfirmation:true" not in ai_frontend):
+        raise BuildBlocked("AI conversation bridge or manual human approval missing")
     if "tarazOrderCommand" not in (ROOT / "src" / "taraz_order_workspace.jsx").read_text(
             encoding="utf-8"):
         raise BuildBlocked("Order frontend does not call native command API")
@@ -344,20 +363,8 @@ if((Digest $pointer) -ne '__BASE_POINTER_SHA__' -or
    Deny 'Current version is not pinned 1.0.4'
 }
 if(Test-Path -LiteralPath $destination) { Deny '1.0.6 directory exists; never overwrite' }
-if(-not $Apply) { Write-Output 'READY_V106_SIDE_BY_SIDE_INSTALL'; exit 0 }
-NoTaraz
-New-Item -ItemType Directory -Path $destination -ErrorAction Stop | Out-Null
-$target=Join-Path $destination 'Taraz.exe'
-$input=[IO.File]::OpenRead($payload)
-try {
-  $output=[IO.File]::Open($target,[IO.FileMode]::CreateNew,
-      [IO.FileAccess]::Write,[IO.FileShare]::None)
-  try { $input.CopyTo($output); $output.Flush($true) }
-  finally { $output.Dispose() }
-} finally { $input.Dispose() }
-if((Digest $target) -ne '__NEW_EXE_SHA__') { Deny 'Copied EXE SHA mismatch' }
-if((Digest $pointer) -ne '__BASE_POINTER_SHA__') { Deny 'Pointer changed during copy' }
-Write-Output 'INSTALLED_V106_SIDE_BY_SIDE_POINTER_STILL_V104'
+if(-not $Apply) { Write-Output 'BLOCKED_V106_INSTALL_AWAITING_DATA_GATES'; exit 0 }
+Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
 '''
 
 _PS_ACTIVATE = r'''if((Digest $new) -ne '__NEW_EXE_SHA__') { Deny 'Installed 1.0.6 differs' }
@@ -367,13 +374,8 @@ if((Digest $pointer) -ne '__BASE_POINTER_SHA__' -or
 }
 if(Test-Path -LiteralPath $oldPointer) { Deny 'Earlier activation backup exists' }
 if(Test-Path -LiteralPath $pending) { Deny 'Pending activation pointer exists' }
-if(-not $Apply) { Write-Output 'READY_V106_ACTIVATION'; exit 0 }
-NoTaraz
-[IO.File]::WriteAllText($pending,"1.0.6`r`n",[Text.UTF8Encoding]::new($false))
-[IO.File]::Replace($pending,$pointer,$oldPointer,$true)
-if((Digest $pointer) -ne '__ACTIVATED_POINTER_SHA__' -or
-   (Digest $oldPointer) -ne '__BASE_POINTER_SHA__') { Deny 'Activation readback failed' }
-Write-Output 'ACTIVATED_V106_V104_RETAINED'
+if(-not $Apply) { Write-Output 'BLOCKED_V106_ACTIVATION_AWAITING_DATA_GATES'; exit 0 }
+Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
 '''
 
 _PS_ROLLBACK = r'''if((Digest $new) -ne '__NEW_EXE_SHA__'){ Deny 'Installed v1.0.6 changed' }
@@ -457,7 +459,9 @@ def package(run: Path, exe: Path, files: dict, staged: dict,
         "schemaVersion": 1, "application": "Taraz", "targetVersion": VERSION,
         "installedBaselineVersion": BASE_VERSION, "installedBaselineSha256": BASE_EXE_SHA,
         "installedBaseline": baseline, "qaOnly": False,
-        "productionCandidate": True, "installed": False, "pointerActivated": False,
+        "productionCandidate": True, "releaseGateStatus": "BLOCKED_DATA_PRESERVATION",
+        "installApplyAllowed": False, "activateApplyAllowed": False,
+        "installed": False, "pointerActivated": False,
         "defaultDataRoot": "%APPDATA%\\Taraz", "previousVersionRetained": BASE_VERSION,
         "exeSha256": exe_sha, "exeBytes": exe.stat().st_size, "peVersion": "1.0.6.0",
         "sourceFingerprintSha256": digest_inventory(files), "sourceFilesCount": len(files),
@@ -544,6 +548,12 @@ def build(*, freeze_sha: str) -> Path:
              "--hidden-import", "taraz_ecosystem_outbox",
              "--hidden-import", "taraz_repository_contracts",
              "--hidden-import", "taraz_ai_provider_status",
+             "--hidden-import", "taraz_ai_chat_store",
+             "--hidden-import", "taraz_ai_business_service",
+             "--hidden-import", "taraz_ai_invoice_intake",
+             "--hidden-import", "standalone_accounting_identity",
+             "--hidden-import", "standalone_accounting_company_registry",
+             "--hidden-import", "standalone_accounting_secure_login",
              "--hidden-import", "taraz_llm_order_suggest",
              "--hidden-import", "taraz_llm_print_suggest",
              "--hidden-import", "taraz_madar_data_reader",

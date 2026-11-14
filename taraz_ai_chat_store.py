@@ -23,6 +23,15 @@ import sqlite3
 from taraz_order_store import _path_ok
 
 SCHEMA_VERSION = 1
+# AI message bodies are DPAPI-encrypted and cannot be indexed as plaintext.
+# Bound the work of one search; callers must check searchTruncated when the
+# requested page could not be proven complete within these limits.
+_SEARCH_MAX_CONVERSATIONS = 2048
+_SEARCH_MAX_DECRYPTIONS = 8192
+# A preexisting V1 database has no secondary message/tenant indexes. Even a
+# limited SELECT could scan many out-of-scope rows, so cap SQLite VM work too.
+_SEARCH_SQL_PROGRESS_STEPS = 1000
+_SEARCH_MAX_SQL_PROGRESS_CALLS = 50000
 _ID = re.compile(r"^[a-f0-9]{32}$")
 _ACTOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$")
 _SECRET = re.compile(
@@ -252,31 +261,107 @@ class TarazAiChatStore:
             raise PermissionError("Conversation does not exist in current user/company scope")
         return row
 
-    def list(self, query="", limit=80):
-        if not isinstance(query, str) or len(query) > 150 or not 1 <= limit <= 100:
+    def list(self, query="", limit=80, *, offset=0):
+        """Search the current actor's history in stable newest-first order.
+
+        `offset` counts matching conversations, not raw conversation rows.
+        Searches stop at fixed per-request scan/decryption budgets and signal
+        incomplete results rather than presenting partial matches as complete.
+        No plaintext message index, schema migration, or write is performed.
+        """
+        if (not isinstance(query, str) or len(query) > 150 or
+                type(limit) is not int or not 1 <= limit <= 100 or
+                type(offset) is not int or not 0 <= offset <= 100000):
             raise AiChatError("Invalid chat search")
         db = self._connect()
         if db is None:
-            return {"schemaVersion": SCHEMA_VERSION, "conversations": []}
+            return {"schemaVersion": SCHEMA_VERSION, "conversations": [],
+                    "hasMore": False, "nextOffset": None, "searchTruncated": False}
         try:
-            rows = db.execute("""SELECT id,title,created_at,updated_at
-                 FROM conversations WHERE tenant_id=? AND user_id=? AND status='active'
-                 ORDER BY updated_at DESC LIMIT ?""", (self.tenant, self.actor, limit)).fetchall()
-            entries = [dict(row) for row in rows]
-            if query.strip():
-                needle = query.strip().casefold()
-                matched = []
-                for item in entries:
-                    if needle in item["title"].casefold():
-                        matched.append(item)
-                        continue
-                    texts = db.execute(
-                        "SELECT content_cipher FROM messages WHERE conversation_id=? ORDER BY revision DESC LIMIT 200",
-                        (item["id"],)).fetchall()
-                    if any(needle in _unprotect(bytes(x[0]), self.scope).casefold() for x in texts):
-                        matched.append(item)
-                entries = matched
-            return {"schemaVersion": SCHEMA_VERSION, "conversations": entries}
+            # A read transaction keeps the candidate order and messages on
+            # one SQLite snapshot if another session appends while we search.
+            db.execute("BEGIN")
+            needle = query.strip().casefold()
+            scope = (self.tenant, self.actor)
+            if not needle:
+                rows = db.execute("""SELECT id,title,created_at,updated_at
+                    FROM conversations
+                    WHERE tenant_id=? AND user_id=? AND status='active'
+                    ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?""",
+                    (*scope, limit + 1, offset)).fetchall()
+                entries = [dict(row) for row in rows[:limit]]
+                has_more = len(rows) > limit
+                return {"schemaVersion": SCHEMA_VERSION, "conversations": entries,
+                        "hasMore": has_more,
+                        "nextOffset": offset + len(entries) if has_more else None,
+                        "searchTruncated": False}
+
+            entries = []
+            matches = 0
+            decryptions = 0
+            truncated = False
+            has_more = False
+            sql_calls = 0
+            sql_interrupted = False
+
+            def bound_sql_work():
+                nonlocal sql_calls, sql_interrupted
+                sql_calls += 1
+                if sql_calls >= _SEARCH_MAX_SQL_PROGRESS_CALLS:
+                    sql_interrupted = True
+                    return 1
+                return 0
+
+            db.set_progress_handler(bound_sql_work, _SEARCH_SQL_PROGRESS_STEPS)
+            try:
+                # LIMIT bounds the SQLite result set; the progress handler
+                # also bounds scanning/sorting work on legacy unindexed DBs.
+                rows = db.execute("""SELECT id,title,created_at,updated_at
+                    FROM conversations
+                    WHERE tenant_id=? AND user_id=? AND status='active'
+                    ORDER BY updated_at DESC,id DESC LIMIT ?""",
+                    (*scope, _SEARCH_MAX_CONVERSATIONS + 1))
+                for position, row in enumerate(rows):
+                    if position == _SEARCH_MAX_CONVERSATIONS:
+                        truncated = True
+                        break
+                    item = dict(row)
+                    found = needle in item["title"].casefold()
+                    if not found:
+                        # Iterate every message, including those older than
+                        # 200, without retaining decrypted text or a full
+                        # message list in memory.
+                        remaining = _SEARCH_MAX_DECRYPTIONS - decryptions
+                        messages = db.execute("""SELECT content_cipher FROM messages
+                            WHERE conversation_id=? ORDER BY rowid DESC LIMIT ?""",
+                            (item["id"], remaining + 1))
+                        for message_position, message in enumerate(messages):
+                            if message_position == remaining:
+                                truncated = True
+                                break
+                            decryptions += 1
+                            if needle in _unprotect(bytes(message[0]), self.scope).casefold():
+                                found = True
+                                break
+                        if truncated:
+                            break
+                    if found:
+                        if matches >= offset + limit:
+                            has_more = True
+                            break
+                        if matches >= offset:
+                            entries.append(item)
+                        matches += 1
+            except sqlite3.OperationalError:
+                if not sql_interrupted:
+                    raise
+                truncated = True
+            finally:
+                db.set_progress_handler(None, 0)
+            return {"schemaVersion": SCHEMA_VERSION, "conversations": entries,
+                    "hasMore": None if truncated else has_more,
+                    "nextOffset": offset + len(entries) if has_more else None,
+                    "searchTruncated": truncated}
         finally:
             db.close()
 

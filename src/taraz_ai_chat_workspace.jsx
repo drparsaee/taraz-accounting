@@ -20,6 +20,7 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
   const [selected,setSelected]=useState('');
   const [history,setHistory]=useState(null);
   const [search,setSearch]=useState('');
+  const [listReport,setListReport]=useState({query:'',truncated:false,hasMore:false});
   const [entry,setEntry]=useState('');
   const [confirmReviewed,setConfirmReviewed]=useState({});
   const [provider,setProvider]=useState(null);
@@ -30,13 +31,21 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
   // of the original operation instead of creating another conversation/draft.
   const createAttempt=useRef(null);
   const sendAttempt=useRef(null);
+  const listRequestSequence=useRef(0);
   const supported=['tarazAiChatList','tarazAiChatRead','tarazAiChatCommand']
     .every(name=>typeof api?.[name]==='function');
+  const applyListResult=useCallback((result,query)=>{
+    setItems(Array.isArray(result?.conversations)?result.conversations:[]);
+    setListReport({query:query.trim(),truncated:result?.searchTruncated===true,
+      hasMore:result?.hasMore===true});
+  },[]);
   const refreshList=useCallback(async(query='')=>{
     if(!supported)return;
+    const request=++listRequestSequence.current;
     const result=await api.tarazAiChatList(query);
-    setItems(result.conversations||[]);
-  },[api,supported]);
+    // An older, slower response must not overwrite a later search.
+    if(request===listRequestSequence.current)applyListResult(result,query);
+  },[api,supported,applyListResult]);
   const refreshDetail=useCallback(async id=>{
     if(!id){setHistory(null);return;}
     const result=await api.tarazAiChatRead(id);
@@ -45,13 +54,17 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
   useEffect(()=>{
     let alive=true;
     if(!supported)return;
+    const request=++listRequestSequence.current;
     Promise.all([api.tarazAiChatList(''),
       typeof api.tarazAiProviderStatus==='function'?
         api.tarazAiProviderStatus():Promise.resolve(null)])
-      .then(([list,status])=>{if(alive){setItems(list.conversations||[]);setProvider(status);}})
+      .then(([list,status])=>{if(alive){
+        if(request===listRequestSequence.current)applyListResult(list,'');
+        setProvider(status);
+      }})
       .catch(()=>{if(alive)setError('خواندن تاریخچه مجاز نبود یا میزبان آماده نیست.');});
     return ()=>{alive=false;};
-  },[api,supported]);
+  },[api,supported,applyListResult]);
   const run=async task=>{
     setError('');setNotice('');setBusy(true);
     try{await task();}
@@ -144,13 +157,24 @@ export default function TarazAiChatWorkspace({api,canEdit=false}){
         </label>
         <button type="button" onClick={()=>run(()=>refreshList(search))} disabled={busy}>
           <RefreshCw size={15}/> جست‌وجو / بازخوانی</button>
+        {listReport.truncated&&<p className="taraz-ai-alert" role="alert" data-testid="taraz-ai-search-truncated">
+          جست‌وجوی تاریخچه به سقف پردازش رسید. نتایج نمایش‌داده‌شده ممکن است ناقص باشند؛ عبارت دقیق‌تری جست‌وجو کنید.
+        </p>}
+        {!listReport.truncated&&listReport.hasMore&&<p className="taraz-ai-notice" role="status" data-testid="taraz-ai-search-more">
+          {listReport.query?
+            'نتایج بیشتری ممکن است وجود داشته باشد. برای یافتن گفتگوهای دیگر عبارت دقیق‌تری جست‌وجو کنید.':
+            'فقط گفتگوهای جدیدتر نمایش داده می‌شوند. برای یافتن گفتگوهای قدیمی‌تر جست‌وجو کنید.'}
+        </p>}
         <div className="taraz-ai-conversation-list">
           {items.map(item=><button type="button" key={item.id}
             aria-current={selected===item.id?'page':undefined}
             onClick={()=>selectChat(item.id)} disabled={busy}>
             <span>{item.title}</span><small>{item.updated_at?.slice(0,16)}</small>
           </button>)}
-          {!items.length&&<p>گفتگویی در این حساب ثبت نشده است.</p>}
+          {!items.length&&<p>{listReport.truncated?
+            'در بخش بررسی‌شدهٔ تاریخچه نتیجه‌ای پیدا نشد.':
+            listReport.query?'نتیجه‌ای برای این جست‌وجو یافت نشد.':
+              'گفتگویی در این حساب ثبت نشده است.'}</p>}
         </div>
       </aside>
       <div className="taraz-ai-thread">

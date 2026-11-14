@@ -10,6 +10,7 @@ import json
 import os
 import re
 import sqlite3
+import stat
 import sys
 import threading
 import time
@@ -58,12 +59,25 @@ def private_qa_cdp_port(data, environment=None):
     path = Path(data).resolve()
     ambient = variables.get('APPDATA')
     override = variables.get('TARAZ_QA_DATA_DIR')
+    # QA root can be the historical single-book fixture or a registered
+    # company hub. The latter opens a verified nested books/<company-id> book;
+    # the old equality check would silently disable private CDP there.
+    roaming = Path(ambient).resolve() if ambient and Path(ambient).is_absolute() else None
+    qa_hub = Path(override).resolve() if override and Path(override).is_absolute() else None
+    single_book = bool(qa_hub and roaming and path == qa_hub and path.parent == roaming)
+    registered_book = False
+    if (qa_hub and roaming and qa_hub.parent == roaming and
+            path.parent == qa_hub / 'books' and re.fullmatch(r'[0-9a-f]{32}', path.name)):
+        try:
+            from standalone_accounting_company_registry import StandaloneCompanyRegistry
+            registered_book = (StandaloneCompanyRegistry(qa_hub).company_data_directory(
+                path.name).resolve() == path)
+        except (OSError, ValueError, RuntimeError):
+            registered_book = False
     marker = path / '.taraz-private-cdp-qa.json'
     if (variables.get('TARAZ_QA_MODE') != '1' or
             not ambient or not override or
-            not Path(ambient).is_absolute() or
-            path != Path(override).resolve() or
-            path.parent != Path(ambient).resolve() or
+            not (single_book or registered_book) or
             'qa' not in [part.casefold() for part in path.parts] or
             'qa-runtime' not in [part.casefold() for part in path.parts] or
             marker.is_symlink() or not marker.is_file() or
@@ -81,8 +95,16 @@ def private_qa_cdp_port(data, environment=None):
     return int(requested)
 
 class TarazAPI(AccountingDesktopAPI):
-    def __init__(self, path):
-        super().__init__(str(path))
+    def __init__(self, path, *, company_name="", company_workspace_id="",
+                 authenticated_user=None, identity_store=None, identity_token=None):
+        # The production launcher always supplies an authenticated company
+        # principal. The original one-argument constructor remains available
+        # to legacy isolated API fixtures, never used by run().
+        super().__init__(str(path), company_name=company_name,
+                         company_workspace_id=company_workspace_id,
+                         authenticated_user=authenticated_user,
+                         identity_store=identity_store,
+                         identity_token=identity_token)
         self._requires_migration = (path / "taraz-migration-manifest.json").exists()
 
     def tarazEcosystemStatus(self):
@@ -688,16 +710,163 @@ def prepare_offline_accounting_on_launch(api, backups):
         backups.backup_now()
 
 
-def run():
+def _pick_existing_taraz_company(companies):
+    """Read-only native selector: deliberately NO create-company control."""
+    import tkinter as tk
+    from tkinter import ttk
+
+    root = tk.Tk()
+    root.title("تراز | انتخاب شرکت ثبت‌شده")
+    root.geometry("540x390")
+    root.minsize(440, 320)
+    panel = ttk.Frame(root, padding=20)
+    panel.pack(fill="both", expand=True)
+    ttk.Label(panel, text="شرکت ثبت‌شده را برای ورود انتخاب کنید:").pack(anchor="e")
+    choices = tk.Listbox(panel, exportselection=False, height=11)
+    choices.pack(fill="both", expand=True, pady=(12, 12))
+    for record in companies:
+        choices.insert(tk.END, record["name"])
+    selected = {"id": None}
+
+    def accept(_event=None):
+        indices = choices.curselection()
+        if not indices:
+            return
+        selected["id"] = companies[indices[0]]["id"]
+        root.quit()
+
+    def cancel(_event=None):
+        selected["id"] = None
+        root.quit()
+
+    controls = ttk.Frame(panel)
+    controls.pack(fill="x")
+    ttk.Button(controls, text="ورود به شرکت", command=accept).pack(side="right")
+    ttk.Button(controls, text="انصراف", command=cancel).pack(side="left")
+    choices.bind("<Double-Button-1>", accept)
+    choices.bind("<Return>", accept)
+    root.bind("<Escape>", cancel)
+    root.protocol("WM_DELETE_WINDOW", cancel)
+    try:
+        if companies:
+            choices.selection_set(0)
+            choices.activate(0)
+            choices.focus_set()
+        root.mainloop()
+        return selected["id"]
+    finally:
+        root.destroy()
+
+
+def select_existing_taraz_company(registry_root, *, choose=None):
+    """Resolve a registered existing book without creating ANY profile files.
+
+    The historical unregistered `%APPDATA%/Taraz` ledger is NOT silently
+    assigned an invented company ID. Moving it into registry is a separate,
+    explicitly authorized offline migration with verified backup/restore.
+    """
+    from standalone_accounting_company_registry import StandaloneCompanyRegistry
+    hub = Path(registry_root)
+    if not hub.is_absolute() or not hub.is_dir() or hub.is_symlink():
+        raise PermissionError("Existing absolute Taraz company registry required")
+    # list_companies() intentionally returns [] when companies.json is absent.
+    registry = StandaloneCompanyRegistry(hub)
+    companies = registry.list_companies()
+    if not companies:
+        raise PermissionError("No registered Taraz company; offline migration/setup required")
+    selected = (choose or _pick_existing_taraz_company)([dict(c) for c in companies])
+    if selected is None:
+        return None
+    if type(selected) is not str or selected not in {c["id"] for c in companies}:
+        raise PermissionError("Selected company was not present in verified registry")
+    # Verify membership again after the native chooser; selection may be stale.
+    directory = registry.company_data_directory(selected)
+    name = next(c["name"] for c in registry.list_companies() if c["id"] == selected)
+    return directory, name, selected
+
+
+def open_authenticated_taraz_company(registry_root, *, choose=None, login=None):
+    """Read-only preflight, then native real identity login; never boots a DB.
+
+    `choose` and `login` injection is used ONLY by synthetic unit fixtures.
+    The production entrypoint calls this function without overrides.
+    """
+    selected = select_existing_taraz_company(registry_root, choose=choose)
+    if selected is None:
+        return None
+    directory, name, company_id = selected
+    from standalone_accounting_identity import LocalCompanyIdentity
+    from standalone_accounting_desktop import _native_accounting_login
+    from taraz_order_store import _path_ok
+    _path_ok(directory)
+    ledger = directory / "standalone-accounting.sqlite3"
+    identity_path = directory / "local-users.json"
+    def regular_unlinked(file):
+        return (file.is_file() and not file.is_symlink() and
+                not (getattr(file.lstat(), "st_file_attributes", 0) &
+                     getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)))
+
+    if not regular_unlinked(ledger) or not regular_unlinked(identity_path):
+        raise PermissionError("Existing company requires ledger and protected identity registry")
+    identity = LocalCompanyIdentity(directory)
+    if not identity.initialized():
+        raise PermissionError("Existing company has no valid authenticated user")
+    authenticated = ((login or (lambda store: _native_accounting_login(
+        store, require_existing=True)))(identity))
+    if authenticated is None:
+        return None
+    if (not isinstance(authenticated, tuple) or len(authenticated) != 2):
+        raise PermissionError("Native company login returned an invalid session")
+    user, token = authenticated
+    try:
+        if not isinstance(token, str) or not token:
+            raise PermissionError("Native company login returned no session token")
+        current = identity.require_session(token, "viewer")
+        if type(user) is not dict or user != current:
+            raise PermissionError("Native login returned a mismatched company identity")
+        api = TarazAPI(directory, company_name=name,
+                       company_workspace_id=company_id,
+                       authenticated_user=current, identity_store=identity,
+                       identity_token=token)
+        return api, identity, token
+    except BaseException:
+        if isinstance(token, str):
+            identity.logout(token)
+        raise
+
+
+def _run_authenticated_taraz_api(api):
+    """Existing Taraz financial/UI lifecycle, now bound to a real login."""
     import msvcrt
-    data = taraz_data_root()
-    data.mkdir(parents=True, exist_ok=True)
-    if data.is_symlink():
-        raise PermissionError("Taraz profile symlink refused")
+    from standalone_accounting_company_registry import (
+        CompanySessionGuard, StandaloneCompanyRegistry)
+    data = api.path.parent
+    if getattr(api, "_identity_store", None) is None or not api._identity_token:
+        raise PermissionError("Production Taraz startup requires a live company user session")
+    api._require_authenticated("viewer")
+    if (not api.company_workspace_id or data.parent.name != "books" or
+            StandaloneCompanyRegistry(data.parent.parent).company_data_directory(
+                api.company_workspace_id) != data):
+        raise PermissionError("Taraz book is not bound to its registered company")
+    if not data.is_dir() or data.is_symlink():
+        raise PermissionError("Existing registered Taraz book required")
     if not (data / "standalone-accounting.sqlite3").is_file():
-        raise RuntimeError("Taraz accounting book was not migrated; refusing an empty replacement")
+        raise RuntimeError("Taraz accounting book is missing; refusing an empty replacement")
+    # The legacy Taraz session lock and the common company lock both remain
+    # active, preventing a second standalone session on this same ledger.
+    guard = CompanySessionGuard(data).acquire()
     lock_file = data / ".taraz-session.lock"
-    lock = open(lock_file, "a+b")
+    try:
+        if (lock_file.is_symlink() or (lock_file.exists() and
+                getattr(lock_file.lstat(), "st_file_attributes", 0) &
+                getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))):
+            raise PermissionError("Linked Taraz session lock refused")
+        lock = open(lock_file, "a+b")
+    except BaseException:
+        guard.release()
+        raise
+    previous_data_env = os.environ.get("TARAZ_DATA_DIR")
+    lock_acquired = False
     try:
         lock.seek(0)
         if lock.read(1) == b"":
@@ -705,10 +874,10 @@ def run():
         lock.seek(0)
         try:
             msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+            lock_acquired = True
         except OSError:
             raise RuntimeError("Taraz is already running using this accounting book")
         os.environ["TARAZ_DATA_DIR"] = str(data)
-        api = TarazAPI(data)
         from standalone_accounting_auto_backup import AutomaticStandaloneBackups
         backups = AutomaticStandaloneBackups(data, plaintext_acknowledged=True)
         prepare_offline_accounting_on_launch(api, backups)
@@ -788,8 +957,31 @@ def run():
                 server.shutdown(); server.server_close()
     finally:
         try:
-            lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_UNLCK,1)
-        finally: lock.close()
+            if lock_acquired:
+                lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_UNLCK,1)
+        finally:
+            lock.close()
+            guard.release()
+            if previous_data_env is None:
+                os.environ.pop("TARAZ_DATA_DIR", None)
+            else:
+                os.environ["TARAZ_DATA_DIR"] = previous_data_env
+
+
+def run():
+    """Native production login precedes any accounting initialization/backup.
+
+    An unregistered legacy profile stays untouched; no implicit local admin,
+    company creation, or finance DB migration occurs in this entrypoint.
+    """
+    session = open_authenticated_taraz_company(taraz_data_root())
+    if session is None:  # User cancelled the native selection/login UI.
+        return
+    api, identity, token = session
+    try:
+        return _run_authenticated_taraz_api(api)
+    finally:
+        identity.logout(token)
 
 if __name__ == "__main__":
     run()

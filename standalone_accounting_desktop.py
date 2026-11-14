@@ -563,12 +563,39 @@ def serve_accounting_page(site):
     return ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 
 
-def _native_accounting_login(store):
-    """Open native premium credentials gate before serving accounting UI."""
+def _native_accounting_login(store, *, require_existing=False):
+    """Native credential gate, optionally forbidding *all* first-user setup.
+
+    An existing Taraz production book must never become an implicit first-run
+    admin even if the identity file is replaced while the dialog opens.
+    Standalone's explicit *new book* workflow keeps its existing behavior.
+    """
+    if require_existing:
+        if not store.initialized():
+            raise PermissionError('Existing accounting company requires its user registry')
+
+        class _ExistingLoginOnly:
+            def initialized(self):
+                if not store.initialized():
+                    raise PermissionError('Company identity disappeared before login')
+                return True
+
+            def add_user(self, *_args, **_kwargs):
+                raise PermissionError('Creating a first administrator at Taraz login is forbidden')
+
+            def login(self, *args, **kwargs):
+                return store.login(*args, **kwargs)
+
+            def require_session(self, *args, **kwargs):
+                return store.require_session(*args, **kwargs)
+
+        store_for_login = _ExistingLoginOnly()
+    else:
+        store_for_login = store
     if not store.initialized() and (store.root/ACCOUNTING_FILE).exists():
         raise PermissionError('Existing ledger has no identity file: restore its backup before login')
     from standalone_accounting_secure_login import prompt_premium_accounting_login
-    return prompt_premium_accounting_login(store)
+    return prompt_premium_accounting_login(store_for_login)
 
 
 def _run_company_session(data_dir, selected_company_name, args):
