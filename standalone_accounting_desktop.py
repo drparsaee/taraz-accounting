@@ -32,6 +32,7 @@ window.madar = Object.fromEntries(
    'tarazMadarDataOverview', 'tarazMadarDataRead',
    'tarazOrderList', 'tarazOrderCommand', 'tarazOrderFinanceDraft',
    'tarazEcosystemStatus', 'tarazAiProviderStatus',
+   'tarazAiChatList', 'tarazAiChatRead', 'tarazAiChatCommand',
    'tarazAgentOrderReview', 'tarazAgentNaturalRequest',
    'tarazAgentMemoryList', 'tarazAgentMemoryCommand',
    'tarazOrderMadarLinkRead', 'tarazOrderMadarLink',

@@ -50,6 +50,21 @@ service mutation are blocked or not authorized.
 
 Release decision: NOT READY FOR APPROVAL.
 
+## Upgrade-data-preservation gate (user requirement, 2026-11-14)
+
+**APPROVED REQUIREMENT / NOT TESTED:** A new Taraz release is an in-place
+upgrade over the existing installation, not a fresh installation replacing
+existing customer data. It must retain all user/business records, identities,
+accounting event history and digests, settings, templates, orders, payments,
+agent memory, Madar links, audit and pending sync records.
+
+Mandatory acceptance: isolated clone of installed 1.0.4 → candidate upgrade,
+verified pre-update backup and restore drill, versioned/idempotent migrations,
+before/after record and digest reconciliation, reopened legacy records through
+the upgraded GUI, failed-update recovery and tested rollback or compatible
+restore. A successful fresh Frozen EXE synthetic run is not upgrade evidence.
+No production upgrade or migration has been authorized or performed.
+
 ## Update 2026-11-14 — Exact frozen UIA gate, still open
 
 Candidate `build-8ad80825928e`, EXE SHA256 `70eb46a3430985cca18aeaaf21339a2c7f49fca3f75066f091a8600d862dc512`, 145-file source SHA256 `96cd0132dff1c8769df0dc7e6454241bf61433b85abcb8efaa62730defd3138e`.
@@ -71,3 +86,30 @@ Results are independently captured in the disposable Windows profile:
 The initially interrupted Frozen root/child were identified by exact hash, PID, owner-window and private desktop; the QA-only browser discard confirmation was accepted through UIA. Processes exited normally, no Force Kill or global user input occurred. One later transient timeout was likewise recovered without termination. Earlier passing tests were preserved, not restarted en masse.
 
 Only the current disposable accounting book/order files were read/written. Main installed Taraz remained 1.0.4 and unchanged in each completed QA report; journal count stayed zero. Human finance issue, bank API, operational MadarHost, production LAN, install and printer were not touched.
+
+## 2026-11-14 — AI Chat phase 1 and live Upgrade preservation status
+
+| Gate | Status | Evidence / scope |
+| --- | --- | --- |
+| 1.0.4 installed baseline identity | VERIFIED PASS | Pointer, launcher and EXE pinned SHA |
+| Metadata-only live source inventory | VERIFIED PASS | 181 files / 67 SQLite in three profile roots; contents not read |
+| Synthetic profile backup + restore safeguards | VERIFIED PASS | 13/13 isolated adversarial tests |
+| Complete live-source Backup/Restore | BLOCKED | No proven quiescent/consistent snapshot; no live backup performed |
+| Installed-profile 1.0.4 → 1.0.6 upgrade | NOT TESTED | Current installed version unchanged; wrapper references older build |
+| Global WebView2 download security | BLOCKED | Wide `ALLOW_DOWNLOADS=True` scope requires release review |
+| AI v1 encrypted history + restart | VERIFIED PASS | 11 Python tests, Windows DPAPI, isolated authenticated user/company |
+| AI create/send replay after lost bridge response | VERIFIED PASS | 13 extra synthetic tests; encrypted scoped receipt, atomic write, no duplicate on concurrent retry |
+| Persian invoice price source + explicit Draft approval | VERIFIED PASS | Synthetic source invoice, 200,000-RIAL Draft, no new Journal |
+| AI Workspace UI → WebView2 → API → SQLite | VERIFIED PASS | Source-hosted private native desktop, NOT Frozen |
+| AI feature inside new Frozen EXE | NOT TESTED | No new packaged AI EXE |
+| AI authentication in ordinary installed launcher | BLOCKED | Legacy implicit local-admin rejected; verified user and stable company ID not wired |
+| AI access in actual normal startup | BLOCKED | `run()` still builds `TarazAPI(data)` without verified user/company; confidential AI fails closed |
+| Cross-device encrypted chat restore | BLOCKED | DPAPI per-Windows principal; portable key recovery not implemented |
+| Local/online LLM inference | NOT TESTED | rules-only fallback, no provider executed |
+| Web and live Madar/Radar retrieval | BLOCKED | Verified access, consent and API evidence required |
+| Actual installation / public rollout | BLOCKED | Upgrade-data-preservation gate remains open |
+
+Documentation: `docs/TARAZ_UPGRADE_104_TO_106_GATE_20261114.md`
+and `docs/TARAZ_AI_CHAT_PHASE1_20261114.md`. Earlier Frozen Gate A
+acceptance for the old candidate remains true for its own features only;
+it does not approve the new AI Workspace or live in-place upgrade.

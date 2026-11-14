@@ -27,6 +27,7 @@ import {buildAccountingInvoiceEntryTemplate,parseAccountingInvoiceEntryTemplate}
 import AccountingPrintDesigner from './accounting_print_designer.jsx';
 import TarazMadarDashboard from './taraz_madar_dashboard.jsx';
 import TarazOrderWorkspace from './taraz_order_workspace.jsx';
+import TarazAiChatWorkspace from './taraz_ai_chat_workspace.jsx';
 import {filterInvoiceRows,invoiceStatusCounts} from './accounting_invoice_quick_filter.js';
 import {DEFAULT_PRINT_TEMPLATE,validatePrintTemplate,buildCustomPrintExport}
   from './accounting_print_template.js';
@@ -261,7 +262,7 @@ export function nextAccountingNumber(records,prefix,year){
   }
   return '';
 }
-const SECTIONS=[['overview','داشبورد'],['madar','اطلاعات مدار'],['company','مشخصات شرکت'],
+const SECTIONS=[['overview','داشبورد'],['ai','دستیار تجاری'],['madar','اطلاعات مدار'],['company','مشخصات شرکت'],
   ['proforma','پیش‌فاکتور مستقل'],
   ['orders','سفارش‌ها'],['invoice','فاکتورهای فروش'],
   ['invoiceDesign','طراحی فرم فاکتور'],['bill','صورتحساب‌های خرید'],
@@ -1685,7 +1686,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         <div><strong>تراز <span>حسابداری</span></strong><small>میز مستقل مالی</small></div></div>
       <p className="sac-nav-caption">محیط کار</p>
       <nav aria-label="ناوبری میز حسابداری" tabIndex={0}>{SECTIONS.filter(([name])=>name!=='invoiceDesign'||canManage).map(([name,label],i)=>{
-        const icons={overview:Landmark,madar:Layers3,company:Building2,proforma:FileText,
+        const icons={overview:Landmark,ai:BookOpen,madar:Layers3,company:Building2,proforma:FileText,
           orders:Layers3,invoice:FileText,invoiceDesign:FileText,bill:FileText,contractors:Layers3,parties:Users,
           migration:BookOpen,cheques:Wallet,items:Layers3,settlements:Wallet,
           cash:Landmark,accounts:BookOpen,journal:BookOpen,reports:BookOpen,
@@ -1753,6 +1754,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         {tab==='madar'&&<TarazMadarDashboard api={integrationFeedbackApi}
           canReview={canManage} canDraft={canManage||canDraft} canAdmin={canAdmin}
           onDraftFromMadar={startMadarInvoiceSuggestion}/>}
+        {tab==='ai'&&<TarazAiChatWorkspace api={api} canEdit={canManage||canDraft}/>}
         {view&&<>
           {tab==='orders'&&<TarazOrderWorkspace api={api}
             canEdit={canManage||canDraft}

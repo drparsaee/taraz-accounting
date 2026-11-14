@@ -169,3 +169,34 @@ For unresolved *authority and recovery* details, record the user-approved
 outcome with decision date, selected option, rejected alternatives, rationale,
 constraints and acceptance criteria. Until then DB2 remains BLOCKED; proceed
 with DB0 read-only and DB1 isolated contract tests.
+
+## ADR-TARAZ-003 — AI Chat persistence, trust boundaries and recovery (2026-11-14)
+
+**Status: PARTIALLY IMPLEMENTED; operational adoption BLOCKED pending portable
+key recovery, authorization review and upgrade preservation.**
+
+The initial local AI Workspace stores `taraz-ai-chat.sqlite3` in the
+explicitly selected Taraz company directory, separate from the formal
+accounting event log. SQLite schema v1 records conversations, messages,
+tool/execution proposals, provider request metadata and source references.
+Every API read/write checks the native user's session and company scope;
+message text and tool proposal details use **Windows user DPAPI**, never
+localStorage as source of truth and never an implicit cloud provider upload.
+
+Finance boundary: free-text requests and local rule-based parsing generate
+only source-linked, revisable proposals. An AI suggestion cannot issue an
+invoice, settle a payment or write a Journal. An explicit operator confirmation
+may create only a standalone accounting **draft** through the already
+authenticated production API and revision/CAS gates. An uncertain action is
+claimed before the write and must be reconciled rather than blindly retried.
+
+**Accepted only in QA:** same-Windows-principal restart and encrypted readback,
+private-source-verified 200,000-RIAL invoice draft, rejection of stale source
+and cross-actor reads. **Not accepted:** portable DPAPI key export/restore,
+multi-device or offline-LAN synchronization, retention/legal-hold policy,
+identity rotation, true online/local model inference, web retrieval and
+operational Madar/Radar source connections. Chat is now a mandatory member
+of the future upgrade backup inventory, but no claim of cross-device
+restorability is permitted before a protected key-recovery design and drill.
+See `docs/TARAZ_AI_CHAT_PHASE1_20261114.md` and
+`docs/TARAZ_UPGRADE_104_TO_106_GATE_20261114.md`.

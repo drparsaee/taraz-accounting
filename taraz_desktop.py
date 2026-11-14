@@ -124,6 +124,24 @@ class TarazAPI(AccountingDesktopAPI):
             self._require_authenticated()
             return provider_status()
 
+    def tarazAiChatList(self, query=''):
+        """List only current authenticated actor's company-scoped AI history."""
+        from taraz_ai_business_service import AiBusinessService
+        with self._lock:
+            return AiBusinessService(self).list(query)
+
+    def tarazAiChatRead(self, conversationId):
+        """Decrypt only current actor's authorized conversation."""
+        from taraz_ai_business_service import AiBusinessService
+        with self._lock:
+            return AiBusinessService(self).read(conversationId)
+
+    def tarazAiChatCommand(self, request):
+        """Reviewable AI workspace commands; only explicit finance DRAFT save."""
+        from taraz_ai_business_service import AiBusinessService
+        with self._lock:
+            return AiBusinessService(self).command(request)
+
     def tarazOrderList(self, offset=0, limit=50):
         """Read the operational order desk for the selected accounting company."""
         from taraz_order_store import TarazOrderStore

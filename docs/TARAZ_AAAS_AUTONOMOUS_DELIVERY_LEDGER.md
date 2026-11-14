@@ -597,3 +597,74 @@ older candidate's Gate A blockers but not any other product acceptance gate.
   installation on end-user systems, operational finance, live MadarHost,
   RADAR, Cloud authority, disaster recovery, deployment and final product
   release gates stay OPEN. This ledger entry is not a deployment approval.
+
+## PRIME safe in-place upgrade + AI chat Phase 1 — 2026-11-14
+
+**Upgrade installation NOT PERFORMED (safety gate BLOCKED).** Read-only
+installed v1.0.4 pointer/launcher/EXE hashes match pinned baseline. A separate
+worker's metadata-only inventory found 181 real-profile files, 67 SQLite
+databases, one 32,768-byte SHM and no Taraz-named active processes; absence
+of active SQLite connections was *not* established. No actual profile data
+rows or secrets were opened. There was no live backup, migration,
+isolated-real-profile upgrade, rollback drill or installation. An existing
+top-level FINAL install wrapper targets an older candidate
+`build-e1723a88abe2` rather than the currently verified
+`build-e13b4438f5d4`; WebView's global `ALLOW_DOWNLOADS=True` also
+requires release security review.
+
+- Owned upgrade scripts: `scripts/taraz_upgrade_profile_safety_20261114.py`
+  and `tests/test_taraz_upgrade_profile_20261114.py`. Command:
+  `py -3.12 -B -m unittest discover -s tests -p test_taraz_upgrade_profile_20261114.py -q`
+  -> **13/13 PASS, Exit 0** (synthetic only); `--live-preflight` reported
+  BLOCKED. This does **not** authorize a production snapshot or upgrade.
+  Full gate report: `docs/TARAZ_UPGRADE_104_TO_106_GATE_20261114.md`.
+- AI implementation: `taraz_ai_chat_store.py` (Windows DPAPI ciphertext,
+  schema version 1, company/user scope), `taraz_ai_invoice_intake.py`
+  (local deterministic extraction + exact same-customer issued-price
+  witnesses) and `taraz_ai_business_service.py` (reviewable pending
+  action, explicit human approval, official `invoice.create` Draft with
+  accounting CAS and zero added Journal).
+- Actual UI/bridge: new `src/taraz_ai_chat_workspace.jsx` and stylesheet,
+  imported into `src/standalone_accounting_workspace.jsx` tab
+  «دستیار تجاری» and Python API methods forwarded via
+  `standalone_accounting_desktop.py` and `taraz_desktop.py`.
+- `py -3.12 -B -m unittest tests.test_taraz_ai_chat_vertical_20261114 -q`:
+  **11/11 PASS, Exit 0**, synthetic Windows DPAPI + restart + user isolation
+  + same-user relocated encrypted restore + source-price evidence +
+  stale CAS, uncertain-action fail-closed and explicit approval.
+- Additional client create/send lost-response safety:
+  `py -3.12 -B -m unittest tests.test_taraz_ai_chat_vertical_20261114 tests.test_taraz_ai_chat_idempotency_20261114 -q`:
+  **24/24 PASS, Exit 0**. A cryptographic client request ID and
+  actor/tenant-scoped DPAPI-encrypted response receipt commit atomically
+  with each conversation/message pair. Concurrent replay returns the original
+  IDs and proposal; reused key with changed text fails closed. The actual
+  immutable invoice draft still requires separate explicit confirmation
+  and CAS. Not a substitute for verified account/tenant identity in the
+  installed launcher or cross-device backup.
+- `npm run build`: Vite **2062 modules**, Exit 0.
+- Follow-up sequential regressions: `npm run test:orders` Exit 0,
+  **59 Python / 16 Edge**; `npm run test:p1` Exit 0,
+  **34 Python / 11 Edge**. Earlier parallel P1 reload
+  `ERR_EMPTY_RESPONSE` was not reproduced in the sequential run;
+  its cause remains undetermined, not silently discarded.
+- `py -3.12 -B scripts/qa_taraz_ai_chat_native_20261114.py`:
+  **PASS_SOURCE_HOSTED_NATIVE_AI_VERTICAL** with genuine private
+  WebView2 GUI, native bridge and separate SQLite, two persisted messages,
+  a 200,000-RIAL Draft created only after a visible checkbox
+  and explicit Save; accounting journal count unchanged from synthetic
+  issued-price seed. No model or cloud API invoked. **Not Frozen EXE.**
+- Private QA screenshot: `qa-b129dbe78d6f/ai-chat-native.png` was
+  **visually inspected** with nonblank content (dark Taraz AI chat UI);
+  its original synthetic book had default TOMAN, while a subsequent
+  UI→bridge→SQLite test verified the explicit RIAL fixture. The first
+  white ImageGrab capture was rejected.
+- Detailed AI limitations and scope: `docs/TARAZ_AI_CHAT_PHASE1_20261114.md`;
+  Persian preview release notes:
+  `docs/TARAZ_WHATS_NEW_AI_PREVIEW_FA_20261114.md`.
+- Known gaps: secure portable Windows-DPAPI key recovery and multi-host
+  sync, integration of AI SQLite into automatic backup, real installed
+  launcher authentication (legacy implicit local admin now denied) and
+  registered immutable company ID, provider quality/consent, web sourcing, verified real Madar/Radar
+  APIs, Frozen packaging/acceptance of new AI module, upgrade of real
+  existing data and end-user installation. Operational release remains
+  **NOT READY FOR APPROVAL**.

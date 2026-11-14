@@ -1,0 +1,36 @@
+.taraz-ai-chat{display:flex;flex-direction:column;gap:18px;min-height:530px;padding:16px;border:1px solid var(--sac-border,#414755);border-radius:16px}
+.taraz-ai-head{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.taraz-ai-head h2{margin:0 0 8px;font-size:1.25rem}
+.taraz-ai-head p{margin:0;opacity:.78;line-height:1.8}
+.taraz-ai-provider{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;border:1px solid #617181;border-radius:12px;font-size:.87rem}
+.taraz-ai-provider small{display:block;width:100%;opacity:.78}
+.taraz-ai-layout{display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:16px;min-height:460px}
+.taraz-ai-conversations,.taraz-ai-thread{padding:14px;border-radius:12px;border:1px solid var(--sac-border,#414755);min-width:0}
+.taraz-ai-conversations{display:flex;flex-direction:column;gap:12px}
+.taraz-ai-chat button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;cursor:pointer;border-radius:9px;border:1px solid #607085;background:transparent;color:inherit}
+.taraz-ai-chat button:disabled{opacity:.45;cursor:not-allowed}
+.taraz-ai-conversations>label{display:flex;flex-direction:column;gap:6px;font-size:.8rem}
+.taraz-ai-chat input:not([type=checkbox]),.taraz-ai-chat textarea{width:100%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid #647181;border-radius:8px;padding:10px;font:inherit}
+.taraz-ai-conversation-list{display:flex;flex-direction:column;gap:7px;max-height:540px;overflow:auto}
+.taraz-ai-conversation-list button{text-align:right;display:flex;align-items:flex-start;flex-direction:column;gap:4px}
+.taraz-ai-conversation-list button[aria-current=page]{background:rgba(107,147,194,.18)}
+.taraz-ai-conversation-list small,.taraz-ai-message small{opacity:.66;font-size:.72rem}
+.taraz-ai-thread{display:flex;flex-direction:column;gap:12px}
+.taraz-ai-thread-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.taraz-ai-thread-toolbar>div{display:flex;gap:8px}
+.taraz-ai-messages{flex:1;min-height:250px;max-height:560px;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:8px}
+.taraz-ai-message{border-radius:12px;padding:12px;max-width:92%;border:1px solid #596575}
+.taraz-ai-message p{white-space:pre-wrap;line-height:1.9;margin:8px 0}
+.taraz-ai-user{align-self:flex-start;background:rgba(107,147,194,.11)}
+.taraz-ai-assistant{align-self:flex-end;background:rgba(112,150,125,.11)}
+.taraz-ai-proposal{border:1px dashed #8394a9;border-radius:12px;padding:14px}
+.taraz-ai-proposal table{width:100%;border-collapse:collapse;text-align:right;font-size:.86rem}
+.taraz-ai-proposal th,.taraz-ai-proposal td{padding:8px;border-bottom:1px solid #647181}
+.taraz-ai-review{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.taraz-ai-review label{display:flex;align-items:center;gap:6px;flex-basis:100%}
+.taraz-ai-compose{display:flex;flex-direction:column;gap:8px}
+.taraz-ai-compose>button{align-self:flex-start}
+.taraz-ai-alert{padding:10px;border-right:3px solid #b28d5a;line-height:1.8}
+.taraz-ai-notice{padding:10px;border-right:3px solid #63916c;line-height:1.8}
+.taraz-ai-empty{align-content:center;text-align:center;min-height:270px;opacity:.8}
+@media(max-width:800px){.taraz-ai-layout{grid-template-columns:1fr}.taraz-ai-messages{max-height:350px}}
