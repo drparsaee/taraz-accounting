@@ -979,6 +979,11 @@ def _run_authenticated_taraz_api(api):
         close_gate = NativeAccountingCloseGate(window, api, backup_on_close,
             on_aborted_close=abort_close)
         window.events.closing += close_gate.closing
+        # An explicit private-QA native close intent must still travel through
+        # the exact same financial JS confirmation and verified backup gate.
+        from taraz_private_qa_close import (
+            install_private_close_witness, record_private_close_exit)
+        private_close_enabled = install_private_close_witness(window, api, data, close_gate)
         if os.environ.get("TARAZ_QA_REPORT") and os.environ.get("TARAZ_QA_MODE") == "1":
             def check_ui():
                 time.sleep(1.6)
@@ -1007,6 +1012,9 @@ def _run_authenticated_taraz_api(api):
                     with api._lock:
                         backups.backup_now()
                         api._exit_backed_up = True
+                        exit_backed_up = True
+                record_private_close_exit(private_close_enabled, close_gate,
+                                          backup_completed=exit_backed_up)
             finally:
                 server.shutdown(); server.server_close()
     finally:

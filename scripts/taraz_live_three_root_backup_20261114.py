@@ -48,12 +48,44 @@ def source_roots() -> dict[str, Path]:
 
 
 def _no_installed_taraz_process() -> None:
-    result = subprocess.run(
-        ['tasklist.exe', '/FI', 'IMAGENAME eq Taraz.exe', '/FO', 'CSV', '/NH'],
-        capture_output=True, text=True, timeout=20, check=True)
-    for line in result.stdout.splitlines():
-        if line.strip().casefold().startswith('"taraz.exe",'):
-            raise RealBackupBlocked('Installed/frozen Taraz is running; close it normally')
+    """Refuse real profile writers, including unknown EXE and unknown QA.
+
+    A single *already observed*, immutable, unrelated private QA candidate
+    may be resident in another process. It is NOT a live-profile writer and
+    cannot access the production roots because all application home paths
+    point to its disjoint qa-runtime. Verify that fact, do not merely trust
+    TARAZ_QA_MODE=1. This exemption does not approve installing or archiving.
+    """
+    import psutil
+    known = (ROOT.parents[1] / 'MTR-NEXT-UPDATE-CANDIDATES-20261110' /
+             'taraz-v1.0.6-aaas' / 'build-5e5253cd7449' / 'binary' / 'Taraz.exe')
+    known_sha = 'd4692dfaf66b4de52e778bea59099ad2ea661f4e47493877a4ca9d4b6c322305'
+    expected_roaming = (ROOT.parents[1] / 'MTR-NEXT-UPDATE-CANDIDATES-20261110' /
+        'taraz-v1.0.6-aaas' / 'fresh-windows-frozen-qa-20261115' /
+        'qa-3443357975f2' / 'qa' / 'qa-runtime' / 'roaming')
+    original_owner = psutil.Process().username().casefold()
+    for process in psutil.process_iter(['name']):
+        if (process.info.get('name') or '').casefold() != 'taraz.exe':
+            continue
+        try:
+            own = Path(process.exe()).resolve()
+            environment = process.environ()
+            roaming = Path(environment.get('APPDATA', '/unavailable')).resolve()
+            local = Path(environment.get('LOCALAPPDATA', '/unavailable')).resolve()
+            data = Path(environment.get('TARAZ_QA_DATA_DIR', '/unavailable')).resolve()
+            expected_local = expected_roaming.parent / 'localappdata'
+            exempt = (
+                own == known.resolve() and known.is_file() and
+                hashlib.sha256(known.read_bytes()).hexdigest() == known_sha and
+                process.username().casefold() == original_owner and
+                environment.get('TARAZ_QA_MODE') == '1' and
+                roaming == expected_roaming.resolve() and
+                local == expected_local.resolve() and
+                data == (expected_roaming / 'Taraz').resolve())
+        except (psutil.Error, OSError, ValueError):
+            exempt = False
+        if not exempt:
+            raise RealBackupBlocked('Installed/unknown Taraz writer exists; close it normally')
 
 
 @contextmanager

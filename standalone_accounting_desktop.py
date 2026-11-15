@@ -142,9 +142,22 @@ class NativeAccountingCloseGate:
         self._backup_accepted = False
         self._close_event_seen = False
         self._recovery_needed = False
+        # Read-only close-flow evidence. This never grants permission to close.
+        self._native_attempt_count = 0
+        self._js_confirmed_count = 0
+        self._preclose_backup_verified_count = 0
+        self._reentrant_accept_count = 0
+
+    def close_evidence(self):
+        with self._lock:
+            return {'nativeAttemptCount': self._native_attempt_count,
+                    'jsConfirmedCount': self._js_confirmed_count,
+                    'precloseBackupVerifiedCount': self._preclose_backup_verified_count,
+                    'reentrantAcceptCount': self._reentrant_accept_count}
 
     def closing(self):
         with self._lock:
+            self._native_attempt_count += 1
             if self._approved or getattr(self.api, '_switch_requested', False):
                 reentrant=self._approved
                 if reentrant:
@@ -163,6 +176,8 @@ class NativeAccountingCloseGate:
                 retry_recovery = False
         if authorized:
             if reentrant and self._backup_accepted:
+                with self._lock:
+                    self._reentrant_accept_count += 1
                 return True
             return self.final_backup()
         try:
@@ -210,12 +225,18 @@ class NativeAccountingCloseGate:
                   file=sys.stderr)
             accepted = False
         js_approved = accepted
+        if js_approved:
+            with self._lock:
+                self._js_confirmed_count += 1
         if accepted:
             # Do not assume window.destroy() re-emits events.closing. Verify
             # the final backup *while the native window is still alive* so a
             # backup error can always veto the requested close.
             try:
                 accepted = self.final_backup() is True
+                if accepted:
+                    with self._lock:
+                        self._preclose_backup_verified_count += 1
             except Exception as exc:
                 print('Native accounting pre-close backup failed: ' + str(exc),
                       file=sys.stderr)
