@@ -296,7 +296,7 @@ public static class TarazQaOwnedTk {
  $owned=@($OwnerIds.Split(',') | ForEach-Object {[int]$_})
  if($owned.Count -lt 1){throw 'OWNED_PIDS_EMPTY'}
  $expected=if($Stage -eq 'select'){'تراز | انتخاب شرکت ثبت‌شده'}
-           else {'مدار | ورود امن حسابداری'}
+           else {'تراز | ورود امن حسابداری'}
  $window=$null
  for($i=0;$i -lt 80;$i++){
    $script:safeStage='UIA_TOP_LEVEL_ENUMERATION_FAILED'
@@ -467,7 +467,7 @@ public static class TarazQaOwnedTk {
      $all=$root.FindAll([System.Windows.Automation.TreeScope]::Children,
        [System.Windows.Automation.Condition]::TrueCondition)
      $logins=@($all | Where-Object { $owned -contains $_.Current.ProcessId -and
-       $_.Current.Name -eq 'مدار | ورود امن حسابداری' -and
+       $_.Current.Name -eq 'تراز | ورود امن حسابداری' -and
        $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Window })
      if($logins.Count -gt 1){throw 'AMBIGUOUS_NATIVE_WINDOW'}
      if($logins.Count -eq 1){$result.verifiedTransition=$true;break}
@@ -789,7 +789,7 @@ def _owned_private_windows(desktop, valid_pids: set[int]) -> list[int]:
         label = ctypes.create_unicode_buffer(256)
         user32.GetWindowTextW(hwnd, label, len(label))
         if (label.value.startswith("تراز | ") or
-                label.value == "مدار | ورود امن حسابداری"):
+        label.value == "تراز | ورود امن حسابداری"):
             windows.append(int(hwnd))
         return True
 

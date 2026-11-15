@@ -1029,6 +1029,16 @@ def run():
     company creation, or finance DB migration occurs in this entrypoint.
     """
     root = taraz_data_root()
+    # The v1.0.4 ledger may now have a new *ownerless* company workspace.
+    # User confirmation happens once, in a native Tk dialog, before any admin
+    # identity exists. No password or declaration enters the WebView bridge.
+    if ((root / 'companies.json').is_file() and
+            (root / 'legacy-enrollment-intent.json').is_file()):
+        from taraz_legacy_ownership_enrollment import pending_company
+        if pending_company(root) is not None:
+            from taraz_legacy_enrollment_dialog import prompt_pending_legacy_enrollment
+            if not prompt_pending_legacy_enrollment(root):
+                return
     # An unclaimed historical book is a viewer-only mode, not an admin bypass.
     # The marker must already exist from a separately verified migration.
     if (root / 'legacy-workspace.json').is_file() and not (root / 'companies.json').exists():

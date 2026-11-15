@@ -50,6 +50,8 @@ MANDATORY = {
     "standalone_accounting_company_registry.py",
     "standalone_accounting_secure_login.py",
     "taraz_legacy_workspace_bridge.py",
+    "taraz_legacy_ownership_enrollment.py",
+    "taraz_legacy_enrollment_dialog.py",
     "taraz_llm_order_suggest.py", "taraz_llm_print_suggest.py",
     "src/taraz_order_workspace.jsx", "src/taraz_order_workspace.css",
     "src/accounting_invoice_wizard.jsx", "src/accounting_invoice_wizard.css",
@@ -74,6 +76,8 @@ REQUIRED_ORDER_API = {
 }
 REQUIRED_PYZ = {
     "taraz_legacy_workspace_bridge": {"verify_workspace", "LegacyLocalViewerIdentity"},
+    "taraz_legacy_ownership_enrollment": {"stage_legacy_company", "approve_declaration", "pending_company"},
+    "taraz_legacy_enrollment_dialog": {"prompt_pending_legacy_enrollment"},
     "taraz_ai_chat_store": {"TarazAiChatStore", "create", "append", "read", "replay"},
     "taraz_ai_business_service": {"AiBusinessService", "command"},
     "taraz_ai_invoice_intake": {"invoice_preview", "preview_reply"},
@@ -304,9 +308,34 @@ def inspect_exe(exe: Path, web: Path) -> dict:
 
 # PowerShell 5.1 scripts are intentionally small and independent. The explicit
 # baseline/current/payload digests are substituted only after actual EXE build.
-_PS_HEADER = r'''param([switch]$Apply)
+_PS_HEADER = r'''param([switch]$Apply,[switch]$Rehearsal)
 $ErrorActionPreference = 'Stop'
 function Deny([string]$message) { throw ('TARAZ V106 OPERATION BLOCKED: ' + $message) }
+function RequireIsolatedRehearsal {
+  if(-not $Rehearsal -or $env:TARAZ_QA_MODE -ne '1' -or
+     [string]::IsNullOrWhiteSpace($env:TARAZ_QA_ROOT)) {
+    Deny 'Rehearsal requires an explicit private QA root'
+  }
+  $sandbox=[IO.Path]::GetFullPath($env:TARAZ_QA_ROOT).TrimEnd('\')
+  $expected=Join-Path $sandbox 'qa\qa-runtime\localappdata'
+  if(-not [String]::Equals([IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\'),
+       [IO.Path]::GetFullPath($expected).TrimEnd('\'),
+       [StringComparison]::OrdinalIgnoreCase)) {
+    Deny 'Rehearsal must use a disjoint private QA local application root'
+  }
+  if(($sandbox -notmatch '(?i)[\\/]qa[\\/]') -and
+     ($sandbox -notmatch '(?i)[\\/]qa-[a-z0-9-]+$')) {
+    Deny 'Private QA marker missing from rehearsal sandbox'
+  }
+  Safe $sandbox
+  Safe $expected
+  $realLocal=[Environment]::GetFolderPath('LocalApplicationData')
+  if([String]::Equals([IO.Path]::GetFullPath($realLocal).TrimEnd('\'),
+       [IO.Path]::GetFullPath($env:LOCALAPPDATA).TrimEnd('\'),
+       [StringComparison]::OrdinalIgnoreCase)) {
+    Deny 'Rehearsal must never target the real Windows profile'
+  }
+}
 function Safe([string]$path) {
   if(-not (Test-Path -LiteralPath $path)) { Deny 'Required path missing' }
   $item=Get-Item -LiteralPath $path -Force -ErrorAction Stop
@@ -347,6 +376,7 @@ $pointer=Join-Path $root 'current-version.txt'
 $launcher=Join-Path $root 'Run-Taraz.cmd'
 $oldPointer=Join-Path $root 'current-version-pre-1.0.6.txt'
 $pending=Join-Path $root 'current-version-1.0.6-pending.txt'
+$activateBackup=Join-Path $root 'current-version-before-activation-1.0.6.txt'
 $rollbackBackup=Join-Path $root 'current-version-before-rollback-1.0.6.txt'
 Safe $root
 NoTaraz
@@ -367,7 +397,22 @@ if((Digest $pointer) -ne '__BASE_POINTER_SHA__' -or
 }
 if(Test-Path -LiteralPath $destination) { Deny '1.0.6 directory exists; never overwrite' }
 if(-not $Apply) { Write-Output 'BLOCKED_V106_INSTALL_AWAITING_DATA_GATES'; exit 0 }
-Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
+if(-not $Rehearsal) {
+  Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
+}
+RequireIsolatedRehearsal
+$expected=Join-Path $destination 'Taraz.exe'
+try {
+  [IO.Directory]::CreateDirectory($destination) | Out-Null
+  $bytes=[IO.File]::ReadAllBytes($payload)
+  $stream=[IO.File]::Open($expected,[IO.FileMode]::CreateNew,
+                         [IO.FileAccess]::Write,[IO.FileShare]::None)
+  try {$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}
+  finally {$stream.Dispose()}
+  if((Digest $expected) -ne '__NEW_EXE_SHA__') { Deny 'Rehearsal EXE readback mismatch' }
+  if((Digest $pointer) -ne '__BASE_POINTER_SHA__'){ Deny 'Rehearsal changed active version' }
+  Write-Output 'REHEARSAL_V106_INSTALLED_NOT_ACTIVATED'
+} catch { throw }
 '''
 
 _PS_ACTIVATE = r'''if((Digest $new) -ne '__NEW_EXE_SHA__') { Deny 'Installed 1.0.6 differs' }
@@ -377,22 +422,52 @@ if((Digest $pointer) -ne '__BASE_POINTER_SHA__' -or
 }
 if(Test-Path -LiteralPath $oldPointer) { Deny 'Earlier activation backup exists' }
 if(Test-Path -LiteralPath $pending) { Deny 'Pending activation pointer exists' }
+if(Test-Path -LiteralPath $activateBackup) { Deny 'Earlier activation replacement backup exists' }
 if(-not $Apply) { Write-Output 'BLOCKED_V106_ACTIVATION_AWAITING_DATA_GATES'; exit 0 }
-Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
+if(-not $Rehearsal) {
+  Deny 'Release hold: full profile backup, legacy migration, clone/rollback and Frozen AI acceptance are not approved'
+}
+RequireIsolatedRehearsal
+$baseline=[IO.File]::ReadAllBytes($pointer)
+$out=[IO.File]::Open($oldPointer,[IO.FileMode]::CreateNew,
+                     [IO.FileAccess]::Write,[IO.FileShare]::None)
+try {$out.Write($baseline,0,$baseline.Length);$out.Flush($true)}
+finally {$out.Dispose()}
+if((Digest $oldPointer) -ne '__BASE_POINTER_SHA__') { Deny 'Rehearsal old pointer backup differs' }
+$bytes=[Text.Encoding]::ASCII.GetBytes("1.0.6`r`n")
+$out=[IO.File]::Open($pending,[IO.FileMode]::CreateNew,
+                     [IO.FileAccess]::Write,[IO.FileShare]::None)
+try {$out.Write($bytes,0,$bytes.Length);$out.Flush($true)}
+finally {$out.Dispose()}
+if((Digest $pending) -ne '__ACTIVATED_POINTER_SHA__') { Deny 'Rehearsal new pointer hash differs' }
+if((Digest $pointer) -ne '__BASE_POINTER_SHA__') { Deny 'Original pointer changed during rehearsal' }
+ # The Windows .NET Framework File.Replace overload rejects null backup paths
+ # on this target. Use a create-only known backup path and verify it afterwards.
+[IO.File]::Replace($pending,$pointer,$activateBackup,$true)
+if((Digest $pointer) -ne '__ACTIVATED_POINTER_SHA__') { Deny 'Rehearsal activation readback differs' }
+if((Digest $activateBackup) -ne '__BASE_POINTER_SHA__') { Deny 'Rehearsal activation backup differs' }
+Write-Output 'REHEARSAL_V106_ACTIVATED'
 '''
 
 _PS_ROLLBACK = r'''if((Digest $new) -ne '__NEW_EXE_SHA__'){ Deny 'Installed v1.0.6 changed' }
-if((Digest $oldPointer) -ne '__BASE_POINTER_SHA__' -or
-   (Get-Content -LiteralPath $oldPointer -Raw -Encoding UTF8).Trim() -ne '1.0.4') {
-   Deny 'Original v1.0.4 pointer backup corrupt or missing'
-}
 $active=(Get-Content -LiteralPath $pointer -Raw -Encoding UTF8).Trim()
 if($active -eq '1.0.4'){
   if((Digest $pointer) -ne '__BASE_POINTER_SHA__') { Deny 'Unexpected v1.0.4 pointer bytes' }
+  # An interrupted install before activation has NO oldPointer backup yet.
+  # The original installed v1.0.4 is still active and must remain usable.
+  if(Test-Path -LiteralPath $pending) { Deny 'Interrupted pending pointer needs review' }
+  if((Test-Path -LiteralPath $oldPointer) -and
+     (Digest $oldPointer) -ne '__BASE_POINTER_SHA__') {
+    Deny 'Existing baseline backup mismatch'
+  }
   Write-Output 'ALREADY_ROLLED_BACK_V104_NO_CHANGE'
   exit 0
 }
 if($active -ne '1.0.6'){ Deny 'Only active v1.0.6 can roll back' }
+if((Digest $oldPointer) -ne '__BASE_POINTER_SHA__' -or
+   (Get-Content -LiteralPath $oldPointer -Raw -Encoding UTF8).Trim() -ne '1.0.4') {
+   Deny 'Original v1.0.4 pointer backup corrupt or missing'
+}
 if((Digest $pointer) -ne '__ACTIVATED_POINTER_SHA__'){ Deny 'Unrecognized active v1.0.6 pointer bytes' }
 if(Test-Path -LiteralPath $pending){ Deny 'Pending activation or rollback exists' }
 if(Test-Path -LiteralPath $rollbackBackup){ Deny 'Rollback backup already exists' }
@@ -558,6 +633,8 @@ def build(*, freeze_sha: str) -> Path:
              "--hidden-import", "standalone_accounting_company_registry",
              "--hidden-import", "standalone_accounting_secure_login",
              "--hidden-import", "taraz_legacy_workspace_bridge",
+             "--hidden-import", "taraz_legacy_ownership_enrollment",
+             "--hidden-import", "taraz_legacy_enrollment_dialog",
              "--hidden-import", "taraz_llm_order_suggest",
              "--hidden-import", "taraz_llm_print_suggest",
              "--hidden-import", "taraz_madar_data_reader",
