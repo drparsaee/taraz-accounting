@@ -1029,6 +1029,25 @@ def run():
     company creation, or finance DB migration occurs in this entrypoint.
     """
     root = taraz_data_root()
+    # An explicitly published NEW empty profile can use its bound Windows
+    # identity without a redundant company/password dialog. Old/legacy books
+    # NEVER enter this path and receive no fabricated administrator.
+    from taraz_fresh_windows_workspace import MARKER as FRESH_MARKER
+    registry_marker = root / "companies.json"
+    fresh_marked = False
+    if registry_marker.is_file():
+        from standalone_accounting_company_registry import StandaloneCompanyRegistry
+        existing = StandaloneCompanyRegistry(root).list_companies()
+        if len(existing) == 1:
+            book = StandaloneCompanyRegistry(root).company_data_directory(existing[0]["id"])
+            fresh_marked = (book / FRESH_MARKER).is_file()
+    if fresh_marked:
+        from taraz_fresh_windows_workspace import open_fresh_company
+        api, identity, token = open_fresh_company(root)
+        try:
+            return _run_authenticated_taraz_api(api)
+        finally:
+            identity.logout(token)
     # The v1.0.4 ledger may now have a new *ownerless* company workspace.
     # User confirmation happens once, in a native Tk dialog, before any admin
     # identity exists. No password or declaration enters the WebView bridge.
