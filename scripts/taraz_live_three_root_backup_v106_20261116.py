@@ -1,0 +1,243 @@
+"""Pinned v1.0.6/v1.0.7 same-principal backup with held deny-write handles.
+
+This is a real-profile backup tool, NOT an installer or an authorization to
+migrate a legacy company. The handles exclude ordinary SQLite writers and
+in-place edits while all three stores are copied. New files created and then
+removed by an uncooperative process cannot be ruled out by inventory checks.
+Do not interpret its result as an atomic multi-store VSS snapshot.
+"""
+from __future__ import annotations
+
+import argparse
+from contextlib import ExitStack, contextmanager, closing
+import ctypes
+import hashlib
+import json
+import os
+from pathlib import Path
+import pickle
+import sqlite3
+import subprocess
+import sys
+
+sys.dont_write_bytecode = True
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from taraz_full_profile_backup_20261114 import _private_new_folder
+from taraz_three_root_backup_20261114 import (
+    ROLES, _scan, _same_source_inventory, _windows_principal,
+    create_three_root_backup, verify_three_root_backup,
+    restore_three_root_backup,
+)
+
+
+class RealBackupBlocked(RuntimeError):
+    pass
+
+
+def source_roots() -> dict[str, Path]:
+    if os.name != 'nt' or not os.environ.get('APPDATA') or not os.environ.get('LOCALAPPDATA'):
+        raise RealBackupBlocked('This backup requires the real Windows principal')
+    roaming = Path(os.environ['APPDATA']) / 'Taraz'
+    local = Path(os.environ['LOCALAPPDATA'])
+    return {'roaming_taraz': roaming,
+            'local_taraz': local / 'Taraz',
+            'local_bridge': local / 'Madar-Taraz-Bridge'}
+
+
+def _no_installed_taraz_process() -> None:
+    """Require Taraz and Madar writers to close normally before the snapshot."""
+    import psutil
+    for process in psutil.process_iter(['name']):
+        name=(process.info.get('name') or '').casefold()
+        if 'taraz' in name or 'madar' in name:
+            raise RealBackupBlocked('Taraz/Madar writer exists; close it normally')
+
+
+@contextmanager
+def _hold_windows_read_only(path: Path):
+    """Deny new and existing write/delete opens, allowing concurrent readers.
+
+    Holding this handle while SQLite's read-only backup runs is validated on
+    Windows. Do not lock -shm/-wal: read-only SQLite needs shared-memory locks.
+    Its main .sqlite3 file is denied write sharing instead.
+    """
+    dll = ctypes.WinDLL('kernel32', use_last_error=True)
+    dll.CreateFileW.argtypes = [ctypes.c_wchar_p, ctypes.c_uint32,
+        ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32,
+        ctypes.c_uint32, ctypes.c_void_p]
+    dll.CreateFileW.restype = ctypes.c_void_p
+    dll.CloseHandle.argtypes = [ctypes.c_void_p]
+    dll.CloseHandle.restype = ctypes.c_int
+    # GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL
+    handle = dll.CreateFileW(str(path), 0x80000000, 1, None, 3, 0x80, None)
+    if handle == ctypes.c_void_p(-1).value:
+        raise RealBackupBlocked('A source file has a conflicting open writer or access restriction')
+    try:
+        yield
+    finally:
+        if not dll.CloseHandle(handle):
+            raise RealBackupBlocked('Unable to release source file handle')
+
+
+def _db_rows_digest(path: Path) -> tuple[str, int, int]:
+    """Order-independent content proof without exposing a real financial row."""
+    database_digest = hashlib.sha256()
+    row_count, table_count = 0, 0
+    with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=10)) as conn:
+        conn.execute('PRAGMA query_only=ON')
+        conn.execute('PRAGMA busy_timeout=10000')
+        tables = conn.execute("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+        for name, ddl in tables:
+            table_count += 1
+            table_sum, table_xor, rows = 0, 0, 0
+            quoted = '"' + name.replace('"', '""') + '"'
+            for row in conn.execute('SELECT * FROM ' + quoted):
+                digest = int.from_bytes(hashlib.sha256(pickle.dumps(row, protocol=4)).digest(), 'big')
+                table_sum = (table_sum + digest) % (1 << 256)
+                table_xor ^= digest
+                rows += 1
+            row_count += rows
+            database_digest.update(pickle.dumps((name, ddl, rows, table_sum, table_xor), protocol=4))
+        if conn.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+            raise RealBackupBlocked('Source or restored SQLite integrity failed')
+    return database_digest.hexdigest(), table_count, row_count
+
+
+def _compare_database_rows(source: dict[str, Path], clones: dict[str, Path], scans) -> dict:
+    matched, tables, rows = 0, 0, 0
+    for role, (directories, files, sidecars) in scans.items():
+        for relative in files:
+            if not relative.endswith(('.sqlite3', '.sqlite', '.db')):
+                continue
+            before = _db_rows_digest(source[role] / relative)
+            after = _db_rows_digest(clones[role] / relative)
+            if before != after:
+                raise RealBackupBlocked('A restored SQLite differs in table rows, IDs or schema')
+            matched += 1
+            tables += before[1]
+            rows += before[2]
+    return {'databasesWithMatchingRows': matched,
+            'tablesWithMatchingRows': tables,
+            'totalSqlRowsCompared': rows}
+
+
+def run(dest: Path, *, expected_version: str = '1.0.6',
+        expected_exe_sha: str = 'd0dd7bace4039688cc18768b232bc36bccd5aa1933f4d59bcb253b352b2ac3f2',
+        expected_pointer_sha: str = '3dd81e3d2bbe930a0c98531afa6c35bd862ee8a08458ec0d7d1b51138d7b3a3c') -> dict:
+    if expected_version not in ('1.0.6', '1.0.7'):
+        raise RealBackupBlocked('Only pinned Taraz v1.0.6 or v1.0.7 may be backed up')
+    _windows_principal()
+    roots = source_roots()
+    if any(not path.is_dir() for path in roots.values()):
+        raise RealBackupBlocked('One of the three actual data roots does not exist')
+    install = Path(os.environ['LOCALAPPDATA']) / 'Programs' / 'Taraz'
+    pointer = install / 'current-version.txt'
+    if not pointer.is_file() or pointer.read_text(encoding='utf-8-sig').strip() != expected_version:
+        raise RealBackupBlocked('Active installation is not the expected pinned version')
+    launcher=install/'Run-Taraz.cmd'
+    exe=install/'versions'/expected_version/'Taraz.exe'
+    expected={'current-version.txt':expected_pointer_sha,
+              'Run-Taraz.cmd':'93a1b809d3499a585bb9e4fc8c232f038a3d950a467485305aa1e79ce28d2b21'}
+    for path in (pointer,launcher,exe):
+        if not path.is_file():
+            raise RealBackupBlocked('Pinned installed Taraz file missing: '+path.name)
+    for name,digest in expected.items():
+        if hashlib.sha256((install/name).read_bytes()).hexdigest()!=digest:
+            raise RealBackupBlocked('Installed Taraz pin mismatch: '+name)
+    if hashlib.sha256(exe.read_bytes()).hexdigest()!=expected_exe_sha:
+        raise RealBackupBlocked('Installed Taraz EXE hash mismatch')
+    _no_installed_taraz_process()
+    dest = Path(dest)
+    if not dest.is_absolute() or dest.exists() or not dest.parent.is_dir():
+        raise RealBackupBlocked('Create-only absolute destination with existing parent required')
+    for source in roots.values():
+        if source.resolve() == dest.resolve() or source.resolve() in dest.resolve().parents or dest.resolve() in source.resolve().parents:
+            raise RealBackupBlocked('Backup must not overlap live data')
+    # Warm read-only SQLite connections before the cross-root baseline scan.
+    # On a cold WAL database SQLite may create -shm/-wal metadata during the
+    # first read; capturing the inventory afterwards avoids misclassifying
+    # that permitted reader metadata as a concurrent writer.
+    for role, root in roots.items():
+        _, files, _ = _scan(root)
+        for name in files:
+            if name.endswith(('.sqlite3', '.sqlite', '.db')):
+                _db_rows_digest(root / name)
+    start = {role: _scan(root) for role, root in roots.items()}
+    stage = 'LOCKING'
+    total_members = sum(len(s[1]) + len(s[2]) for s in start.values())
+    total_bytes = sum((roots[role] / name).stat().st_size
+                      for role, scan in start.items() for name in (list(scan[1]) + list(scan[2])))
+    # The lock acquisition is all-or-nothing. No source file is modified.
+    with ExitStack() as locks:
+        for role in ROLES:
+            for member in start[role][1]:
+                locks.enter_context(_hold_windows_read_only(roots[role] / member))
+        if any(not _same_source_inventory(start[role], _scan(roots[role]))
+               for role in ROLES):
+            raise RealBackupBlocked('Source inventory changed while obtaining writer locks')
+        _no_installed_taraz_process()
+        _private_new_folder(dest)
+        try:
+            stage = 'SNAPSHOTTING'
+            backup = create_three_root_backup(*(roots[role] for role in ROLES),
+                                              dest / 'snapshot', offline_acknowledged=True)
+            stage = 'INDEPENDENT_READBACK'
+            independent = verify_three_root_backup(dest / 'snapshot')
+            if backup != independent:
+                raise RealBackupBlocked('Independent backup readback differs')
+            stage = 'RESTORING_CLONE'
+            clone_paths = {role: dest / ('restore_' + role) for role in ROLES}
+            clone = restore_three_root_backup(dest / 'snapshot',
+                *(clone_paths[role] for role in ROLES), offline_acknowledged=True)
+            if clone['files'] != backup['files'] or clone['sqlite'] != backup['sqlite']:
+                raise RealBackupBlocked('Restored clone inventory differs from snapshot')
+            stage = 'ROW_COMPARISON'
+            comparisons = _compare_database_rows(roots, clone_paths, start)
+            if any(not _same_source_inventory(start[role], _scan(roots[role]))
+                   for role in ROLES):
+                raise RealBackupBlocked('A live root changed during cross-root restore/compare')
+            if pointer.read_text(encoding='utf-8-sig').strip() != expected_version:
+                raise RealBackupBlocked('Installed pointer changed while backing up')
+            result = {'status': 'VERIFIED_SAME_PRINCIPAL_SNAPSHOT_AND_ISOLATED_RESTORE',
+                'sourceFileCount': total_members, 'sourceBytes': total_bytes,
+                'snapshotFileCount': backup['files'], 'snapshotSQLite': backup['sqlite'],
+                'mode': backup['mode'], 'dpapiSamePrincipalReadback': backup['dpapi_same_principal_verified'],
+                'sourceWriteDenialHeldForAllDataFiles': True,
+                'crossRootAtomicVssSnapshot': False,
+                'interruptedCreateDeleteWriterExcluded': False,
+                'recoveryOnOtherDeviceVerified': False, 'installedVersionUnchanged': True,
+                **comparisons}
+            report = dest / 'verification.json'
+            with report.open('x', encoding='utf-8') as out:
+                json.dump(result, out, sort_keys=True, indent=2)
+                out.flush()
+                os.fsync(out.fileno())
+            return result
+        except BaseException as exc:
+            report = dest / 'blocked.json'
+            with report.open('x', encoding='utf-8') as out:
+                json.dump({'status': 'BLOCKED', 'stage': stage,
+                           'errorType': type(exc).__name__,
+                           'error': str(exc)[:300]}, out, indent=2)
+            raise
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--destination', type=Path, required=True,
+                        help='Create-only private folder outside any live data root')
+    args = parser.parse_args()
+    try:
+        print(json.dumps(run(args.destination), sort_keys=True))
+        return 0
+    except BaseException as exc:
+        print(json.dumps({'status': 'BLOCKED', 'errorType': type(exc).__name__,
+                          'reason': str(exc)[:300]}))
+        return 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
