@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Check,ChevronDown,ClipboardList,Plus,RefreshCw,Save,Trash2} from 'lucide-react';
 import {extractLocalOrderHints} from './taraz_order_intake.js';
+import TarazEcosystemLinkPanel from './taraz_ecosystem_link_panel.jsx';
 import './taraz_order_workspace.css';
 
 const STATUS={
@@ -940,6 +941,7 @@ export default function TarazOrderWorkspace({api,canEdit=false,canAdmin=false,cu
       </p>}
       {ecosystemError&&<p role="alert">{ecosystemError}</p>}
     </div>
+    {canAdmin&&<TarazEcosystemLinkPanel api={api} canAdmin={canAdmin}/>}
     {!ready&&<p className="taraz-orders-alert" role="alert">
       این نسخه میزبان هنوز قابلیت ذخیره سفارش مستقل را ندارد؛ نسخه جدید را اجرا کنید.
     </p>}

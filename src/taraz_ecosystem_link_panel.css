@@ -1,0 +1,14 @@
+.taraz-ecosystem-panel{border:1px solid var(--border,#d3d8dd);border-radius:12px;margin:12px 0;padding:12px;background:var(--surface,#fff)}
+.taraz-ecosystem-panel>summary{font-weight:700;cursor:pointer}
+.taraz-ecosystem-panel p{line-height:1.8}
+.taraz-ecosystem-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:12px;margin:12px 0}
+.taraz-ecosystem-fields label{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.taraz-ecosystem-fields label:has(input[type=checkbox]){flex-direction:row;align-items:center;grid-column:1/-1}
+.taraz-ecosystem-fields input:not([type=checkbox]){min-width:0;padding:9px;border:1px solid #adb6c2;border-radius:7px}
+.taraz-ecosystem-actions{display:flex;gap:8px;flex-wrap:wrap}
+.taraz-ecosystem-panel button{border:1px solid #adb6c2;border-radius:8px;padding:8px 12px;cursor:pointer}
+.taraz-ecosystem-panel button:disabled{cursor:not-allowed;opacity:.5}
+.taraz-ecosystem-connections>div,.taraz-ecosystem-cards>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px}
+.taraz-ecosystem-connections small,.taraz-ecosystem-cards small{font-size:.73rem;overflow-wrap:anywhere}
+.taraz-ecosystem-cards>span{display:block;font-size:.85rem;margin-top:8px}
+.taraz-ecosystem-error{color:#a12626}.taraz-ecosystem-success{color:#166534}

@@ -152,6 +152,148 @@ class TarazAPI(AccountingDesktopAPI):
                 'financialEventCreated': False,
             }
 
+    def _ecosystem_admin(self):
+        """Real authenticated native company session; never legacy test local."""
+        actor = self._require_authenticated('admin')
+        if (self._identity_store is None or not self.company_workspace_id
+                or actor.get('role') != 'admin'):
+            raise PermissionError('Verified company administrator required for integration')
+        if self._exit_backed_up:
+            raise RuntimeError('Accounting desktop is closing')
+        return actor
+
+    def tarazEcosystemConnections(self):
+        """Read-only installed peer metadata, not tokens or financial data."""
+        from taraz_ecosystem_native_boundary import company_vault
+        with self._lock:
+            self._ecosystem_admin()
+            vault = company_vault(self.path.parent)
+            if vault is None:
+                return {'configured': False, 'connections': [],
+                        'financialEventCreated': False}
+            return {'configured': True, 'installationId': vault.installation_id(),
+                    'connections': vault.list_peers(),
+                    'financialEventCreated': False}
+
+    def tarazEcosystemPair(self, request):
+        """Explicit admin click, pinned HTTPS code redemption, sealed credential.
+
+        Network IO runs OUTSIDE the accounting lock. Re-authenticate the
+        original actor after HTTPS and BEFORE persisting a new credential.
+        Financial posting and model calling are unavailable on this route.
+        """
+        from taraz_ecosystem_native_boundary import company_vault
+        from taraz_ecosystem_client import MadarPinnedClient
+        fields = {'endpoint', 'certSha256', 'code', 'manualConsent'}
+        if type(request) is not dict or set(request) != fields or (
+                request['manualConsent'] is not True):
+            raise PermissionError('Explicit one-time integration approval required')
+        with self._lock:
+            actor = self._ecosystem_admin()['username']
+            vault = company_vault(self.path.parent, initialize=True)
+            client = MadarPinnedClient(vault, endpoint=request['endpoint'],
+                                       cert_sha256=request['certSha256'])
+        issued = client.redeem(request['code'])
+        with self._lock:
+            if self._ecosystem_admin()['username'] != actor:
+                raise PermissionError('Company administrator changed during pairing')
+            bound = client.commit_redeemed(issued)
+            return {**bound, 'connected': True, 'readOnly': True,
+                    'financialEventCreated': False}
+
+    def tarazEcosystemCards(self, request):
+        """Actual Madar-projected cards, scoped by peer-side project ACL."""
+        from taraz_ecosystem_native_boundary import company_vault
+        from taraz_ecosystem_client import MadarPinnedClient
+        if (type(request) is not dict or set(request) != {'workspaceId', 'limit'}
+                or type(request['workspaceId']) is not str or
+                type(request['limit']) is not int):
+            raise ValueError('Invalid requested peer card page')
+        with self._lock:
+            actor = self._ecosystem_admin()['username']
+            vault = company_vault(self.path.parent)
+            if vault is None:
+                raise PermissionError('No paired ecosystem host')
+            peer = next((entry for entry in vault.list_peers()
+                         if entry['workspaceId'] == request['workspaceId'] and
+                         entry['peerId'] == 'MADAR' and not entry['revoked']), None)
+            if peer is None or not peer.get('endpoint'):
+                raise PermissionError('Missing pinned active Madar connection')
+            client = MadarPinnedClient(vault, endpoint=peer['endpoint'],
+                                       cert_sha256=peer['certSha256'])
+            token_at_start = vault.require_token(
+                workspace_id=request['workspaceId'], peer_id='MADAR',
+                cert_sha256=peer['certSha256'])
+        result = client.cards(workspace_id=request['workspaceId'],
+                              limit=request['limit'])
+        with self._lock:
+            if self._ecosystem_admin()['username'] != actor:
+                raise PermissionError('Company administrator changed during peer read')
+            import hmac
+            if not hmac.compare_digest(token_at_start, vault.require_token(
+                    workspace_id=request['workspaceId'], peer_id='MADAR',
+                    cert_sha256=peer['certSha256'])):
+                raise PermissionError('Integration credential changed during peer read')
+            return {**result, 'financialEventCreated': False}
+
+    def tarazEcosystemForget(self, request):
+        """Local credential revocation only; remote host must revoke its key."""
+        from taraz_ecosystem_native_boundary import company_vault
+        if type(request) is not dict or set(request) != {'workspaceId'} or (
+                type(request['workspaceId']) is not str):
+            raise ValueError('Invalid local integration revocation')
+        with self._lock:
+            self._ecosystem_admin()
+            vault = company_vault(self.path.parent)
+            if vault is None:
+                raise PermissionError('No local integration credentials')
+            vault.revoke(workspace_id=request['workspaceId'], peer_id='MADAR')
+            return {'revokedLocally': True, 'remoteRevocationConfirmed': False,
+                    'financialEventCreated': False}
+
+    def _counterparty_reader(self):
+        """Construct an official Taraz-owned directory, never a CRM alias.
+
+        Authorization is resolved from the authenticated local native actor
+        at every reader access; remote envelopes/booleans are never accepted.
+        """
+        from taraz_ecosystem_counterparties import TarazCounterpartiesDirectory
+        with self._lock:
+            self._ecosystem_admin()
+            company_id = self.company_workspace_id
+            book = self.path.parent
+
+        def authorize(*, company_id: str, operation: str, party_id=None):
+            if company_id != self.company_workspace_id or operation not in ('search', 'get'):
+                return False
+            with self._lock:
+                try:
+                    self._ecosystem_admin()
+                except (PermissionError, RuntimeError):
+                    return False
+            return True
+
+        return TarazCounterpartiesDirectory(book,
+                                            company_id=company_id, authorizer=authorize)
+
+    def tarazEcosystemCounterpartiesSearch(self, request):
+        """Authenticated, local-only counterparty directory without balances."""
+        if (type(request) is not dict or
+                set(request) != {'query', 'kind', 'limit', 'cursor'}):
+            raise ValueError('Invalid counterparties search request')
+        page = self._counterparty_reader().search(
+            query=request['query'], kind=request['kind'],
+            limit=request['limit'], cursor=request['cursor'])
+        return {**page, 'readOnly': True, 'financialEventCreated': False}
+
+    def tarazEcosystemCounterpartiesGet(self, request):
+        """Strict company-scoped party projection, not financial history."""
+        if type(request) is not dict or set(request) != {'partyId'}:
+            raise ValueError('Invalid counterparty request')
+        item = self._counterparty_reader().get(request['partyId'])
+        return {'source': 'TARAZ', 'party': item,
+                'readOnly': True, 'financialEventCreated': False}
+
     def tarazAiProviderStatus(self):
         """AI status only; explicitly never invokes the model or a cloud API."""
         from taraz_ai_provider_status import provider_status
