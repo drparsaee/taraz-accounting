@@ -84,7 +84,19 @@ export default function TarazHomeCommand({
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
   const [retry,setRetry]=useState(0);
+  // A fresh Windows-bound book is attested by the native session, not by a
+  // guessed ledger revision or a user-editable company display name.
+  const fresh=view?.freshWindowsWorkspace===true;
+  const freshZero=fresh&&Array.isArray(view?.journals)&&view.journals.length===0&&
+    Object.keys(view?.invoices||{}).length===0&&
+    Object.keys(view?.bills||{}).length===0;
   useEffect(()=>{
+    if(fresh){
+      // The legacy API MUST reject a new book. Don't call it, then show that
+      // correct security denial as an alarming, irrelevant financial error.
+      setHistory(null);setError('');setLoading(false);
+      return;
+    }
     let alive=true;
     setLoading(true);setError('');
     Promise.resolve().then(()=>api?.standaloneAccountingParsianHistory?.()).then(data=>{
@@ -95,9 +107,12 @@ export default function TarazHomeCommand({
       setHistory(null);setError(err?.message||L.error);
     }).finally(()=>{if(alive)setLoading(false);});
     return ()=>{alive=false};
-  },[api,retry]);
-  const fiscal=useMemo(()=>personalFiscalPosition(view,history,fiscalYear),
-    [view,history,fiscalYear]);
+  },[api,retry,fresh]);
+  const fiscal=useMemo(()=>freshZero?{
+    year:fiscalYear,currency:'RIAL',receivable:0,payable:0,net:0,
+    invoiceCount:0,debtors:0,creditors:0,people:[],
+  }:personalFiscalPosition(view,history,fiscalYear),
+    [view,history,fiscalYear,freshZero]);
   const ledger=useMemo(()=>personalLedgerSnapshot(view,history),[view,history]);
   const exposure=useMemo(()=>{
     if(!view||!/^\d{4}-\d{2}-\d{2}$/.test(referenceDate))return null;
@@ -108,7 +123,7 @@ export default function TarazHomeCommand({
     {key:'receivable',label:L.receivable,value:fiscal?.receivable,icon:ArrowDownLeft,tone:'blue',tab:'parties'},
     {key:'payable',label:L.payable,value:fiscal?.payable,icon:ArrowUpLeft,tone:'rose',tab:'parties'},
     {key:'net',label:L.net,value:fiscal?.net,icon:Wallet,tone:'slate',tab:'accounts'},
-    {key:'invoice',label:L.invoice,value:fiscal?.invoiceCount,icon:Files,tone:'mint',tab:'invoice',isCount:true},
+    {key:'invoice',label:fresh?'فاکتورهای دفتر تازه':L.invoice,value:fiscal?.invoiceCount,icon:Files,tone:'mint',tab:'invoice',isCount:true},
   ];
   const peopleGroup=(label,kind,none)=>{
     const people=safePeople(fiscal,kind);
@@ -134,7 +149,7 @@ export default function TarazHomeCommand({
       <div className="tdh-hero-title">
         <div className="tdh-hero-mark"><span className="tdh-mark-dot"/>{L.eyebrow}
           <span className="tdh-source-dot">●</span></div>
-        <h1>{L.title}</h1><p>{L.subtitle}</p>
+        <h1>{L.title}</h1><p>{fresh?'وضعیت دفتر جدید و اسناد همین شرکت، بدون ورود اطلاعات حسابداری قدیمی.':L.subtitle}</p>
       </div>
       <div className="tdh-hero-actions">
         <label className="tdh-year-select"><CalendarDays size={17}/>
@@ -152,8 +167,8 @@ export default function TarazHomeCommand({
     {error&&<p className="tdh-warning" role="alert">{L.error} {error}
       <button type="button" onClick={()=>setRetry(x=>x+1)}>{L.retry}</button></p>}
     <div className="tdh-source-strip">
-      <span><ShieldCheck size={16}/>{fiscalYear==='1405'?L.sourceCurrent:L.sourceArchive}</span>
-      <span><Clock3 size={16}/>{L.source}</span>
+      <span><ShieldCheck size={16}/>{fresh?'دفتر تازه با هویت ویندوز، بدون دادهٔ منتقل‌شده':fiscalYear==='1405'?L.sourceCurrent:L.sourceArchive}</span>
+      <span><Clock3 size={16}/>{fresh?'منبع: دفتر مستقل جدید تراز':L.source}</span>
       {loading&&<span role="status">{L.unknown}</span>}
     </div>
     <div className="tdh-stat-grid">
@@ -183,7 +198,7 @@ export default function TarazHomeCommand({
           {peopleGroup(L.topDebtors,'receivable',L.noDebtors)}
           {peopleGroup(L.topCreditors,'payable',L.noCreditors)}
         </div>
-        <p className="tdh-note"><ShieldCheck size={16}/>{L.sourceNote}</p>
+        <p className="tdh-note"><ShieldCheck size={16}/>{fresh?'نمایش مبالغ فقط بر پایه داده‌های دفتر فعلی انجام می‌شود؛ سوابق قدیمی وارد نشده‌اند.':L.sourceNote}</p>
       </section>
       <aside className="tdh-side">
         <section className="tdh-sheet tdh-actions" aria-label={L.activityHeading}>

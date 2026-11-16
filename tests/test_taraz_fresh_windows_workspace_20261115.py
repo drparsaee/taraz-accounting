@@ -36,6 +36,11 @@ class NewLocalBookTests(unittest.TestCase):
             self.assertEqual(read["revision"], 0)
             self.assertFalse(read["view"]["invoices"])
             self.assertFalse(read["view"]["journals"])
+            self.assertIs(read["view"].get("freshWindowsWorkspace"), True)
+            # Frontend must avoid invoking the legacy endpoint. The actual
+            # personal-ledger guard must remain CLOSED for a new book.
+            with self.assertRaisesRegex(PermissionError, "Unverified personal accounting ledger"):
+                api.standaloneAccountingParsianHistory()
         finally:
             identity.logout(token)
 

@@ -707,6 +707,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const live=useRef(true),request=useRef(0),locked=useRef(false),latest=useRef(null),
     pending=useRef(null),nativeClosePending=useRef(false);
   const view=snapshot?.view;
+  const freshLedger=view?.freshWindowsWorkspace===true;
   const today=accountingCompanyToday(view);
   const lastDefaultDay=useRef(T());
   useEffect(()=>{
@@ -2061,7 +2062,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
           </>}
           {['invoice','bill','invoiceDesign'].includes(tab)&&<>
             {tab!=='invoiceDesign'&&<>
-            {tab==='invoice'&&<PersonalParsianInvoices api={api} section="invoices" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
+            {tab==='invoice'&&!freshLedger&&<PersonalParsianInvoices api={api} section="invoices" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             {(tab==='bill'||!invoiceComposerOpen)&&<Panel title={tab==='invoice'?'فاکتورهای فروش':'صورتحساب‌های خرید'}
               description="پیش‌نویس، تأیید و صدور مراحل جداگانه‌اند؛ مبلغ صرفاً با صدور وارد دفترکل می‌شود.">
               {tab==='invoice'&&<p className="sac-invoice-list-help">
@@ -2894,7 +2895,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             </Panel></section>}
           </>}
           {tab==='parties'&&<>
-            <PersonalParsianInvoices api={api} section="parties" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>
+            {!freshLedger&&<PersonalParsianInvoices api={api} section="parties" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             {historicalDebtors.length>0&&<Panel title="بدهکاران منتقل‌شده از پارسیان"
               description="این مانده‌ها از حساب‌های ثبت‌شده دفترکل پارسیان هستند؛ نه فاکتورهای جدید تراز. ارتباط با تسویه عملیاتی هنوز جداست.">
               <Field label="جست‌وجوی بدهکار">
@@ -3041,8 +3042,8 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             </form></Panel>}
           </>}
           {tab==='migration'&&<>
-            <PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="all"/>
-            <PersonalParsianInvoices api={api} section="parties" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>
+            {!freshLedger&&<PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="all"/>}
+            {!freshLedger&&<PersonalParsianInvoices api={api} section="parties" fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             <ProviderCsvMigration api={api} canAdmin={canAdmin}/>
             <ParsianRawArchiveExplorer api={api} canAdmin={canAdmin}/>
             {!historical?<Panel title="سوابق پارسیان"
@@ -3124,7 +3125,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
             </>}
           </>}
           {tab==='cheques'&&<>
-            <PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="due"/>
+            {!freshLedger&&<PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="due"/>}
             <LiveCheques view={view} canManage={canManage} disabled={blocked}
               execute={execute} today={today} unit={unitLabel}
               onDraftChange={reportChildDraft}/>
@@ -3139,7 +3140,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               <Empty>آرشیو پارسیان در این دفتر متصل نیست.</Empty>}
             </Panel></>}
           {tab==='items'&&<>
-            <PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="goods"/>
+            {!freshLedger&&<PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="goods"/>}
             {historical&&<Panel title="وضعیت انبار انتقالی"
               description="کالاهای واردشده فعلاً کاتالوگ‌اند؛ موجودی و بهای تمام‌شده از سابقه پارسیان قطعی نشده است.">
               <p>{historical.historicalProducts.toLocaleString('fa-IR')} قلم در آرشیو پارسیان،
@@ -3178,7 +3179,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               onDraftChange={reportChildDraft}/>
           </>}
           {tab==='settlements'&&<>
-            <PersonalParsianBankMovements api={api} view={view} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>
+            {!freshLedger&&<PersonalParsianBankMovements api={api} view={view} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             <Panel title="دریافت‌ها و پرداخت‌ها" description="تمام مبالغ از رسیدها و پرداخت‌های ثبت‌شده موتور حسابداری خوانده می‌شوند.">
               {['receipts','payments'].map(key=><div key={key} className="sac-list-section">
                 <h3>{key==='receipts'?'دریافت‌های ثبت‌شده':'پرداخت‌های ثبت‌شده'}</h3>
@@ -3224,7 +3225,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               onDraftChange={reportChildDraft}/>
           </>}
           {tab==='cash'&&<>
-            <PersonalParsianBankMovements api={api} view={view} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>
+            {!freshLedger&&<PersonalParsianBankMovements api={api} view={view} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear}/>}
             {historical&&<Panel title="مانده واقعی صندوق و بانک انتقالی پارسیان"
               description="این حساب‌ها از سندهای دفترکل تاریخی خوانده می‌شوند؛ اتصال کامل به عملیات خزانه و مغایرت‌گیری بانکی هنوز انجام نشده است.">
               <DataTable cols={['کد حساب اصلی','بانک یا صندوق','مانده ریالی دفترکل','ریزگردش']}
@@ -3562,7 +3563,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               legacyCompany={legacyCompanySource}
               disabled={blocked} execute={execute} onDraftChange={reportChildDraft}/>
           </>}
-          {tab==='payroll'&&<PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="payroll"/>}
+          {tab==='payroll'&&!freshLedger&&<PersonalParsianExtended api={api} fiscalYear={fiscalYear} onFiscalYearChange={setFiscalYear} section="payroll"/>}
           {tab==='payroll'&&<PayrollAndTax view={view} canManage={canManage} canSetTax={canAdmin}
             disabled={blocked} execute={execute} today={today} unit={unitLabel}
             onDraftChange={reportChildDraft}/>}

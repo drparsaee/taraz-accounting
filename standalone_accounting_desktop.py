@@ -421,6 +421,8 @@ class AccountingDesktopAPI:
             result["view"]["companyWorkspaceLabel"] = self.company_name
         if self.company_workspace_id:
             result["view"]["companyWorkspaceId"] = self.company_workspace_id
+        if getattr(self, "_verified_fresh_workspace", False) is True:
+            result["view"]["freshWindowsWorkspace"] = True
         return result
 
     def standaloneAccountingRead(self):

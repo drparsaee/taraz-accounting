@@ -164,6 +164,10 @@ def open_fresh_company(root: Path):
                        company_workspace_id=info["companyId"],
                        authenticated_user=current, identity_store=identity,
                        identity_token=token)
+        # Only this verified Windows-bound entrypoint can mark the session as
+        # fresh. UI uses the marker to omit obsolete Parsian archive requests;
+        # it never relaxes any financial backend permission.
+        api._verified_fresh_workspace = True
         return api, identity, token
     except BaseException:
         identity.logout(token)
