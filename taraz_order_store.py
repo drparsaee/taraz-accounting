@@ -6,6 +6,7 @@ No document is posted and no invoice is created by this module.
 """
 from __future__ import annotations
 
+from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -482,6 +483,66 @@ class TarazOrderStore:
             }
         finally:
             db.close()
+
+    def customer_order_history(self, party_id, *, offset=0, limit=25):
+        """Redacted, exact-party-ID sales history, never a financial ledger read.
+
+        Caller MUST separately authenticate Taraz finance-view permission and
+        current project disclosure. No string/name fuzzy matching is permitted.
+        The query does not return purchase prices, costs, payments, profits or
+        customer notes. This facade is not a remote Madar authorization proof.
+        """
+        if type(party_id) is not str or not _ID.fullmatch(party_id):
+            raise OrderError("Verified counterparty identifier required")
+        if (type(offset) is not int or not 0 <= offset <= 100_000 or
+                type(limit) is not int or not 1 <= limit <= 50):
+            raise OrderError("Bounded order history page required")
+        _path_ok(self.root)
+        if not self.file.exists():
+            return {"partyId": party_id, "orders": [], "total": 0,
+                    "offset": offset, "limit": limit, "readOnly": True,
+                    "financialEventCreated": False, "financialFieldsOmitted": True}
+        if (self.file.is_symlink() or not self.file.is_file() or
+                getattr(self.file.lstat(), "st_file_attributes", 0) &
+                getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+            raise OrderError("Unsafe order history data file")
+        with closing(sqlite3.connect(self.file.as_uri() + "?mode=ro", uri=True,
+                             timeout=10)) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA query_only=ON")
+            # A persisted opaque party ID, not a user-visible name, is the
+            # only binding. json_extract errors fail closed on corrupt rows.
+            predicate = ("json_extract(data_json,'$.customerId')=? AND "
+                         "json_extract(data_json,'$.kind')='sale'")
+            total = db.execute("SELECT COUNT(*) FROM orders WHERE " + predicate,
+                               (party_id,)).fetchone()[0]
+            source = db.execute(
+                "SELECT id,status,revision,data_json,created_at,updated_at "
+                "FROM orders WHERE " + predicate +
+                " ORDER BY updated_at DESC,id LIMIT ? OFFSET ?",
+                (party_id, limit, offset),
+            ).fetchall()
+            rows = []
+            for entry in source:
+                item = json.loads(entry["data_json"])
+                if (type(item) is not dict or item.get("customerId") != party_id or
+                        item.get("kind") != "sale" or
+                        type(item.get("title")) is not str or
+                        type(item.get("quantity")) is not int):
+                    raise OrderError("Corrupt customer order history")
+                rows.append({
+                    "orderId": entry["id"], "partyId": party_id,
+                    "title": item["title"], "quantity": item["quantity"],
+                    "unit": item.get("unit", ""),
+                    "status": entry["status"], "updatedAt": entry["updated_at"],
+                    "revision": entry["revision"],
+                    "projectReference": item.get("projectReference", ""),
+                    "invoiceNumber": None,  # Not linked to a verified document.
+                    "commercialProfileId": None,
+                })
+        return {"partyId": party_id, "orders": rows, "total": total,
+                "offset": offset, "limit": limit, "readOnly": True,
+                "financialEventCreated": False, "financialFieldsOmitted": True}
 
     def get(self, order_id):
         """Read a specific order by its exact ID; no truncated list lookup."""

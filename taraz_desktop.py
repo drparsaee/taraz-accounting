@@ -184,6 +184,30 @@ class TarazAPI(AccountingDesktopAPI):
             self._require_authenticated()
             return TarazOrderStore(self.path.parent).list(offset=offset, limit=limit)
 
+    def tarazCustomerOrderHistory(self, partyId, offset=0, limit=25):
+        """Local Taraz admin-only redacted history; no Madar peer granted.
+
+        A future transport must authenticate the Madar principal and project
+        before any of these already-redacted rows leave Taraz.
+        """
+        from taraz_order_store import TarazOrderStore
+        with self._lock:
+            actor = self._require_authenticated("admin")
+            authority = self._accounts.get(self._actor, {})
+            if (self._identity_store is None or
+                    actor.get("role") != "admin" or
+                    authority.get("financeView") is not True):
+                raise PermissionError("Native authenticated finance-view admin required")
+            from taraz_order_store import _ID as _ORDER_PARTY_ID
+            if type(partyId) is not str or not _ORDER_PARTY_ID.fullmatch(partyId):
+                raise PermissionError("Invalid party ID for authorized history read")
+            view = self.standaloneAccountingRead()["view"]
+            if (type(view.get("parties")) is not dict or
+                    partyId not in view["parties"]):
+                raise PermissionError("Counterparty not in authenticated company ledger")
+            return TarazOrderStore(self.path.parent).customer_order_history(
+                partyId, offset=offset, limit=limit)
+
     def tarazOrderCommand(self, request):
         """Manual order-only mutation. No journal, invoice or payment is posted."""
         from taraz_order_store import TarazOrderStore

@@ -690,9 +690,13 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const [entryLibrary,setEntryLibrary]=useState({templates:[],defaultId:''});
   const [printLibrary,setPrintLibrary]=useState({templates:[],defaultId:''});
   const [issuerLibrary,setIssuerLibrary]=useState({templates:[],defaultId:''});
+  const [brandLibrary,setBrandLibrary]=useState({templates:[],defaultId:''});
   const [entryTemplateId,setEntryTemplateId]=useState('');
   const [printTemplateId,setPrintTemplateId]=useState('');
   const [issuerId,setIssuerId]=useState('');
+  const [brandId,setBrandId]=useState('');
+  const emptyBrand=()=>({displayName:'',header:'',contact:'',logo:'',printTemplateId:''});
+  const [brandProfile,setBrandProfile]=useState(emptyBrand);
   const [issuerProfile,setIssuerProfile]=useState({legalName:'',nationalId:'',economicCode:'',
     postalCode:'',phone:'',address:''});
   const [templateSearch,setTemplateSearch]=useState('');
@@ -748,10 +752,18 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         api.standaloneAccountingTemplateList('entry'),
         api.standaloneAccountingTemplateList('print'),
         api.standaloneAccountingTemplateList('issuer')]);
+      // Older hosts do not know commercial profile templates. Preserve every
+      // existing template workflow rather than failing the entire dashboard.
+      let brand={templates:[],defaultId:''};
+      try{const reply=await api.standaloneAccountingTemplateList('brand');
+        if(Array.isArray(reply?.templates))brand=reply;
+      }catch(_unsupported){/* The new commercial profile is unavailable on this host. */}
       setEntryLibrary(entry);setPrintLibrary(print);setIssuerLibrary(issuer);
+      setBrandLibrary(brand);
       setEntryTemplateId(id=>id||entry.defaultId||'');
       setPrintTemplateId(id=>id||print.defaultId||'');
       setIssuerId(id=>id||issuer.defaultId||'');
+      setBrandId(id=>id||brand.defaultId||'');
       const choice=print.templates.find(t=>t.id===print.defaultId);
       if(choice){setPrintTemplate(validatePrintTemplate(choice.data));
         setInvoicePrintLayout(old=>old==='madar'?'custom':old);}
@@ -761,6 +773,19 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const unitLabel=ledgerCurrency==='RIAL'?'ریال':'تومان';
   const selectedIssuer=issuerLibrary.templates.find(t=>t.id===issuerId);
   const printCompanyProfile=selectedIssuer?.data?.profile||view?.companyProfile||null;
+  const selectedBrand=brandLibrary.templates.find(t=>t.id===brandId);
+  const brandedPrintTemplate=()=>{
+    const branding=selectedBrand?.data?.profile;
+    if(!branding)return validatePrintTemplate(printTemplate);
+    const linked=branding.printTemplateId?
+      printLibrary.templates.find(t=>t.id===branding.printTemplateId):null;
+    if(branding.printTemplateId&&!linked)
+      throw Error('قالب چاپ متصل به نام تجاری وجود ندارد.');
+    const base=validatePrintTemplate(linked?.data||printTemplate);
+    return validatePrintTemplate({...base,companyHeader:branding.displayName,
+      companySubtitle:branding.header||'',logo:branding.logo||'',
+      footerText:branding.contact||base.footerText||''});
+  };
   const moneyText=amount=>formatStandaloneMoney(amount,ledgerCurrency);
   const debitText=amount=><span className={amount>0?'sac-money-debit':'sac-money-neutral'}
     aria-label={'بدهکار '+moneyText(amount)}>{moneyText(amount)}</span>;
@@ -1516,14 +1541,17 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     return true;
   };
   const documentPrintOutput=async(doc,format,kind=docKind)=>{
-      const useParsian=kind==='invoice'&&invoicePrintLayout==='parsian-karma'&&ledgerCurrency==='RIAL';
+      const commercialBrand=kind==='invoice'&&Boolean(selectedBrand);
+      const useParsian=!commercialBrand&&kind==='invoice'&&
+        invoicePrintLayout==='parsian-karma'&&ledgerCurrency==='RIAL';
       const common={kind,doc,party:parties[doc.partyId]?.name||doc.partyId,
         company:printCompanyProfile,currency:ledgerCurrency,pattern:filenamePattern,format,
         items};
       return ['xlsx','rtf'].includes(format)?
         await buildAccountingStructuredExport(common):
-        (invoicePrintLayout==='custom'&&kind==='invoice')?
-        await buildCustomPrintExport({...common,template:validatePrintTemplate(printTemplate)}):
+        ((commercialBrand||invoicePrintLayout==='custom')&&kind==='invoice')?
+        await buildCustomPrintExport({...common,template:commercialBrand?
+          brandedPrintTemplate():validatePrintTemplate(printTemplate)}):
         useParsian?await buildParsianKarmaDocumentExport({
         kind,doc,party:parties[doc.partyId]?.name||doc.partyId,
         format,company:printCompanyProfile,
@@ -1622,15 +1650,20 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
   const saveTemplateToLibrary=async kind=>{
     if(!templateBridge)return;
     try{
-      const data=kind==='entry'?buildAccountingInvoiceEntryTemplate(rows,{
+      const data=kind==='brand'?
+        {format:'taraz-commercial-invoice-profile-v1',profile:{...brandProfile}}:
+        kind==='entry'?buildAccountingInvoiceEntryTemplate(rows,{
         currency:ledgerCurrency,title:invoiceTemplateTitle}):kind==='print'?
         validatePrintTemplate(printTemplate):{format:'madar-issuer-profile-v1',profile:{...issuerProfile}};
-      const title=kind==='entry'?invoiceTemplateTitle:kind==='print'?
+      const title=kind==='brand'?brandProfile.displayName:
+        kind==='entry'?invoiceTemplateTitle:kind==='print'?
         printTemplate.title:issuerProfile.legalName;
-      const id=kind==='entry'?entryTemplateId:kind==='print'?printTemplateId:issuerId;
+      const id=kind==='brand'?brandId:
+        kind==='entry'?entryTemplateId:kind==='print'?printTemplateId:issuerId;
       const saved=await api.standaloneAccountingTemplateSave(kind,title,data,id);
       if(kind==='entry')setEntryTemplateId(saved.id);
       else if(kind==='print'){setPrintTemplateId(saved.id);setInvoicePrintLayout('custom');}
+      else if(kind==='brand')setBrandId(saved.id);
       else setIssuerId(saved.id);
       await loadTemplateLibraries();
       setState(p=>({...p,error:'',notice:'قالب «'+title+'» در کتابخانه خصوصی این دفتر ذخیره شد.'+
@@ -1648,12 +1681,14 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         await api.standaloneAccountingTemplateDelete(kind,id);
         if(kind==='entry')setEntryTemplateId('');
         else if(kind==='print')setPrintTemplateId('');
+        else if(kind==='brand'){setBrandId('');setBrandProfile(emptyBrand());}
         else setIssuerId('');
       }else if(action==='default')await api.standaloneAccountingTemplateDefault(kind,id);
       else if(action==='duplicate'){
         const saved=await api.standaloneAccountingTemplateDuplicate(kind,id);
         if(kind==='entry')setEntryTemplateId(saved.id);
         else if(kind==='print')setPrintTemplateId(saved.id);
+        else if(kind==='brand')setBrandId(saved.id);
         else setIssuerId(saved.id);
       }
       await loadTemplateLibraries();
@@ -2841,6 +2876,61 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
               </div>
               <small>تا پیش از ذخیره، تغییرات هویت در پیش‌نمایش و خروجی اعمال نمی‌شوند؛ هویت دفتر اصلی باقی می‌ماند.</small>
             </Panel>
+              <Panel title="پروفایل‌های تجاری صدور فاکتور"
+                description="نام‌های تجاری مختلف روی همان دفتر مالی مشترک. این نام‌ها هویت رسمی مالیاتی را تغییر نمی‌دهند و فقط روی سربرگ فاکتور تجاری فروش اثر دارند.">
+                <div className="sac-template-library">
+                  <label>نام تجاری برای چاپ فاکتور فروش
+                    <select aria-label="انتخاب نام تجاری فاکتور" value={brandId}
+                      onChange={e=>{
+                        const id=e.target.value;setBrandId(id);
+                        const item=brandLibrary.templates.find(t=>t.id===id);
+                        setBrandProfile(item?{...item.data.profile}:emptyBrand());
+                      }}>
+                      <option value="">بدون پروفایل تجاری؛ هویت قانونی دفتر</option>
+                      {brandLibrary.templates.map(t=><option key={t.id} value={t.id}>
+                        {t.title}{t.id===brandLibrary.defaultId?' ★':''}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={()=>{
+                    setBrandId('');setBrandProfile(emptyBrand());
+                  }}>نام تجاری جدید</button>
+                  <button type="button" disabled={!templateBridge||!brandProfile.displayName.trim()}
+                    onClick={()=>void saveTemplateToLibrary('brand')}>ذخیره پروفایل</button>
+                  <button type="button" disabled={!brandId}
+                    onClick={()=>void libraryAction('brand','default',brandId)}>پیش‌فرض</button>
+                  <button type="button" disabled={!brandId}
+                    onClick={()=>void libraryAction('brand','delete',brandId)}>حذف</button>
+                </div>
+                <div className="sac-grid">
+                  {[['displayName','نام تجاری'],['header','سربرگ تکمیلی'],
+                    ['contact','اطلاعات تماس روی چاپ']].map(([key,label])=>
+                    <Field key={key} label={label}><input maxLength={key==='contact'?70:120}
+                      value={brandProfile[key]}
+                      onChange={e=>setBrandProfile(p=>({...p,[key]:e.target.value}))}/></Field>)}
+                  <Field label="قالب چاپ وابسته به نام تجاری">
+                    <select value={brandProfile.printTemplateId}
+                      onChange={e=>setBrandProfile(p=>({...p,printTemplateId:e.target.value}))}>
+                      <option value="">قالب انتخابی فعلی</option>
+                      {printLibrary.templates.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="لوگوی نام تجاری (PNG/JPEG)">
+                    <input type="file" accept="image/png,image/jpeg" onChange={e=>{
+                      const file=e.target.files?.[0];e.target.value='';
+                      if(!file)return;
+                      if(!['image/png','image/jpeg'].includes(file.type)||file.size>200000){
+                        setState(p=>({...p,error:'لوگو باید PNG یا JPEG و حداکثر ۲۰۰ کیلوبایت باشد.'}));return;
+                      }
+                      const reader=new FileReader();
+                      reader.onload=()=>{if(typeof reader.result==='string'&&reader.result.length<=300000)
+                        setBrandProfile(p=>({...p,logo:reader.result}));};
+                      reader.readAsDataURL(file);
+                    }}/>
+                  </Field>
+                </div>
+                <small>پروفایل تجاری را ذخیره کنید تا روی خروجی‌های تجاری بعدی اعمال شود.
+                  هیچ شرکت، دفترکل، مؤدی مالیاتی یا سند حسابداری جدیدی ساخته نمی‌شود.</small>
+              </Panel>
               <Panel title="طراح بصری قالب فاکتور"
               description="قالب چاپ، بدون ایجاد رویداد مالی، فقط برای شرکت انتخاب‌شده ذخیره می‌شود. پس از انتخاب قالب سفارشی، خروجی PDF/PNG از همین طرح ساخته می‌شود.">
               <div className="sac-template-library">
@@ -2873,7 +2963,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                     status:'نمونه فاقد اعتبار مالی',
                     lines:[{description:'کالا یا خدمات آزمایشی',quantity:2,unitPrice:500000,total:1000000}],
                     subtotal:1000000,discount:0,tax:0,total:1000000};
-                  void buildCustomPrintExport({template:printTemplate,kind:'invoice',
+                  void buildCustomPrintExport({template:brandedPrintTemplate(),kind:'invoice',
                     doc:demo,party:'مشتری نمونه',company:printCompanyProfile,
                     currency:ledgerCurrency,format:'pdf',pattern:'taraz-form-{kind}-{id}-{date}',items})
                     .then(downloadStandaloneBlob)
@@ -2882,7 +2972,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
                 }}>دانلود PDF نمونه فرم</button>
                 {detailedDocument&&<><button type="button" disabled={busy}
                   onClick={()=>{setInvoicePrintLayout('custom');void buildCustomPrintExport({
-                    template:printTemplate,kind:'invoice',doc:detailedDocument,
+                    template:brandedPrintTemplate(),kind:'invoice',doc:detailedDocument,
                     party:parties[detailedDocument.partyId]?.name||detailedDocument.partyId,
                     company:printCompanyProfile,currency:ledgerCurrency,
                     format:'pdf',pattern:filenamePattern,items}).then(downloadStandaloneBlob)

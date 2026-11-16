@@ -14,16 +14,18 @@ import re
 import stat
 import tempfile
 import threading
+import unicodedata
 import uuid
 
 _LOCK = threading.RLock()
-_KINDS = {"entry", "print", "issuer"}
+_KINDS = {"entry", "print", "issuer", "brand"}
 _ID = re.compile(r"[a-f0-9]{32}\Z")
 _MAX_BYTES = 2 * 1024 * 1024
 _PRINT_IDS = frozenset({"title", "seller", "buyer", "number", "date", "note"})
 _PRINT_FONTS = frozenset({"Vazirmatn", "Tahoma", "Arial"})
 _PRINT_COLOR = re.compile(r"#[0-9a-fA-F]{6}\Z")
 _PRINT_LOGO = re.compile(r"data:image/(?:png|jpeg);base64,[A-Za-z0-9+/=]+\Z")
+_BRAND_FIELDS = frozenset({"displayName", "header", "contact", "logo", "printTemplateId"})
 _PRINT_COLUMNS = frozenset({"rowNumber", "description", "itemId", "accountId",
                             "quantity", "unit", "price", "total"})
 _PRINT_CUSTOM_COLUMN_ID = re.compile(r"custom_[1-4]\Z")
@@ -158,6 +160,39 @@ def _validate_print_design(data):
             raise TemplateStoreError("Invalid print-layout column headings")
 
 
+def _validate_commercial_profile(data):
+    """Branding is strictly display-only; never an alternate tax identity."""
+    if (type(data) is not dict or set(data) != {"format", "profile"} or
+            data.get("format") != "taraz-commercial-invoice-profile-v1" or
+            type(data.get("profile")) is not dict or
+            set(data["profile"]) != _BRAND_FIELDS):
+        raise TemplateStoreError("Invalid commercial invoice profile schema")
+    item = data["profile"]
+    # The target PDF renderer accepts at most 70 UTF-16 characters in footer.
+    # Accepting longer contact text here would save an unusable brand profile.
+    for field, maximum in (("displayName", 100), ("header", 120),
+                           ("contact", 70)):
+        value = item[field]
+        if (type(value) is not str or len(value) > maximum or
+                (field == "displayName" and not value.strip()) or
+                any(ord(c) < 32 or ord(c) == 127 for c in value)):
+            raise TemplateStoreError("Invalid commercial display field: " + field)
+    logo = item["logo"]
+    if (type(logo) is not str or len(logo) > 300000 or
+            (logo and not _PRINT_LOGO.fullmatch(logo))):
+        raise TemplateStoreError("Invalid commercial logo")
+    template = item["printTemplateId"]
+    if type(template) is not str or (template and not _ID.fullmatch(template)):
+        raise TemplateStoreError("Invalid commercial print template reference")
+
+
+def _brand_name_key(name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", name).translate(
+        str.maketrans({"ي": "ی", "ك": "ک"}))
+    return " ".join("".join(char for char in normalized if
+        char != "ـ" and unicodedata.category(char) != "Mn").casefold().split())
+
+
 def validate_library_document(document):
     """Strict enough to reject corrupt/untrusted backup companions before restore."""
     if (not isinstance(document, dict) or set(document) != {"version", "templates", "defaults"} or
@@ -168,6 +203,7 @@ def validate_library_document(document):
         raise TemplateStoreError("Invalid template library structure")
     ids = set()
     by_kind = {kind: set() for kind in _KINDS}
+    brands = []
     for template in document["templates"]:
         if (not isinstance(template, dict) or set(template) != {"id", "kind", "title", "data"} or
                 not isinstance(template["id"], str) or not _ID.fullmatch(template["id"]) or
@@ -204,6 +240,15 @@ def validate_library_document(document):
                     any(not isinstance(v, str) or len(v) > 500 or any(ord(c) < 32 for c in v)
                         for v in profile.values())):
                 raise TemplateStoreError("Invalid issuer profile")
+        elif kind == "brand":
+            _validate_commercial_profile(data)
+            brands.append(data["profile"])
+    if any(profile["printTemplateId"] and
+           profile["printTemplateId"] not in by_kind["print"] for profile in brands):
+        raise TemplateStoreError("Commercial profile references a missing print template")
+    labels = [_brand_name_key(profile["displayName"]) for profile in brands]
+    if len(labels) != len(set(labels)):
+        raise TemplateStoreError("Duplicate commercial branding within one ledger")
     for kind, selected in document["defaults"].items():
         if not isinstance(selected, str) or (selected and selected not in by_kind[kind]):
             raise TemplateStoreError("Invalid default template reference")
@@ -298,6 +343,8 @@ class StandaloneAccountingTemplateStore:
                 any(not isinstance(v, str) or len(v)>500 or any(ord(c)<32 for c in v)
                     for v in data["profile"].values())):
                 raise TemplateStoreError("Invalid issuer profile")
+        elif kind == "brand":
+            _validate_commercial_profile(data)
         if template_id and (not isinstance(template_id, str) or not _ID.fullmatch(template_id)):
             raise TemplateStoreError("Invalid template identifier")
         with _LOCK:
@@ -325,6 +372,11 @@ class StandaloneAccountingTemplateStore:
             target = [t for t in obj["templates"] if t.get("kind") == kind and t.get("id") == template_id]
             if not target:
                 raise TemplateStoreError("Template not found")
+            if kind == "print" and any(
+                    t.get("kind") == "brand" and
+                    t["data"]["profile"]["printTemplateId"] == template_id
+                    for t in obj["templates"]):
+                raise TemplateStoreError("A commercial profile uses this print template")
             obj["templates"] = [t for t in obj["templates"] if t not in target]
             if obj["defaults"].get(kind) == template_id:
                 obj["defaults"][kind] = next((t["id"] for t in obj["templates"] if t.get("kind") == kind), "")

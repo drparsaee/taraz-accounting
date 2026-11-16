@@ -30,7 +30,7 @@ window.madar = Object.fromEntries(
    'standaloneAccountingParsianArchiveIndex', 'standaloneAccountingParsianArchiveRows',
    'tarazIntegrationList', 'tarazIntegrationReview', 'tarazIntegrationRecover',
    'tarazMadarDataOverview', 'tarazMadarDataRead',
-   'tarazOrderList', 'tarazOrderCommand', 'tarazOrderFinanceDraft',
+       'tarazOrderList', 'tarazCustomerOrderHistory', 'tarazOrderCommand', 'tarazOrderFinanceDraft',
    'tarazEcosystemStatus', 'tarazAiProviderStatus',
    'tarazAiChatList', 'tarazAiChatRead', 'tarazAiChatCommand',
    'tarazAgentOrderReview', 'tarazAgentNaturalRequest',
