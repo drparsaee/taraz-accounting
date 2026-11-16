@@ -159,6 +159,26 @@ class TarazAPI(AccountingDesktopAPI):
             self._require_authenticated()
             return provider_status()
 
+    def tarazAiLocalStatus(self):
+        """Read-only local installed model discovery; no finance or cloud IO."""
+        from taraz_ai_local_runtime import status
+        with self._lock:
+            self._require_authenticated()
+        return status()
+
+    def tarazAiLocalGenerate(self, request):
+        """Manual local text inference only; no model-driven financial tools."""
+        from taraz_ai_local_runtime import generate
+        with self._lock:
+            self._require_authenticated("editor")
+            if self._exit_backed_up:
+                raise RuntimeError("Accounting desktop is closing")
+        if (type(request) is not dict or
+                set(request) != {"model", "prompt", "manualConsent"}):
+            raise ValueError("Unexpected local model request fields")
+        return generate(request["model"], request["prompt"],
+                        manual_consent=request["manualConsent"])
+
     def tarazAiChatList(self, query=''):
         """List only current authenticated actor's company-scoped AI history."""
         from taraz_ai_business_service import AiBusinessService

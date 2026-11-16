@@ -33,4 +33,14 @@
 .taraz-ai-alert{padding:10px;border-right:3px solid #b28d5a;line-height:1.8}
 .taraz-ai-notice{padding:10px;border-right:3px solid #63916c;line-height:1.8}
 .taraz-ai-empty{align-content:center;text-align:center;min-height:270px;opacity:.8}
+.taraz-local-ai-panel{border:1px solid var(--sac-border,#414755);border-radius:12px;padding:12px}
+.taraz-local-ai-panel summary{cursor:pointer;font-weight:700}
+.taraz-local-ai-panel p{line-height:1.8}
+.taraz-local-ai-panel form{display:flex;flex-direction:column;gap:8px}
+.taraz-local-ai-panel form button{align-self:flex-start}
+.taraz-local-ai-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.taraz-local-ai-row label{display:flex;flex-direction:column;gap:4px;min-width:180px}
+.taraz-local-ai-row select{padding:8px;border-radius:8px;background:transparent;color:inherit}
+.taraz-local-ai-reply{padding:10px;border:1px solid #617181;border-radius:10px}
+.taraz-local-ai-reply p{white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:800px){.taraz-ai-layout{grid-template-columns:1fr}.taraz-ai-messages{max-height:350px}}

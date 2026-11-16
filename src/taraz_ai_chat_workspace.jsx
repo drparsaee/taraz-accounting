@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {MessageSquarePlus,Search,ShieldCheck,Send,Download,Trash2,RefreshCw} from 'lucide-react';
+import TarazAiLocalPanel from './taraz_ai_local_panel.jsx';
 import './taraz_ai_chat_workspace.css';
 
 const ACTION_STATES={
@@ -152,9 +153,10 @@ export default function TarazAiChatWorkspace({api,canEdit=false,canApprove=canEd
         <p>درخواست خود را فارسی بنویسید؛ تراز ابتدا پیشنهاد می‌دهد و فقط پس از تأیید شما پیش‌نویس را ذخیره می‌کند.</p></div>
       <div className="taraz-ai-provider" role="status">
         <ShieldCheck size={17}/> پیشنهاد مبتنی بر اطلاعات همین دفتر
-        <small>فعلاً گفتگوی آزاد با مدل زبانی فعال نیست؛ اطلاعات برای مدل ابری ارسال نمی‌شود.</small>
+        <small>پیشنهادهای مالی همچنان از مسیر محافظت‌شدهٔ قوانین تولید می‌شوند؛ مدل متنی محلی در بخش جداگانه و فقط با درخواست شما اجرا می‌شود.</small>
       </div>
     </header>
+    <TarazAiLocalPanel api={api} canEdit={canEdit}/>
     {!supported?<div role="alert" className="taraz-ai-alert">
       میزبان فعلی از پایگاه داده و دستورات این نسخه پشتیبانی نمی‌کند. داده‌ای به‌طور موقت ذخیره نمی‌شود.
     </div>:<div className="taraz-ai-layout">

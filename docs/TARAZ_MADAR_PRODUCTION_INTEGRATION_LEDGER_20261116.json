@@ -1,134 +1,218 @@
 {
-  "mission": "TARAZ_MADAR_PRODUCTION_INTEGRATION",
-  "status": "IN_PROGRESS_NO_GO_FOR_RELEASE",
-  "owner": "single-prime",
-  "date": "2026-11-16",
-  "currentPhase": "PHASE_1_FOUNDATION",
-  "scope": "Ten-phase cross-app financial integration; preserve one ledger and existing Fresh Start",
-  "installedReadback": {
-    "taraz": {
-      "version": "1.0.7",
-      "sha256": "83a47d228d111b7ac8c4eff73ce0948a8b8517ae5e95bf0646bb5969fed0ba9b",
-      "sourceHeadAtStart": "4f2ed3fab4ad26ad9342d4f86d33676ebd298815"
-    },
-    "madar": {
-      "version": "1.0.28",
-      "sha256": "2bb04e2aa9c770469615d0716991fea8fcfc6b887b92003eeaa1ce565696ab49",
-      "sourceHeadAtStart": "f3a211d04ca262ca919ccd3c2d9ccb0bcc1d8daa"
-    }
-  },
-  "sourceAudit": {
-    "tarazTrackedDirtyAtStart": false,
-    "madarTrackedDirtyAtStart": true,
-    "madarModifiedTrackedCount": 19,
-    "madarSourcePackageVersion": "1.0.23",
-    "madarInstalledVersion": "1.0.28",
-    "sourceLineageReconciled": false,
-    "preExistingUntrackedFilesPreserved": true
-  },
-  "completedGates": {
-    "PHASE_0_BASELINE_READBACK": {
-      "status": "PASS",
-      "evidence": "Direct Git HEAD/status, version pointers and exact installed executable SHA readback"
-    },
-    "PHASE_1_SYNTHETIC_CLONE_BACKUP_RESTORE_SUBGATE": {
-      "status": "PASS_CLONE_ONLY",
-      "evidence": "D:/CoS-Test/TARAZ-MADAR-PHASE1-CLONE-20261116-B/phase1-acceptance.json: 19 members, 5 SQLite, DPAPI and both commercial brands restored; ledger logical digest unchanged"
-    }
-  },
-  "openGates": {
-    "PASS_SOURCE_AND_DATA_COMPATIBILITY": "Additive commercial profile Clone backup/restore passed; real production pre-upgrade backup, future frozen binary and independent installed migration not yet accepted",
-    "PASS_SHARED_COUNTERPARTY": "No actual installed authenticated Madar -> Taraz party selector",
-    "PASS_CUSTOMER_ORDER_HISTORY": "Read-only, filtered per-party-ID local Taraz API with backend admin/finance-view tests exists in source; no authenticated project ACL transport to Madar and no installed card UI",
-    "PASS_MADAR_TARAZ_FINANCIAL_INBOX": "Current local Bridge is metadata-only; no authoritative financial peer receipt",
-    "PASS_PROJECT_FINANCIAL_CASE": "Nine synthetic pure-finance proposal tests PASS for 100-passport costs and unknowns; real authenticated Madar -> Taraz case persistence / installed UI remain unverified",
-    "PASS_HUMAN_REVIEWED_FINANCIAL_POSTING": "Not implemented or accepted end to end",
-    "PASS_FINANCIAL_PREVIEW_IN_MADAR": "No authorized live financial card preview",
-    "PASS_AI_ASSISTED_DRAFT_WORKFLOW": "Actual provider disabled; manual core must remain usable",
-    "PASS_END_TO_END_PRODUCT_ACCEPTANCE": "Cross-app installed E2E and negative fault matrix unverified",
-    "PASS_INSTALLED_CROSS_APP_RELEASE": "Production release prohibited until preceding gates pass"
-  },
-  "sourceWorkInProgress": {
-    "commercialInvoiceProfiles": {
-      "status": "SOURCE_IMPLEMENTED_TESTED_NOT_INSTALLED",
-      "files": [
-        "standalone_accounting_template_store.py",
-        "src/standalone_accounting_workspace.jsx",
-        "tests/test_taraz_invoice_profile_foundation_20261116.py",
-        "tests/taraz_commercial_invoice_profile_browser_20261116.test.cjs"
-      ],
-      "compatibility": "Additive brand template kind within existing version-1 per-ledger template library; no ledger schema migration or new ledger",
-      "testEvidence": [
-        "17 Python template/profile tests PASS including valid footer bounds",
-        "New native-source React/Edge brand test 1 PASS",
-        "Pre-existing native-source React/Edge designer and settings tests 7 PASS",
-        "npm run build PASS with optional code-splitting warning",
-        "D:/CoS-Test/TARAZ-MADAR-PHASE1-CLONE-20261116-B/phase1-acceptance.json PASS_CLONE_ONLY"
-      ],
-      "installedAcceptance": false
-    },
-    "customerOrderHistory": {
-      "status": "SOURCE_IMPLEMENTED_TESTED_NOT_INSTALLED",
-      "files": [
-        "taraz_order_store.py",
-        "taraz_desktop.py",
-        "standalone_accounting_desktop.py",
-        "tests/test_taraz_customer_order_history_20261116.py"
-      ],
-      "scope": "Local Taraz finance-view admin and registered ledger party only, redacted exact-party-ID sales orders; not remote authorized to Madar",
-      "testEvidence": ["6 local native Taraz SQLite/identity synthetic tests PASS", "14 operational order tests PASS", "25 local catalog tests PASS"],
-      "installedAcceptance": false
-    },
-    "hundredPassportFinancialProposal": {
-      "status": "SOURCE_ONLY_NON_POSTING_PREVIEW",
-      "files": [
-        "taraz_project_financial_case.py",
-        "tests/test_taraz_project_financial_case_20261116.py"
-      ],
-      "verifiedDeclaredKnownCostsRial": null,
-      "syntheticDeclaredKnownCostsRial": 26000000,
-      "syntheticUnknowns": ["sale unit price", "print unit prices", "internal labor costs", "card payment account and date"],
-      "sourceTrusted": false,
-      "canPost": false,
-      "installedAcceptance": false,
-      "testEvidence": ["9 synthetic cost and safety tests PASS", "Profit marked computable but never final based solely on unsigned card data"]
-    },
-    "traceability135": {
-      "status": "UPDATED_WITHOUT_INSTALLED_ACCEPTANCE",
-      "matrix": "D:/CoS-Test/000- Madar/madar-p2-gantt-notifications-20261107/docs/modernization/MADAR_TARAZ_RADAR_135_IDEA_TRACEABILITY_20261116.csv",
-      "updatedIdeaIds": ["B05-05", "B05-13", "B07-09", "B07-12"],
-      "count": 135,
-      "verifiedImplemented": 0,
-      "sourceOnly": 23,
-      "partialImplementation": 19,
-      "notVerified": 81,
-      "planned": 10,
-      "blocked": 2
-    }
-  },
-  "safety": {
-    "freshStartAgain": false,
-    "legacy609EventsMigration": false,
-    "realAccountingTransactionCreated": false,
-    "realProfileReset": false,
-    "unrelatedWorktreeChangesDiscarded": false,
-    "forceKill": false,
-    "llmProviderClaim": "DISABLED_BY_POLICY per prior installed/Frozen evidence"
-  },
   "blockedBy": [
     "Madar installed 1.0.28 but active source package line 1.0.23 and worktree dirty; reject downgrade or blind upgrade",
     "Only same-user metadata local Bridge verified; proper authenticated Taraz financial authority and cross-app ACL not established",
     "No official complete E2E acceptance of 100-passport workflow or paired installed build",
     "No new production backup/restore immediately before a future upgrade"
   ],
+  "completedGates": {
+    "PHASE_0_BASELINE_READBACK": {
+      "evidence": "Direct Git HEAD/status, version pointers and exact installed executable SHA readback",
+      "status": "PASS"
+    },
+    "PHASE_1_SYNTHETIC_CLONE_BACKUP_RESTORE_SUBGATE": {
+      "evidence": "D:/CoS-Test/TARAZ-MADAR-PHASE1-CLONE-20261116-B/phase1-acceptance.json: 19 members, 5 SQLite, DPAPI and both commercial brands restored; ledger logical digest unchanged",
+      "status": "PASS_CLONE_ONLY"
+    }
+  },
+  "currentPhase": "PHASE_1_FOUNDATION",
+  "date": "2026-11-16",
+  "ecosystemPrimeResume20261116": {
+    "headAtResume": {
+      "madar": "b90ec8b2573e20ac0185f5a25d2578a206b27335",
+      "taraz": "05f09f49b3719f08a8cf7270e1d657d87fc7e121"
+    },
+    "localAI": {
+      "availableModels": [
+        "qwen3:0.6b",
+        "qwen3:4b"
+      ],
+      "evidence": "docs/ECOSYSTEM_PRIME_LOCAL_AI_QA_20261116_FA.md",
+      "journalPosted": false,
+      "manualOnly": true,
+      "qaWebBundleSha256": "614572ac18731f489812a441111675691e94d0dc6a5cbdc9754ea63f6ef54cb3",
+      "real06bLater": "TIMEOUT_45_SECONDS",
+      "real06bResponse": "HTTP_200_QUALITY_REJECTED",
+      "real4bResponse": "TIMEOUT_120_SECONDS",
+      "realModelQualityVerified": false,
+      "regressionTests": "11_PYTHON_PASS_1_BROWSER_PASS",
+      "sourceStatus": "SOURCE_TESTED_NOT_INSTALLED",
+      "viteBuild": "PASS_QA_ONLY_NOT_FROZEN"
+    },
+    "madarSourceLineage": {
+      "changedLanServiceMethods": 7,
+      "changedSharedBridgeMethods": 4,
+      "currentWebBuildSha256": "8af17ded6f5bdbba8c931cc795124e5c2b25fc73fd501efc63c776ccdfeaf3c5",
+      "evidence": "D:/CoS-Test/000- Madar/madar-p2-gantt-notifications-20261107/docs/modernization/ECOSYSTEM_MADAR_SOURCE_LINEAGE_20261116_FA.md",
+      "installedOnlyBridgeMethods": 0,
+      "installedVersion": "1.0.28",
+      "installedWebBundleSha256": "6401496b1c1d602b0d8158681201a4b1a1f3696a56b2503ee532dbd323267740",
+      "sourceLineageReconciled": false,
+      "sourcePackageVersion": "1.0.23",
+      "trackedDirtyFilesAtResume": 19,
+      "webByteExactMatch": false,
+      "workingOnlyBridgeMethods": 2
+    },
+    "nextAction": "Recover Madar 1.0.28 exact build provenance, then implement authenticated pairing and live cross-app ACL; separately stabilize local model and package into future verified candidate.",
+    "releaseGates": {
+      "aiLocal": "BLOCKED_QUALITY_AND_RUNTIME",
+      "aiOnline": "NOT_TESTED_NO_USER_CREDENTIAL",
+      "connection": "NOT_VERIFIED_INSTALLED",
+      "counterpartyAccess": "NOT_VERIFIED_INSTALLED",
+      "financialFlow": "NOT_VERIFIED_INSTALLED",
+      "frozenBuild": "NOT_CREATED",
+      "madarVersionSourceParity": "BLOCKED_BUNDLE_DIFFERENCE",
+      "modelRealInference": "BLOCKED_TIMEOUT_AND_QUALITY",
+      "offlineE2E": "NOT_TESTED",
+      "productionUpgrade": "NOT_PERFORMED"
+    },
+    "safety": {
+      "cloudDataSent": false,
+      "forceKillUsed": false,
+      "madarDirtyWorktreePreserved": true,
+      "userFinancialDataChanged": false
+    },
+    "status": "IN_PROGRESS_NO_GO_FOR_RELEASE",
+    "verifiedInstalled": {
+      "madar": {
+        "sha256": "2bb04e2aa9c770469615d0716991fea8fcfc6b887b92003eeaa1ce565696ab49",
+        "version": "1.0.28"
+      },
+      "taraz": {
+        "sha256": "83a47d228d111b7ac8c4eff73ce0948a8b8517ae5e95bf0646bb5969fed0ba9b",
+        "version": "1.0.7"
+      }
+    }
+  },
+  "installedReadback": {
+    "madar": {
+      "sha256": "2bb04e2aa9c770469615d0716991fea8fcfc6b887b92003eeaa1ce565696ab49",
+      "sourceHeadAtStart": "f3a211d04ca262ca919ccd3c2d9ccb0bcc1d8daa",
+      "version": "1.0.28"
+    },
+    "taraz": {
+      "sha256": "83a47d228d111b7ac8c4eff73ce0948a8b8517ae5e95bf0646bb5969fed0ba9b",
+      "sourceHeadAtStart": "4f2ed3fab4ad26ad9342d4f86d33676ebd298815",
+      "version": "1.0.7"
+    }
+  },
   "lastSourceQA": {
-    "pythonCombined": "41/41 PASS (profile, history, finance preview, operational orders, template bridge)",
     "browserCombined": "8/8 PASS including commercial PDF download and zero journal command calls",
     "catalog": "25/25 PASS",
-    "viteBuild": "PASS; 2062 modules; existing oversized JS chunk warning",
     "installationPerformedForThisMission": false,
-    "sourceOnly": true
+    "pythonCombined": "41/41 PASS (profile, history, finance preview, operational orders, template bridge)",
+    "sourceOnly": true,
+    "viteBuild": "PASS; 2062 modules; existing oversized JS chunk warning"
   },
+  "mission": "TARAZ_MADAR_PRODUCTION_INTEGRATION",
   "nextAction": "Reconcile Madar 1.0.28 installed EXE with reproducible source lineage and dirty worktree; bind local Taraz catalog/order history via authenticated project-scoped peer and signed receipts, then implement card UI, financial inbox and full 100-passport E2E before any live upgrade",
-  "recovery": "Taraz prior 1.0.7 real backup D:/CoS-Test/TARAZ-V107-HOTFIX-BACKUP-20261116-B and retained 1.0.6 executable; do not treat old backup as fresh pre-upgrade backup. Madar baseline/source must be reconciled before release. Do not reset or restore over active user data."
+  "openGates": {
+    "PASS_AI_ASSISTED_DRAFT_WORKFLOW": "Actual provider disabled; manual core must remain usable",
+    "PASS_CUSTOMER_ORDER_HISTORY": "Read-only, filtered per-party-ID local Taraz API with backend admin/finance-view tests exists in source; no authenticated project ACL transport to Madar and no installed card UI",
+    "PASS_END_TO_END_PRODUCT_ACCEPTANCE": "Cross-app installed E2E and negative fault matrix unverified",
+    "PASS_FINANCIAL_PREVIEW_IN_MADAR": "No authorized live financial card preview",
+    "PASS_HUMAN_REVIEWED_FINANCIAL_POSTING": "Not implemented or accepted end to end",
+    "PASS_INSTALLED_CROSS_APP_RELEASE": "Production release prohibited until preceding gates pass",
+    "PASS_MADAR_TARAZ_FINANCIAL_INBOX": "Current local Bridge is metadata-only; no authoritative financial peer receipt",
+    "PASS_PROJECT_FINANCIAL_CASE": "Nine synthetic pure-finance proposal tests PASS for 100-passport costs and unknowns; real authenticated Madar -> Taraz case persistence / installed UI remain unverified",
+    "PASS_SHARED_COUNTERPARTY": "No actual installed authenticated Madar -> Taraz party selector",
+    "PASS_SOURCE_AND_DATA_COMPATIBILITY": "Additive commercial profile Clone backup/restore passed; real production pre-upgrade backup, future frozen binary and independent installed migration not yet accepted"
+  },
+  "owner": "single-prime",
+  "recovery": "Taraz prior 1.0.7 real backup D:/CoS-Test/TARAZ-V107-HOTFIX-BACKUP-20261116-B and retained 1.0.6 executable; do not treat old backup as fresh pre-upgrade backup. Madar baseline/source must be reconciled before release. Do not reset or restore over active user data.",
+  "safety": {
+    "forceKill": false,
+    "freshStartAgain": false,
+    "legacy609EventsMigration": false,
+    "llmProviderClaim": "DISABLED_BY_POLICY per prior installed/Frozen evidence",
+    "realAccountingTransactionCreated": false,
+    "realProfileReset": false,
+    "unrelatedWorktreeChangesDiscarded": false
+  },
+  "scope": "Ten-phase cross-app financial integration; preserve one ledger and existing Fresh Start",
+  "sourceAudit": {
+    "madarInstalledVersion": "1.0.28",
+    "madarModifiedTrackedCount": 19,
+    "madarSourcePackageVersion": "1.0.23",
+    "madarTrackedDirtyAtStart": true,
+    "preExistingUntrackedFilesPreserved": true,
+    "sourceLineageReconciled": false,
+    "tarazTrackedDirtyAtStart": false
+  },
+  "sourceWorkInProgress": {
+    "commercialInvoiceProfiles": {
+      "compatibility": "Additive brand template kind within existing version-1 per-ledger template library; no ledger schema migration or new ledger",
+      "files": [
+        "standalone_accounting_template_store.py",
+        "src/standalone_accounting_workspace.jsx",
+        "tests/test_taraz_invoice_profile_foundation_20261116.py",
+        "tests/taraz_commercial_invoice_profile_browser_20261116.test.cjs"
+      ],
+      "installedAcceptance": false,
+      "status": "SOURCE_IMPLEMENTED_TESTED_NOT_INSTALLED",
+      "testEvidence": [
+        "17 Python template/profile tests PASS including valid footer bounds",
+        "New native-source React/Edge brand test 1 PASS",
+        "Pre-existing native-source React/Edge designer and settings tests 7 PASS",
+        "npm run build PASS with optional code-splitting warning",
+        "D:/CoS-Test/TARAZ-MADAR-PHASE1-CLONE-20261116-B/phase1-acceptance.json PASS_CLONE_ONLY"
+      ]
+    },
+    "customerOrderHistory": {
+      "files": [
+        "taraz_order_store.py",
+        "taraz_desktop.py",
+        "standalone_accounting_desktop.py",
+        "tests/test_taraz_customer_order_history_20261116.py"
+      ],
+      "installedAcceptance": false,
+      "scope": "Local Taraz finance-view admin and registered ledger party only, redacted exact-party-ID sales orders; not remote authorized to Madar",
+      "status": "SOURCE_IMPLEMENTED_TESTED_NOT_INSTALLED",
+      "testEvidence": [
+        "6 local native Taraz SQLite/identity synthetic tests PASS",
+        "14 operational order tests PASS",
+        "25 local catalog tests PASS"
+      ]
+    },
+    "hundredPassportFinancialProposal": {
+      "canPost": false,
+      "files": [
+        "taraz_project_financial_case.py",
+        "tests/test_taraz_project_financial_case_20261116.py"
+      ],
+      "installedAcceptance": false,
+      "sourceTrusted": false,
+      "status": "SOURCE_ONLY_NON_POSTING_PREVIEW",
+      "syntheticDeclaredKnownCostsRial": 26000000,
+      "syntheticUnknowns": [
+        "sale unit price",
+        "print unit prices",
+        "internal labor costs",
+        "card payment account and date"
+      ],
+      "testEvidence": [
+        "9 synthetic cost and safety tests PASS",
+        "Profit marked computable but never final based solely on unsigned card data"
+      ],
+      "verifiedDeclaredKnownCostsRial": null
+    },
+    "traceability135": {
+      "blocked": 2,
+      "count": 135,
+      "matrix": "D:/CoS-Test/000- Madar/madar-p2-gantt-notifications-20261107/docs/modernization/MADAR_TARAZ_RADAR_135_IDEA_TRACEABILITY_20261116.csv",
+      "notVerified": 81,
+      "partialImplementation": 19,
+      "planned": 10,
+      "sourceOnly": 23,
+      "status": "UPDATED_WITHOUT_INSTALLED_ACCEPTANCE",
+      "updatedIdeaIds": [
+        "B05-05",
+        "B05-13",
+        "B07-09",
+        "B07-12"
+      ],
+      "verifiedImplemented": 0
+    }
+  },
+  "status": "IN_PROGRESS_NO_GO_FOR_RELEASE"
 }
