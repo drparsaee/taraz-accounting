@@ -3,13 +3,13 @@
   "project": "Taraz Accounting Desktop",
   "asOf": "2026-11-17",
   "source": {
-    "branch": "feat/taraz-p0-accounting-gates-20261117",
+    "branch": "feat/taraz-opening-ledger-20261117",
     "verifiedFixCommit": "d342275c6c00d96b50d299eb4c77373178884bf2",
     "sourceBaselineCommit": "cf80829d57305cbcce9546d695d5d35f942ced0b",
     "report": "docs/audits/TARAZ_P0_REMEDIATION_20261117_FA.md"
   },
   "execution": {
-    "activeTaskId": "TAR-04",
+    "activeTaskId": "TAR-05",
     "releaseStatus": "NO-GO",
     "oneActiveTaskOnly": true,
     "financialPostingAuthorized": false,
@@ -61,18 +61,18 @@
       "id": "TAR-04",
       "phase": "S1",
       "title": "قرارداد افتتاحیهٔ بدهکاران و بستانکاران؛ مدل و سناریوهای رد",
-      "status": "active",
+      "status": "source_verified",
       "dependsOn": ["TAR-01", "TAR-03"],
       "scope": "Only analyze current accounting_core.py guards and design synthetic test cases; no posting implementation until contract is explicit.",
       "acceptance": ["تعریف سند افتتاحیه مستقل از فاکتور جعلی، با شناسهٔ منبع، سال مالی و ارز صریح", "مشخص‌کردن ماندهٔ هر شخص و امکان تسویهٔ بعدی بدون مغایرت دفترکل", "سناریوهای رد: منبع تکراری، حساب نامعتبر، عدم توازن و ریال/تومان مبهم", "تهیهٔ تست‌های RED قابل اجرا روی دیتابیس مصنوعی و شواهد خط‌به‌خط سورس"],
-      "evidence": [],
+      "evidence": ["commit:2fa8f1eefb1db268d249c258b30a70d19136da6f", "tests/test_taraz_opening_contract_20261117.py:10/10 PASS", "docs/ops/TAR_04_OPENING_CONTRACT_20261117_FA.md"],
       "sourcePaths": ["accounting_core.py", "accounting_operational_extensions.py", "tests/test_taraz_accounting_p0_guards_20261117.py"]
     },
     {
       "id": "TAR-05",
       "phase": "S1",
       "title": "پیاده‌سازی افتتاحیهٔ AR/AP و تسویهٔ واقعی",
-      "status": "queued",
+      "status": "active",
       "dependsOn": ["TAR-04"],
       "scope": "Implement host-controlled, atomic opening with source identity, party subledger reconciliation and no fake invoices.",
       "acceptance": ["همهٔ تست‌های RED مرحلهٔ قبل PASS شوند", "تطبیق جمع دفترکل و ریز ماندهٔ اشخاص صفر اختلاف داشته باشد", "دادهٔ واقعی استفاده نشود", "Rollback/Replay/Crash و مجوز مدیر آزموده شود"],
