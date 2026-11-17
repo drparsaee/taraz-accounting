@@ -8,6 +8,7 @@ export default function TarazEcosystemLinkPanel({api,canAdmin=false}){
   const [code,setCode]=useState('');
   const [consent,setConsent]=useState(false);
   const [connections,setConnections]=useState([]);
+  const [identity,setIdentity]=useState(null);
   const [cards,setCards]=useState(null);
   const [busy,setBusy]=useState('');
   const [error,setError]=useState('');
@@ -21,13 +22,16 @@ export default function TarazEcosystemLinkPanel({api,canAdmin=false}){
     if(result?.financialEventCreated!==false||!Array.isArray(result.connections))
       throw Error('Invalid integration status');
     setConnections(result.connections);
+    setIdentity({companyId:result.companyId,installationId:result.installationId||null});
   },[api]);
   useEffect(()=>{
     if(!supported||!open)return;
     let active=true;
     void api.tarazEcosystemConnections().then(result=>{
-      if(active&&result?.financialEventCreated===false&&Array.isArray(result.connections))
+      if(active&&result?.financialEventCreated===false&&Array.isArray(result.connections)){
         setConnections(result.connections);
+        setIdentity({companyId:result.companyId,installationId:result.installationId||null});
+      }
     }).catch(()=>{if(active)setError('وضعیت اتصالات قابل تأیید نبود.');});
     return()=>{active=false;};
   },[api,supported,open]);
@@ -57,6 +61,18 @@ export default function TarazEcosystemLinkPanel({api,canAdmin=false}){
       throw Error('Invalid ACL card page');
     setCards(result);
   });
+  const processMailbox=workspace=>action('mailbox',async()=>{
+    if(typeof api?.tarazEcosystemMailboxProcess!=='function')throw Error('Mailbox unavailable');
+    // WebView confirmation is not operator authorization. After TLS poll,
+    // the Windows host displays exact request IDs in its native OS dialog.
+    const result=await api.tarazEcosystemMailboxProcess({
+      workspaceId:workspace,limit:5,manualConsent:true});
+    if(result?.source!=='TARAZ'||result?.readOnly!==true||
+       result?.financialEventCreated!==false||
+       !Number.isInteger(result.completed)||!Number.isInteger(result.received))
+      throw Error('Unverified mailbox operation');
+    setNotice(`${result.completed} پاسخ مجاز و فقط‌خواندنی به Mailbox مدار ارسال شد. کاربر مدار اکنون می‌تواند نتیجه را تازه‌سازی کند.`);
+  });
   const forget=workspace=>action('forget',async()=>{
     if(!window.confirm('فقط اعتبارنامه تراز لغو می‌شود. برای لغو سمت مدار نیز از تنظیمات مدار اقدام کنید. ادامه؟'))return;
     const result=await api.tarazEcosystemForget({workspaceId:workspace});
@@ -71,6 +87,10 @@ export default function TarazEcosystemLinkPanel({api,canAdmin=false}){
     <p>برای اتصال به مدار، ابتدا روی میزبان HTTPS مدار از بخش «اتصال نرم‌افزارها» یک کد موقت بگیرید. اثرانگشت گواهی را از راه مستقل با مدیر میزبان تطبیق دهید. این مسیر فقط کارت‌های مجاز را می‌خواند و به دفترکل دسترسی ندارد.</p>
     {!supported&&<p role="alert">این نسخه یا نشست فعلی، اتصال امن دو برنامه را پشتیبانی نمی‌کند.</p>}
     {supported&&<>
+      {identity&&<p>شناسهٔ شرکت ثبت‌شدهٔ تراز: <code dir="ltr">{identity.companyId}</code>
+        {identity.installationId&&<><span> | شناسهٔ نصب:</span> <code dir="ltr">{identity.installationId}</code></>}
+        <small>مدیر مدار باید این دو شناسه را جداگانه تطبیق و دسترسی همین شرکت را تأیید کند.</small>
+      </p>}
       <div className="taraz-ecosystem-fields">
         <label>نشانی میزبان مدار (HTTPS و IP خصوصی)
           <input dir="ltr" value={endpoint} onChange={e=>setEndpoint(e.target.value)}
@@ -99,6 +119,8 @@ export default function TarazEcosystemLinkPanel({api,canAdmin=false}){
           <small dir="ltr">{item.workspaceId}</small>
           {!item.revoked&&<><button type="button" disabled={!!busy}
             onClick={()=>readCards(item.workspaceId)}>خواندن کارت‌های مجاز</button>
+          <button type="button" disabled={!!busy||typeof api?.tarazEcosystemMailboxProcess!=='function'}
+            onClick={()=>processMailbox(item.workspaceId)}>پردازش درخواست‌های مدار</button>
           <button type="button" disabled={!!busy}
             onClick={()=>forget(item.workspaceId)}>قطع اتصال محلی</button></>}
         </div>)}

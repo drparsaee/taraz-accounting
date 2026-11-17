@@ -16,6 +16,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 import base64
 import csv
+import ctypes
+from ctypes import wintypes
 import hmac
 import io
 import json
@@ -24,6 +26,7 @@ from pathlib import Path
 import re
 import secrets
 import stat
+import struct
 import subprocess
 import threading
 import uuid
@@ -96,6 +99,7 @@ def _inventory(root: Path, *, initializing: bool = False) -> None:
         raise CredentialVaultError("Vault root must be dedicated to credentials")
     for item in root.iterdir():
         _regular(item)
+        _private_acl(item)
 
 
 def _cleanup_interrupted_updates(root: Path) -> None:
@@ -120,19 +124,123 @@ def _principal_sid() -> str:
 
 
 def _private_acl(path: Path) -> None:
-    """Remove inherited file ACLs and explicitly grant only the current SID."""
-    sid = _principal_sid()
+    """Atomically replace AND verify explicit Windows ACL on the real handle.
+
+    The older icacls /inheritance:r + /grant:r retained explicit Everyone
+    or other-account access grants. Exact protected DACL prevents that leak.
+    """
+    _must_windows()
+    path = Path(path)
     try:
-        for command in (["icacls", str(path), "/inheritance:r"],
-                        ["icacls", str(path), "/grant:r", "*" + sid + ":F"]):
-            subprocess.run(command, capture_output=True, text=True,
-                           timeout=15, check=True)
-        report = subprocess.run(["icacls", str(path)], capture_output=True,
-                                text=True, timeout=15, check=True).stdout
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise CredentialVaultError("Credential file private ACL setup failed") from exc
-    if "(I)" in report:
-        raise CredentialVaultError("Credential file ACL still inherits permissions")
+        info = path.lstat()
+        if (path.is_symlink() or
+                not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode))
+                or (stat.S_ISREG(info.st_mode) and info.st_nlink != 1)
+                or getattr(info, "st_file_attributes", 0) &
+                getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)):
+            raise CredentialVaultError("Unsafe credential ACL target")
+    except OSError:
+        raise CredentialVaultError("Credential ACL target unavailable") from None
+    sid = _principal_sid()
+    pointer = ctypes.c_void_p
+    dword = wintypes.DWORD
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    advapi = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel.CreateFileW.argtypes = (
+        wintypes.LPCWSTR, dword, dword, pointer, dword, dword, wintypes.HANDLE)
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel.LocalFree.argtypes = (pointer,)
+    advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes = (
+        wintypes.LPCWSTR, dword, ctypes.POINTER(pointer), ctypes.POINTER(dword))
+    advapi.GetSecurityDescriptorDacl.argtypes = (
+        pointer, ctypes.POINTER(wintypes.BOOL), ctypes.POINTER(pointer),
+        ctypes.POINTER(wintypes.BOOL))
+    advapi.SetSecurityInfo.argtypes = (
+        wintypes.HANDLE, dword, dword, pointer, pointer, pointer, pointer)
+    advapi.SetSecurityInfo.restype = dword
+    advapi.GetSecurityInfo.argtypes = (
+        wintypes.HANDLE, dword, dword, ctypes.POINTER(pointer),
+        ctypes.POINTER(pointer), ctypes.POINTER(pointer),
+        ctypes.POINTER(pointer), ctypes.POINTER(pointer))
+    advapi.GetSecurityInfo.restype = dword
+    advapi.GetSecurityDescriptorControl.argtypes = (
+        pointer, ctypes.POINTER(wintypes.WORD), ctypes.POINTER(dword))
+    advapi.GetAclInformation.argtypes = (pointer, pointer, dword, dword)
+    advapi.GetAce.argtypes = (pointer, dword, ctypes.POINTER(pointer))
+    advapi.ConvertSidToStringSidW.argtypes = (
+        pointer, ctypes.POINTER(pointer))
+
+    # READ_CONTROL | WRITE_DAC; share reads/writes without delete/rename.
+    # BACKUP_SEMANTICS opens directory handles. OPEN_REPARSE_POINT prevents
+    # following a link created after the first lstat().
+    handle = kernel.CreateFileW(str(path), 0x00060000, 0x00000003,
+                                None, 3, 0x02200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise CredentialVaultError("Cannot lock credential ACL target")
+    try:
+        descriptor = pointer()
+        sddl = "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;" + sid + ")"
+        if not advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                sddl, 1, ctypes.byref(descriptor), None):
+            raise CredentialVaultError("Cannot create protected credential ACL")
+        try:
+            present, acl, defaulted = (
+                wintypes.BOOL(), pointer(), wintypes.BOOL())
+            if not advapi.GetSecurityDescriptorDacl(
+                    descriptor, ctypes.byref(present), ctypes.byref(acl),
+                    ctypes.byref(defaulted)) or not present.value or not acl:
+                raise CredentialVaultError("Invalid credential ACL descriptor")
+            if advapi.SetSecurityInfo(
+                    handle, 1, 0x80000004, None, None, acl, None):
+                raise CredentialVaultError("Cannot enforce protected credential ACL")
+        finally:
+            kernel.LocalFree(descriptor)
+
+        observed_acl, observed_descriptor = pointer(), pointer()
+        if advapi.GetSecurityInfo(
+                handle, 1, 0x00000004, None, None,
+                ctypes.byref(observed_acl), None,
+                ctypes.byref(observed_descriptor)):
+            raise CredentialVaultError("Cannot verify credential ACL")
+        try:
+            controls, revision = wintypes.WORD(), dword()
+            if (not observed_acl or not advapi.GetSecurityDescriptorControl(
+                    observed_descriptor, ctypes.byref(controls),
+                    ctypes.byref(revision)) or not controls.value & 0x1000):
+                raise CredentialVaultError("Credential ACL is not protected")
+
+            class AclSize(ctypes.Structure):
+                _fields_ = [("count", dword), ("used", dword), ("free", dword)]
+
+            info = AclSize()
+            if not advapi.GetAclInformation(
+                    observed_acl, ctypes.byref(info),
+                    ctypes.sizeof(info), 2) or info.count != 3:
+                raise CredentialVaultError("Unexpected credential trustees")
+            observed = set()
+            for index in range(info.count):
+                ace = pointer()
+                if not advapi.GetAce(observed_acl, index, ctypes.byref(ace)):
+                    raise CredentialVaultError("Cannot verify credential ACE")
+                kind, flags, size, rights = struct.unpack(
+                    "<BBHI", ctypes.string_at(ace, 8))
+                if kind != 0 or flags != 0 or size < 16 or rights != 0x001F01FF:
+                    raise CredentialVaultError("Unsafe credential ACE")
+                trustee = pointer()
+                if not advapi.ConvertSidToStringSidW(
+                        pointer(ace.value + 8), ctypes.byref(trustee)):
+                    raise CredentialVaultError("Cannot verify credential trustee")
+                try:
+                    observed.add(ctypes.wstring_at(trustee))
+                finally:
+                    kernel.LocalFree(trustee)
+            if observed != {sid, "S-1-5-18", "S-1-5-32-544"}:
+                raise CredentialVaultError("Unexpected credential trustees")
+        finally:
+            kernel.LocalFree(observed_descriptor)
+    finally:
+        kernel.CloseHandle(handle)
 
 
 def _create_secure_file(path: Path, payload: bytes) -> None:
@@ -164,6 +272,11 @@ def _locked(root: Path, *, initializing: bool = False):
         lock = root / _LOCK_FILE
         if os.path.lexists(root / _FILE) and not os.path.lexists(lock):
             raise CredentialVaultError("Credential vault lock was removed")
+        # Check the entire dedicated inventory before changing ANY ACL.
+        # Harden existing child files first so Windows removing inherited
+        # access on the parent cannot temporarily lock us out of a child.
+        _inventory(root, initializing=initializing)
+        _private_acl(root)
         if not os.path.lexists(lock):
             if not initializing:
                 raise CredentialVaultError("Credential vault has not been initialized")

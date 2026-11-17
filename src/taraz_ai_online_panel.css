@@ -1,0 +1,24 @@
+.taraz-online-ai-panel{border:1px solid #cadbd8;border-radius:14px;padding:14px;margin:14px 0;
+  background:var(--vtr-card,#fff);color:var(--vtr-ink,#24313a);font-size:13px}
+.taraz-online-ai-panel>summary{cursor:pointer;font-weight:750;font-size:14px}
+.taraz-online-ai-panel p,.taraz-online-ai-panel small{line-height:1.8}
+.taraz-online-ai-warning{background:#fff9ed;border:1px solid #eacfa2;border-radius:9px;padding:10px}
+.taraz-online-ai-actions{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0}
+.taraz-online-ai-form{border-top:1px solid #d9e4e2;margin-top:14px;padding-top:12px;
+  display:flex;flex-direction:column;gap:10px;min-width:0}
+.taraz-online-ai-form h3{font-size:14px;margin:4px 0}
+.taraz-online-ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.taraz-online-ai-grid .taraz-online-ai-wide{grid-column:1 / -1}
+.taraz-online-ai-form label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:650}
+.taraz-online-ai-form input:not([type=checkbox]),.taraz-online-ai-form select,
+.taraz-online-ai-form textarea{display:block;width:100%;min-width:0;box-sizing:border-box;
+  font:inherit;border-radius:9px;border:1px solid #bbcfc9;padding:9px;background:#fff}
+.taraz-online-ai-form textarea{resize:vertical}
+.taraz-online-ai-form .taraz-online-ai-consent{flex-direction:row;align-items:flex-start;line-height:1.8}
+.taraz-online-ai-consent input{margin-top:5px}
+.taraz-online-ai-panel button{font:inherit;padding:8px 12px;border-radius:9px;
+  border:1px solid #9fb9b3;cursor:pointer;background:#e5f3ef;color:#1a4d46}
+.taraz-online-ai-panel button:disabled{opacity:.52;cursor:not-allowed}
+.taraz-online-ai-error{color:#9c2424;font-weight:600}
+.taraz-online-ai-answer{border:1px solid #c0ddd5;border-radius:9px;padding:12px;white-space:pre-wrap}
+@media(max-width:650px){.taraz-online-ai-grid{grid-template-columns:minmax(0,1fr)}}

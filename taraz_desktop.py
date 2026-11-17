@@ -169,9 +169,11 @@ class TarazAPI(AccountingDesktopAPI):
             self._ecosystem_admin()
             vault = company_vault(self.path.parent)
             if vault is None:
-                return {'configured': False, 'connections': [],
+                return {'configured': False, 'companyId': self.company_workspace_id,
+                        'connections': [],
                         'financialEventCreated': False}
             return {'configured': True, 'installationId': vault.installation_id(),
+                    'companyId': self.company_workspace_id,
                     'connections': vault.list_peers(),
                     'financialEventCreated': False}
 
@@ -294,6 +296,81 @@ class TarazAPI(AccountingDesktopAPI):
         return {'source': 'TARAZ', 'party': item,
                 'readOnly': True, 'financialEventCreated': False}
 
+    def tarazEcosystemMailboxProcess(self, request):
+        """Manual, registered-company read-only delivery to a pinned Madar host.
+
+        No background sync, financial posting, browser-supplied company scope or
+        ledger SQL writes. A live native administrator session is checked on
+        every directory read and after the transport boundary.
+        """
+        from taraz_ecosystem_native_boundary import company_vault
+        from taraz_ecosystem_client import MadarPinnedClient
+        from taraz_ecosystem_mailbox_consent import NativeMailboxBatchConsent
+        from taraz_ecosystem_mailbox_peer import TarazMailboxPeer
+        if (type(request) is not dict or
+                set(request) != {'workspaceId', 'limit', 'manualConsent'} or
+                request['manualConsent'] is not True or
+                type(request['workspaceId']) is not str or
+                type(request['limit']) is not int or
+                not 1 <= request['limit'] <= 10):
+            raise PermissionError('Explicit bounded administrator mailbox request required')
+        with self._lock:
+            original_actor = self._ecosystem_admin()['username']
+            company_id = self.company_workspace_id
+            book = self.path.parent
+            native_window = self._native_window
+            vault = company_vault(book)
+            if vault is None:
+                raise PermissionError('No authenticated paired Madar host')
+            peer = next((item for item in vault.list_peers()
+                         if item['workspaceId'] == request['workspaceId']
+                         and item['peerId'] == 'MADAR' and not item['revoked']), None)
+            if peer is None or not peer.get('endpoint'):
+                raise PermissionError('No active TLS-pinned Madar peer')
+            client = MadarPinnedClient(vault, endpoint=peer['endpoint'],
+                                       cert_sha256=peer['certSha256'])
+
+        def authorize(*, company_id, operation, party_id=None):
+            if (company_id != self.company_workspace_id or
+                    operation not in ('search', 'get') or
+                    book != self.path.parent):
+                return False
+            with self._lock:
+                try:
+                    return self._ecosystem_admin()['username'] == original_actor
+                except (PermissionError, RuntimeError):
+                    return False
+
+        # The renderer's manualConsent merely requests a poll. Every reply
+        # requires a separate, OS-native, user-clicked confirmation of exact
+        # request IDs and parameters from this authenticated HTTPS batch.
+        # The callback rechecks the live registered company and native window
+        # both after the dialog and before EACH reply. Headless calls deny.
+        def native_session_verified():
+            with self._lock:
+                try:
+                    return (self._native_window is native_window and
+                            self.company_workspace_id == company_id and
+                            self.path.parent == book and
+                            self._ecosystem_admin()['username'] == original_actor)
+                except (PermissionError, RuntimeError):
+                    return False
+
+        native_consent = NativeMailboxBatchConsent(
+            native_window, actor=original_actor, company_id=company_id,
+            workspace_id=request['workspaceId'],
+            installation_id=vault.installation_id(),
+            session_verified=native_session_verified)
+        runner = TarazMailboxPeer(client, workspace_id=request['workspaceId'],
+                                  company_id=company_id, company_book=book,
+                                  authorizer=authorize, native_consent=native_consent)
+        outcome = runner.run_once(limit=request['limit'])
+        with self._lock:
+            if self._ecosystem_admin()['username'] != original_actor or (
+                    self.company_workspace_id != company_id):
+                raise PermissionError('Company session changed during remote exchange')
+        return outcome
+
     def tarazAiProviderStatus(self):
         """AI status only; explicitly never invokes the model or a cloud API."""
         from taraz_ai_provider_status import provider_status
@@ -320,6 +397,108 @@ class TarazAPI(AccountingDesktopAPI):
             raise ValueError("Unexpected local model request fields")
         return generate(request["model"], request["prompt"],
                         manual_consent=request["manualConsent"])
+
+    def _online_ai_actor(self, role='viewer'):
+        """Verify a registered company's live native session, never a fixture."""
+        from standalone_accounting_identity import LocalCompanyIdentity
+        actor = self._require_authenticated(role)
+        if (type(self._identity_store) is not LocalCompanyIdentity or
+                not self.company_workspace_id or not self._identity_token):
+            raise PermissionError('Registered authenticated company required for online AI')
+        if self._exit_backed_up:
+            raise PermissionError('Accounting desktop is closing')
+        return actor['username']
+
+    def tarazAiOnlineStatus(self):
+        """Local configuration metadata only, not a remote connectivity check."""
+        from taraz_ai_online_native_boundary import (
+            company_online_vault, ONLINE_EXTERNAL_BLOCKER)
+        from taraz_ai_online_provider import configured_status
+        with self._lock:
+            self._online_ai_actor()
+            vault = company_online_vault(self.path.parent)
+            if vault is None:
+                return {'configured': False, 'provider': None, 'endpoint': None,
+                        'model': None, 'inputUsdPerMillion': None,
+                        'outputUsdPerMillion': None, 'generation': 0,
+                        'credentialsVerified': False,
+                        'providerHealthVerified': False,
+                        'externalTransmissionEnabled': False,
+                        'externalTransmissionBlocker': ONLINE_EXTERNAL_BLOCKER,
+                        'aggregateCostCapEnforced': False,
+                        'remoteRequestMade': False, 'financialActionsEnabled': False}
+            return {**configured_status(vault),
+                    'externalTransmissionEnabled': False,
+                    'externalTransmissionBlocker': ONLINE_EXTERNAL_BLOCKER,
+                    'aggregateCostCapEnforced': False}
+
+    def tarazAiOnlineConfigure(self, request):
+        """Explicit administrator credential setup, DPAPI sealed and local only."""
+        from taraz_ai_online_native_boundary import (
+            company_online_vault, ONLINE_EXTERNAL_BLOCKER)
+        from taraz_ai_online_credentials import validate_provider, _KEY, _rate
+        fields = {'provider', 'endpoint', 'model', 'apiKey',
+                  'inputUsdPerMillion', 'outputUsdPerMillion', 'manualConsent'}
+        if (type(request) is not dict or set(request) != fields or
+                request['manualConsent'] is not True):
+            raise PermissionError('Explicit administrator online AI setup required')
+        # Validate before creating a new private directory. Never log or echo key.
+        validate_provider(request['provider'], request['endpoint'], request['model'])
+        if (type(request['apiKey']) is not str or
+                not _KEY.fullmatch(request['apiKey'])):
+            raise ValueError('Invalid online AI credential shape')
+        _rate(request['inputUsdPerMillion'], 'input price')
+        _rate(request['outputUsdPerMillion'], 'output price')
+        with self._lock:
+            self._online_ai_actor('admin')
+            vault = company_online_vault(self.path.parent, initialize=True)
+            info = vault.configure(
+                provider=request['provider'], endpoint=request['endpoint'],
+                model=request['model'], api_key=request['apiKey'],
+                input_usd_per_million=request['inputUsdPerMillion'],
+                output_usd_per_million=request['outputUsdPerMillion'])
+            return {**info, 'credentialsVerified': False,
+                    'providerHealthVerified': False, 'remoteRequestMade': False,
+                    'externalTransmissionEnabled': False,
+                    'externalTransmissionBlocker': ONLINE_EXTERNAL_BLOCKER,
+                    'aggregateCostCapEnforced': False,
+                    'financialActionsEnabled': False}
+
+    def tarazAiOnlineClear(self, request):
+        """Explicit administrator deletion from current local DPAPI vault."""
+        from taraz_ai_online_native_boundary import company_online_vault
+        if type(request) is not dict or request != {'manualConsent': True}:
+            raise PermissionError('Explicit online AI credential deletion required')
+        with self._lock:
+            self._online_ai_actor('admin')
+            vault = company_online_vault(self.path.parent)
+            if vault is None:
+                raise PermissionError('No configured online AI credentials')
+            vault.clear()
+            return {'clearedLocally': True, 'providerKeyRevoked': False,
+                    'remoteRequestMade': False, 'financialActionsEnabled': False}
+
+    def tarazAiOnlineHealth(self, request):
+        """Disabled until a native, not renderer-only, human approval exists."""
+        if type(request) is not dict or request != {'manualConsent': True}:
+            raise PermissionError('Explicit online TLS probe consent required')
+        with self._lock:
+            self._online_ai_actor('admin')
+        raise PermissionError(
+            'ONLINE_EXTERNAL_TRANSMISSION_DISABLED: verified native human '
+            'approval has not been implemented')
+
+    def tarazAiOnlineGenerate(self, request):
+        """Fail-closed: no billable request via a renderer-controlled boolean."""
+        fields = {'text', 'manualConsent', 'maxEstimatedUsd'}
+        if (type(request) is not dict or set(request) != fields or
+                request['manualConsent'] is not True):
+            raise PermissionError('Explicit online text transmission consent required')
+        with self._lock:
+            self._online_ai_actor('editor')
+        raise PermissionError(
+            'ONLINE_EXTERNAL_TRANSMISSION_DISABLED: verified native human '
+            'approval and aggregate financial budget are not implemented')
 
     def tarazAiChatList(self, query=''):
         """List only current authenticated actor's company-scoped AI history."""

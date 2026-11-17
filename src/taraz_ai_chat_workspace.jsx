@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {MessageSquarePlus,Search,ShieldCheck,Send,Download,Trash2,RefreshCw} from 'lucide-react';
 import TarazAiLocalPanel from './taraz_ai_local_panel.jsx';
+import TarazAiOnlinePanel from './taraz_ai_online_panel.jsx';
 import './taraz_ai_chat_workspace.css';
 
 const ACTION_STATES={
@@ -157,6 +158,7 @@ export default function TarazAiChatWorkspace({api,canEdit=false,canApprove=canEd
       </div>
     </header>
     <TarazAiLocalPanel api={api} canEdit={canEdit}/>
+    <TarazAiOnlinePanel api={api} canEdit={canEdit}/>
     {!supported?<div role="alert" className="taraz-ai-alert">
       میزبان فعلی از پایگاه داده و دستورات این نسخه پشتیبانی نمی‌کند. داده‌ای به‌طور موقت ذخیره نمی‌شود.
     </div>:<div className="taraz-ai-layout">

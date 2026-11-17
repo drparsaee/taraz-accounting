@@ -23,6 +23,14 @@ class RealCrossProductPairingTests(unittest.TestCase):
             self.skipTest("Set MADAR_QA_SOURCE for two-source HTTPS integration QA")
         self._sys_path = list(sys.path)
         sys.path.insert(0, source)
+        # A recovered 1.0.28 stage keeps its disposable TLS fixtures in the
+        # isolated candidate's sibling tests/ directory. Do not silently fall
+        # back to ACTIVE Madar test credentials when validating that candidate.
+        fixtures = (Path(source) / "tests", Path(source).parent / "tests")
+        for folder in fixtures:
+            if (folder / "test_lan_tls.py").is_file():
+                sys.path.insert(0, str(folder))
+                break
         self.addCleanup(lambda: setattr(sys, "path", self._sys_path))
         import native_app
         from lan import LanService, certificate_fingerprint

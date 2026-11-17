@@ -28,6 +28,11 @@ _TOKEN = re.compile(r"mdv1_[A-Za-z0-9_-]{64}\Z")
 _SHA = re.compile(r"[a-f0-9]{64}\Z")
 _MAX_RESPONSE_BYTES = 262144
 _NETWORK_DEADLINE_SECONDS = 8.0
+_MAILBOX_POST_PATHS = frozenset({
+    "/integrations/v1/mailbox/poll",
+    "/integrations/v1/mailbox/reply",
+    "/integrations/v1/mailbox/delivery-ack",
+})
 _FIELDS = frozenset({"id", "projectId", "title", "status", "priority", "dueDate"})
 
 
@@ -81,19 +86,21 @@ class MadarPinnedClient:
     def _request(self, method, path, *, payload=None, token=None):
         if (method, path.split("?", 1)[0]) not in (
                 ("POST", "/integrations/v1/pair"),
-                ("GET", "/integrations/v1/cards")):
+                ("GET", "/integrations/v1/cards")) and not (
+                method == "POST" and path in _MAILBOX_POST_PATHS):
             raise EcosystemConnectionError("Unsupported Madar integration operation")
         if method == "GET" and payload is not None:
             raise ValueError("GET cannot contain a request body")
         if method == "GET" and re.fullmatch(
                 r"/integrations/v1/cards\?limit=(?:[1-9][0-9]{0,2})\Z", path) is None:
             raise ValueError("Invalid bounded Madar card path")
-        if method == "POST" and path != "/integrations/v1/pair":
+        if method == "POST" and path not in (_MAILBOX_POST_PATHS | {"/integrations/v1/pair"}):
             raise ValueError("Invalid peer pairing path")
         body = (json.dumps(payload, ensure_ascii=False,
                            separators=(",", ":"), allow_nan=False).encode("utf-8")
                 if payload is not None else None)
-        if body is not None and len(body) > 1024:
+        body_limit = 32768 if path == "/integrations/v1/mailbox/reply" else 8192
+        if body is not None and len(body) > body_limit:
             raise ValueError("Pairing request exceeds size limit")
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -119,7 +126,7 @@ class MadarPinnedClient:
         outgoing = ("\r\n".join(request_headers) + "\r\n\r\n").encode("ascii")
         if body is not None:
             outgoing += body
-        if len(outgoing) > 4096:
+        if len(outgoing) > body_limit + 3072:
             raise EcosystemConnectionError("Integration request exceeds transport limit")
 
         def receive(transport, size, deadline):
