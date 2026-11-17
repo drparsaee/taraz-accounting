@@ -72,6 +72,7 @@ _EDITOR_FINANCE_COMMANDS = frozenset({
 _ADMIN_ONLY_COMMANDS = frozenset({
     "account.create", "company.profile.set", "funds.deposit",
     "inventory.opening", "tax.rule.set", "fiscal.year.close", "period.close",
+    "opening.balance.post",
 })
 
 
@@ -188,6 +189,7 @@ def _new_projection(currency="TOMAN", *, preserve_historical_custom_ids=frozense
                      if aid not in (_NEW_SYSTEM_ACCOUNTS & preserve_historical_custom_ids)},
         "parties": {}, "items": {}, "proformas": {}, "invoices": {}, "bills": {}, "receipts": {},
         "payments": {}, "journals": [], "entries": {}, "balances": {},
+        "openingBalances": {}, "openingSources": {},
         "contractorJobs": {},
         "cheques": {}, "bankStatements": {}, "warehouses": {},
         "stock": {}, "stockMovements": {}, "installmentPlans": {},
@@ -600,6 +602,72 @@ def _post(p, event_id, source_type, source_id, day, lines, *, reversal_of=None):
     return entry
 
 
+def _opening_batch(p, command, now):
+    """Post one explicit, admin-only historical opening batch to RIAL ledger.
+
+    An opening is a named party liability/asset, not a manufactured invoice.
+    Once financial journals exist, a new opening requires a separately audited
+    migration workflow; retroactive imports cannot bypass source reconciliation.
+    All rows and the balanced journal are returned in ONE host SQLite revision.
+    """
+    from taraz_opening_contract import inspect_opening_batch
+
+    preview = inspect_opening_batch(command)
+    if p["currency"] != "RIAL":
+        raise ValueError("Opening balances require independent RIAL ledger V2")
+    if p["journals"] or p["openingSources"]:
+        raise ValueError("Opening batch must precede all financial postings")
+    if command["sourceId"] in p["openingSources"]:
+        raise ValueError("Duplicate opening source")
+    day = _posting_date(p, command["postingDate"], now)
+    if day != command["fiscalStartDate"]:
+        raise ValueError("Initial opening must post on the explicit fiscal start date")
+    _account(p, "3000", kind="equity")
+    _account(p, "1200", kind="asset")
+    _account(p, "2000", kind="liability")
+    # Validate every named party BEFORE any in-memory GL change.
+    for row in command["rows"]:
+        if row["sourceRef"] in p["openingBalances"]:
+            raise ValueError("Duplicate opening line source")
+        _party(p, row["partyId"],
+               "customer" if row["direction"] == "receivable" else "vendor")
+    journal_lines = []
+    for row in command["rows"]:
+        amount = row["amountRial"]
+        if row["direction"] == "receivable":
+            journal_lines.extend((_line("1200", debit=amount, party_id=row["partyId"]),
+                                  _line("3000", credit=amount)))
+        else:
+            journal_lines.extend((_line("3000", debit=amount),
+                                  _line("2000", credit=amount, party_id=row["partyId"])))
+    entry = _post(p, command["eventId"], "opening.balance.post",
+                  command["sourceId"], day, journal_lines)
+    for row in command["rows"]:
+        p["openingBalances"][row["sourceRef"]] = {
+            "id": row["sourceRef"],
+            "sourceId": command["sourceId"],
+            "partyId": row["partyId"],
+            "direction": row["direction"],
+            "total": row["amountRial"],
+            "allocated": 0,
+            "postingDate": day,
+            "journalId": entry["id"],
+            "active": True,
+        }
+    p["openingSources"][command["sourceId"]] = {
+        "sourceDigest": command["sourceDigest"], "journalId": entry["id"],
+        "fiscalStartDate": command["fiscalStartDate"],
+        "rowCount": preview["rowCount"],
+        "receivableRial": preview["receivableRial"],
+        "payableRial": preview["payableRial"],
+        "active": True,
+    }
+    return {"journalId": entry["id"], "sourceId": command["sourceId"],
+            "rowCount": preview["rowCount"], "currency": "RIAL",
+            "receivableRial": preview["receivableRial"],
+            "payableRial": preview["payableRial"]}
+
+
 def _issue(p, command, now, *, sales):
     prefix = "invoice" if sales else "bill"
     key = prefix + "Id"
@@ -655,20 +723,39 @@ def _allocations(p, command, *, sales):
     seen = set()
     total = 0
     for item in allocations:
-        _object(item, (key, "amount"))
-        doc_id = _id(item[key], key)
-        if doc_id in seen:
-            raise ValueError("Duplicate document allocation")
-        seen.add(doc_id)
-        doc = collection.get(doc_id)
-        amt = _int(item["amount"], "allocation", positive=True)
-        if doc is None or doc["status"] != "issued" or doc["partyId"] != command["partyId"]:
-            raise ValueError("Allocation must target issued document for named party")
-        if command["postingDate"] < doc["postingDate"]:
-            raise ValueError("Settlement cannot precede document posting date")
-        if amt > _outstanding(doc):
-            raise ValueError("Over-allocation or overpayment")
-        amounts.append({key: doc_id, "amount": amt})
+        if type(item) is not dict:
+            raise ValueError("Settlement allocation must be an object")
+        if "openingRef" in item:
+            _object(item, ("openingRef", "amount"))
+            amt = _int(item["amount"], "allocation", positive=True)
+            opening_ref = _id(item["openingRef"], "openingRef")
+            identity = ("opening", opening_ref)
+            target = p["openingBalances"].get(opening_ref)
+            if (target is None or not target["active"] or
+                    target["partyId"] != command["partyId"] or
+                    target["direction"] != ("receivable" if sales else "payable")):
+                raise ValueError("Opening allocation must match active named party and direction")
+            if command["postingDate"] < target["postingDate"]:
+                raise ValueError("Opening settlement cannot precede posting")
+            if amt > _outstanding(target):
+                raise ValueError("Over-allocation of historical opening")
+            amounts.append({"openingRef": opening_ref, "amount": amt})
+        else:
+            _object(item, (key, "amount"))
+            amt = _int(item["amount"], "allocation", positive=True)
+            doc_id = _id(item[key], key)
+            identity = ("document", doc_id)
+            doc = collection.get(doc_id)
+            if doc is None or doc["status"] != "issued" or doc["partyId"] != command["partyId"]:
+                raise ValueError("Allocation must target issued document for named party")
+            if command["postingDate"] < doc["postingDate"]:
+                raise ValueError("Settlement cannot precede document posting date")
+            if amt > _outstanding(doc):
+                raise ValueError("Over-allocation or overpayment")
+            amounts.append({key: doc_id, "amount": amt})
+        if identity in seen:
+            raise ValueError("Duplicate settlement allocation")
+        seen.add(identity)
         total = _add(total, amt)
     return amounts, total
 
@@ -694,8 +781,11 @@ def _settle(p, command, now, *, sales):
                  _line(command["accountId"], credit=total)]
     entry = _post(p, command["eventId"], command["type"], ident, day, lines)
     for item in allocations:
-        doc_id = item["invoiceId" if sales else "billId"]
-        doc = p["invoices" if sales else "bills"][doc_id]
+        if "openingRef" in item:
+            doc = p["openingBalances"][item["openingRef"]]
+        else:
+            doc_id = item["invoiceId" if sales else "billId"]
+            doc = p["invoices" if sales else "bills"][doc_id]
         doc["allocated"] += item["amount"]
     collection[ident] = {"id": ident, "partyId": command["partyId"],
                          "accountId": command["accountId"], "date": day,
@@ -714,7 +804,8 @@ def _reverse(p, command, now):
         raise ValueError("Unmatch bank statement before reversing this journal")
     source_type = original["sourceType"]
     if source_type not in {"invoice.issue", "bill.issue", "receipt.record",
-                           "payment.record", "funds.deposit", "funds.transfer", "journal.manual"}:
+                           "payment.record", "funds.deposit", "funds.transfer",
+                           "journal.manual", "opening.balance.post"}:
         raise ValueError("Journal source cannot be reversed")
     _text(command["reason"], "reversal reason", limit=1000)
     day = _posting_date(p, command["postingDate"], now)
@@ -736,6 +827,13 @@ def _reverse(p, command, now):
         if any(row.get(movement_source) == document["id"]
                and not row.get("reversed") for row in p["stockMovements"].values()):
             raise ValueError("Reverse linked inventory movements before the original invoice")
+    if source_type == "opening.balance.post":
+        source = p["openingSources"].get(original["sourceId"])
+        if source is None or not source["active"]:
+            raise ValueError("Opening batch is not active")
+        if any(record["sourceId"] == original["sourceId"] and record["allocated"] != 0
+               for record in p["openingBalances"].values()):
+            raise ValueError("Reverse opening receipts/payments before reversing historical opening")
     lines = []
     for item in original["lines"]:
         lines.append(_line(item["accountId"], debit=item["credit"],
@@ -745,13 +843,21 @@ def _reverse(p, command, now):
     p["reversed"][journal_id] = entry["id"]
     if source_type in {"invoice.issue", "bill.issue"}:
         document["status"] = "reversed"
+    if source_type == "opening.balance.post":
+        p["openingSources"][original["sourceId"]]["active"] = False
+        for record in p["openingBalances"].values():
+            if record["sourceId"] == original["sourceId"]:
+                record["active"] = False
     if source_type in {"receipt.record", "payment.record"}:
         sales = source_type == "receipt.record"
         settlement = p["receipts" if sales else "payments"][original["sourceId"]]
         settlement["reversed"] = True
         for item in settlement["allocations"]:
-            doc = p["invoices" if sales else "bills"][
-                item["invoiceId" if sales else "billId"]]
+            if "openingRef" in item:
+                doc = p["openingBalances"][item["openingRef"]]
+            else:
+                doc = p["invoices" if sales else "bills"][
+                    item["invoiceId" if sales else "billId"]]
             doc["allocated"] -= item["amount"]
         for cheque in p["cheques"].values():
             if cheque["journalId"] == journal_id:
@@ -809,6 +915,11 @@ def _guard_explicit_first_fiscal_start(p, command):
     if (command.get("type") == "fiscal.year.close"
             and not p["fiscalYears"] and "startDate" not in command):
         raise ValueError("Explicit startDate is required for the first fiscal-year close")
+    if command.get("type") == "fiscal.year.close" and not p["fiscalYears"]:
+        starts = {source["fiscalStartDate"] for source in p["openingSources"].values()
+                  if source["active"]}
+        if starts and command.get("startDate") not in starts:
+            raise ValueError("Fiscal startDate disagrees with posted opening balances")
 
 
 def _partial_return(p, command, now, *, sales):
@@ -941,6 +1052,8 @@ def _run(p, command, role, now, *, finance_edit=False):
     kind = _text(command["type"], "command type", limit=50)
     event_id = _id(command["eventId"], "eventId")
     _require(role, kind, finance_edit=finance_edit)
+    if kind == "opening.balance.post":
+        return _opening_batch(p, command, now)
     if kind in ("proforma.create", "proforma.update"):
         return _proforma_create(p, command, update=kind == "proforma.update")
     if kind in ("proforma.send", "proforma.accept", "proforma.reject",
@@ -1038,9 +1151,17 @@ def _run(p, command, role, now, *, finance_edit=False):
             if role not in ("customer", "both") and any(
                     d["partyId"] == ident for d in p["invoices"].values()):
                 raise ValueError("Cannot remove customer role with invoice history")
+            if role not in ("customer", "both") and any(
+                    d["partyId"] == ident and d["direction"] == "receivable"
+                    for d in p["openingBalances"].values()):
+                raise ValueError("Cannot remove customer role with opening history")
             if role not in ("vendor", "both") and any(
                     d["partyId"] == ident for d in p["bills"].values()):
                 raise ValueError("Cannot remove vendor role with purchase history")
+            if role not in ("vendor", "both") and any(
+                    d["partyId"] == ident and d["direction"] == "payable"
+                    for d in p["openingBalances"].values()):
+                raise ValueError("Cannot remove vendor role with opening history")
             party["kind"] = role
         if "name" in command:
             party["name"] = _text(command["name"], "party name")
@@ -1050,6 +1171,9 @@ def _run(p, command, role, now, *, finance_edit=False):
                 limit = _int(limit, "credit limit")
                 outstanding = sum(_outstanding(d) for d in p["invoices"].values()
                                   if d["status"] == "issued" and d["partyId"] == ident)
+                outstanding += sum(_outstanding(d) for d in p["openingBalances"].values()
+                                   if d["active"] and d["direction"] == "receivable"
+                                   and d["partyId"] == ident)
                 if outstanding > limit:
                     raise ValueError("Credit limit below current receivable")
             party["creditLimit"] = limit
@@ -1434,6 +1558,11 @@ def _check_party_balances(p):
             if doc["status"] == "issued":
                 expected[doc["partyId"]] = expected.get(doc["partyId"], 0) + (
                     _outstanding(doc))
+        direction = "receivable" if account_id == "1200" else "payable"
+        for item in p["openingBalances"].values():
+            if item["active"] and item["direction"] == direction:
+                expected[item["partyId"]] = expected.get(item["partyId"], 0) + (
+                    _outstanding(item))
         actual = {}
         for journal in p["journals"]:
             for line in journal["lines"]:
@@ -1559,6 +1688,12 @@ def accounting_view(state, *, actor, accounts):
                        if d["partyId"] == party_id and d["status"] == "issued")
         vendor = sum(_outstanding(d) for d in p["bills"].values()
                      if d["partyId"] == party_id and d["status"] == "issued")
+        customer += sum(_outstanding(o) for o in p["openingBalances"].values()
+                        if o["active"] and o["partyId"] == party_id
+                        and o["direction"] == "receivable")
+        vendor += sum(_outstanding(o) for o in p["openingBalances"].values()
+                      if o["active"] and o["partyId"] == party_id
+                      and o["direction"] == "payable")
         party_view = {**deepcopy(item), "receivable": customer, "payable": vendor,
                       "netReceivable": customer - vendor}
         # The native party is linked to the actual imported tafsili GL account.
@@ -1580,6 +1715,8 @@ def accounting_view(state, *, actor, accounts):
                      "items": p["items"],
                      "parties": parties, "proformas": p["proformas"],
                      "invoices": p["invoices"], "bills": p["bills"],
+                     "openingBalances": p["openingBalances"],
+                     "openingSources": p["openingSources"],
                      "contractorJobs": p["contractorJobs"],
                      "receipts": p["receipts"], "payments": p["payments"],
                      "returns": p["returns"],
