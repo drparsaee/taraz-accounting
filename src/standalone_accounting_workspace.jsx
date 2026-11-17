@@ -709,6 +709,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     if(previewUrl.current)globalThis.URL?.revokeObjectURL?.(previewUrl.current);
   },[]);
   const live=useRef(true),request=useRef(0),locked=useRef(false),latest=useRef(null),
+    initialLedgerEverLoaded=useRef(false),
     pending=useRef(null),nativeClosePending=useRef(false);
   const view=snapshot?.view;
   const freshLedger=view?.freshWindowsWorkspace===true;
@@ -962,7 +963,13 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
     };
     const confirmNativeClose=()=>{
       if(nativeClosePending.current)return false;
-      if(locked.current||busy||pendingRetry||state.loading){
+      // Only the never-loaded overview has no financial editor or locally
+      // held ledger state. Keep later refreshes, dirty forms and pending writes
+      // subject to the existing closing veto.
+      const coldReadOnly=state.loading&&!initialLedgerEverLoaded.current&&
+        snapshot===null&&latest.current===null&&tab==='overview'&&
+        !hasUnsavedFinancialEditor&&!hasActiveChildDraft();
+      if(locked.current||busy||pendingRetry||(state.loading&&!coldReadOnly)){
         window.alert('عملیات مالی هنوز در حال انجام است. پس از پایان عملیات دوباره برای خروج اقدام کنید.');
         return false;
       }
@@ -986,7 +993,64 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
       if(window.__madarAccountingAbortNativeClose===abortNativeClose)
         delete window.__madarAccountingAbortNativeClose;
     };
-  },[busy,pendingRetry,state.loading,hasUnsavedFinancialEditor,tab]);
+  },[busy,pendingRetry,state.loading,hasUnsavedFinancialEditor,tab,snapshot]);
+  useEffect(()=>{
+    // The native closing event must not synchronously evaluate JavaScript:
+    // WebView2 may never signal its synchronous semaphore. React polls a
+    // bounded, one-use same-origin request and runs the SAME unsaved-editor
+    // consent function above. Silence/timeout means native close is vetoed.
+    const token=window.__tarazNativeCloseToken;
+    if(typeof token!=='string'||token.length<32||
+       window.location.hostname!=='127.0.0.1'||
+       typeof api?.nativeCloseBootstrap!=='function')return;
+    let active=true,busyPoll=false,sessionToken='',timer=null;
+    const seen=new Set();
+    const requestNative=async(action,payload={})=>{
+      if(!sessionToken)throw Error('Native WebView session not authenticated');
+      const response=await fetch('/__taraz_native_close_v1/'+action,{
+        method:'POST',mode:'same-origin',credentials:'omit',cache:'no-store',
+        headers:{'Content-Type':'application/json',
+          'X-Taraz-Close-Token':token,
+          'X-Taraz-Close-Session-Token':sessionToken},
+        body:JSON.stringify(payload)});
+      if(!response.ok)throw Error('Native close acknowledgment unavailable');
+      return response.json();
+    };
+    const poll=async()=>{
+      if(!active||busyPoll)return;
+      busyPoll=true;
+      try{
+        const reply=await requestNative('poll');
+        if(!active||reply?.pending!==true||
+           typeof reply.requestId!=='string'||
+           !/^[0-9a-f]{32}$/.test(reply.requestId)||
+           !['close','abort'].includes(reply.kind)||seen.has(reply.requestId))return;
+        seen.add(reply.requestId);
+        if(seen.size>24)seen.clear();
+        const confirmed=reply.kind==='close'
+          ?window.__madarAccountingConfirmNativeClose?.()===true
+          :window.__madarAccountingAbortNativeClose?.()===true;
+        // Never claim success merely because an HTTP request was initiated;
+        // the native nonce state verifies the received reply separately.
+        Promise.resolve(requestNative('respond',{
+          requestId:reply.requestId,kind:reply.kind,confirmed})).catch(()=>{});
+        if(reply.kind==='abort'&&confirmed&&reply.warningCode==='BACKUP_FAILED')
+          setState(p=>({...p,error:'بستن تراز متوقف شد؛ نسخه پشتیبان نهایی تأیید نشد.'}));
+      }catch(_error){/* Missing/disconnected JS is NEVER native approval. */}
+      finally{busyPoll=false;}
+    };
+    // Session capability comes solely from this WebView's authenticated
+    // JS->Python bridge; it is NEVER embedded into GET /accounting.html.
+    // An outside browser can fetch the page token but cannot fake React's
+    // unsaved-editor approval without this native-delivered capability.
+    void Promise.resolve().then(()=>api.nativeCloseBootstrap()).then(value=>{
+      if(!active||typeof value!=='string'||value.length<32)return;
+      sessionToken=value;
+      timer=setInterval(poll,350);
+      void poll();
+    }).catch(()=>{/* No native bootstrap means NO native close authority. */});
+    return()=>{active=false;if(timer!==null)clearInterval(timer);};
+  },[]);
   const closeInvoiceComposer=({force=false}={})=>{
     if(!force&&hasUnsavedInvoice&&!window.confirm(
       'اطلاعات واردشده در فاکتور هنوز ذخیره نشده است. بدون ذخیره به فهرست بازگردیم؟'))return false;
@@ -1150,6 +1214,7 @@ export function StandaloneAccountingWorkspace({api,onExit=()=>{},canManage=false
         throw new Error('مسیر خواندن حسابداری مستقل در میزبان موجود نیست.');
       const result=validateStandaloneResponse(await api.standaloneAccountingRead());
       if(!live.current||n!==request.current)return;
+      initialLedgerEverLoaded.current=true;
       latest.current=result;setSnapshot(result);
       setState({loading:false,error:'',notice:'اطلاعات دفترکل از میزبان دریافت شد.'});
       return result;

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import secrets
 import sys
 import time
 from datetime import datetime, timezone
@@ -25,6 +27,7 @@ JS_BRIDGE = """<script>
 window.__madarStandaloneOnly = true;
 window.madar = Object.fromEntries(
   ['standaloneAccountingRead', 'standaloneAccountingCommand',
+   'nativeCloseBootstrap',
    'standaloneAccountingCsvChooseFile', 'standaloneAccountingCsvPreview',
    'standaloneAccountingParsianHistory', 'standaloneAccountingParsianCompany', 'standaloneAccountingParsianExtended',
    'standaloneAccountingParsianArchiveIndex', 'standaloneAccountingParsianArchiveRows',
@@ -56,6 +59,21 @@ window.madar = Object.fromEntries(
    'standaloneAccountingManageUsers',
    'releaseCheck', 'releaseDownload', 'releaseInstall'].map(
     key => [key, (...args) => new Promise((resolve, reject) => {
+      // Only five boot requests, plus the optional brand-library read, are
+      // recorded. Never include financial response bodies or raw arguments.
+      const tracked = window.__phaseCBridgeTraceEnabled === true &&
+        ['standaloneAccountingRead','standaloneAccountingParsianCompany',
+         'standaloneAccountingTemplateList'].includes(key);
+      const kind = key === 'standaloneAccountingTemplateList' &&
+        ['entry','print','issuer','brand'].includes(args[0]) ? args[0] : undefined;
+      const entry = tracked ? {method:key,phase:'proxy-created',
+        startedAt:Date.now(),monotonicMs:performance.now(),
+        ...(kind ? {kind} : {})} : null;
+      if (entry) {
+        const history = window.__phaseCBridgeTrace || (window.__phaseCBridgeTrace = []);
+        history.push(entry);
+        if (history.length > 48) history.shift();
+      }
       // WebView2 can expose an api object before populating the methods.
       // Checking only window.pywebview.api caused a TypeError/blank GUI on
       // slower starts. Retry only for a bounded startup window.
@@ -63,16 +81,23 @@ window.madar = Object.fromEntries(
       const invoke = () => {
         const fn = window.pywebview?.api?.[key];
         if (typeof fn !== 'function') {
+          if (entry) entry.phase = 'awaiting-native-method';
           if (Date.now() - started < 12000) {
             setTimeout(invoke, 80);
           } else {
+            if (entry) {entry.phase='native-method-unavailable';entry.elapsedMs=Date.now()-entry.startedAt;}
             reject(new Error('ارتباط امن حسابداری ویندوز آماده نشد؛ برنامه را دوباره باز کنید.'));
           }
           return;
         }
+        if (entry) entry.phase = 'native-invoked';
         try {
-          Promise.resolve(fn(...args)).then(resolve, reject);
+          Promise.resolve(fn(...args)).then(
+            value => {if (entry) {entry.phase='resolved';entry.elapsedMs=Date.now()-entry.startedAt;} resolve(value);},
+            error => {if (entry) {entry.phase='rejected';entry.elapsedMs=Date.now()-entry.startedAt;} reject(error);}
+          );
         } catch (err) {
+          if (entry) {entry.phase='sync-exception';entry.elapsedMs=Date.now()-entry.startedAt;}
           reject(err);
         }
       };
@@ -134,7 +159,8 @@ class NativeAccountingCloseGate:
     """
 
     def __init__(self, window, api, final_backup, *, thread_factory=Thread,
-                 on_aborted_close=None, decision_script=None):
+                 on_aborted_close=None, decision_script=None,
+                 decision_provider=None):
         self.window = window
         self.api = api
         self.final_backup = final_backup
@@ -143,6 +169,11 @@ class NativeAccountingCloseGate:
         self.decision_script = decision_script or (
             "typeof window.__madarAccountingConfirmNativeClose === 'function' "
             "&& window.__madarAccountingConfirmNativeClose()")
+        if decision_provider is not None and not callable(decision_provider):
+            raise TypeError('Native close consent provider must be callable')
+        # The provider is bounded, one-use React->native consent. Never invoke
+        # synchronous evaluate_js on the close worker when it is configured.
+        self.decision_provider = decision_provider
         self._lock = RLock()
         self._checking = False
         self._approved = False
@@ -162,13 +193,26 @@ class NativeAccountingCloseGate:
                     'precloseBackupVerifiedCount': self._preclose_backup_verified_count,
                     'reentrantAcceptCount': self._reentrant_accept_count}
 
+    def close_decision_pending(self):
+        """For the native switch requester: a first X is being evaluated.
+
+        This is observational only; never grants permission to close.
+        """
+        with self._lock:
+            return self._checking or self._approved
+
+    def _clear_aborted_switch(self):
+        # The switch is a web-initiated request, NOT independent evidence that
+        # an invoice/bill editor was clean or the user consented to discard.
+        with self.api._lock:
+            self.api._switch_requested = False
+
     def closing(self):
         with self._lock:
             self._native_attempt_count += 1
-            if self._approved or getattr(self.api, '_switch_requested', False):
-                reentrant=self._approved
-                if reentrant:
-                    self._close_event_seen=True
+            if self._approved:
+                reentrant=True
+                self._close_event_seen=True
                 self._approved = False
                 authorized = True
             elif self._checking:
@@ -202,10 +246,13 @@ class NativeAccountingCloseGate:
         return False
 
     def _recover_aborted(self):
+        self._clear_aborted_switch()
         try:
             # Older fake close callbacks returned None. Explicit False means
             # the real bridge never acknowledged a recoverable live editor.
-            recovered = self.on_aborted_close() is not False
+            answer = self.on_aborted_close()
+            recovered = (answer is True if self.decision_provider is not None
+                         else answer is not False)
         except Exception as exc:
             print('Native accounting abort recovery failed: '+str(exc),
                   file=sys.stderr)
@@ -222,16 +269,22 @@ class NativeAccountingCloseGate:
                 self._checking = False
 
     def _decide(self):
+        uncertain = False
         try:
             # The React handler validates busy/retry status and asks before
             # discarding any bill, invoice, or issued-document correction.
-            answer = self.window.evaluate_js(self.decision_script)
+            answer = (self.decision_provider() if self.decision_provider is not None
+                      else self.window.evaluate_js(self.decision_script))
+            uncertain = self.decision_provider is not None and answer is None
             accepted = answer is True
         except Exception as exc:
             print('Native accounting close guard unavailable: ' + str(exc),
                   file=sys.stderr)
             accepted = False
+            uncertain = self.decision_provider is not None
         js_approved = accepted
+        if not js_approved:
+            self._clear_aborted_switch()
         if js_approved:
             with self._lock:
                 self._js_confirmed_count += 1
@@ -248,9 +301,10 @@ class NativeAccountingCloseGate:
                 print('Native accounting pre-close backup failed: ' + str(exc),
                       file=sys.stderr)
                 accepted = False
-        if js_approved and not accepted:
+        if (js_approved and not accepted) or uncertain:
             # The React editor was frozen after confirmation. A failed
-            # mandatory backup must re-enable that same live editor.
+            # mandatory backup or late/unknown consent must re-enable that
+            # same live editor through a separately confirmed abort response.
             self._recover_aborted()
         with self._lock:
             self._checking = False
@@ -392,11 +446,15 @@ class AccountingDesktopAPI:
                     print("Company switch could not close native window: " + str(exc),
                           file=sys.stderr)
                 finally:
-                    # A backend may silently ignore destroy(). Do not leave
-                    # a permanent company-switch authorization that lets the
-                    # *next* X bypass freshly edited bill/invoice fields.
+                    # The first native destroy is only a close *request*.
+                    # It can return after the gate's initial veto while
+                    # asynchronous React consent + verified backup are still
+                    # in progress. Never cancel a legitimate pending switch,
+                    # but do revoke an ignored request without a close worker.
+                    gate = getattr(self, '_native_close_gate', None)
+                    pending = bool(gate and gate.close_decision_pending())
                     with self._lock:
-                        if not self._exit_backed_up:
+                        if not self._exit_backed_up and not pending:
                             self._switch_requested = False
             Thread(target=close_owned_window, daemon=True).start()
             return True
@@ -553,11 +611,47 @@ class AccountingDesktopAPI:
         return {'status':'closed'}
 
 
-def serve_accounting_page(site):
+def _phase_c_private_trace_enabled():
+    """Private metadata-only trace; never enable it for a normal Taraz profile."""
+    if os.environ.get("PHASE_C_BRIDGE_TRACE") != "1":
+        return False
+    roaming = os.environ.get("APPDATA")
+    local = os.environ.get("LOCALAPPDATA")
+    if not roaming or not local:
+        return False
+    a, b = Path(roaming), Path(local)
+    if (not a.is_absolute() or not b.is_absolute() or
+            a.is_symlink() or b.is_symlink() or
+            a.name != "APPDATA" or b.name != "LOCALAPPDATA" or
+            a.parent != b.parent):
+        return False
+    return (a.parent.parent.name == "qa-runtime" and
+            a.parent.parent.parent.name == "phase-c-frozen-close-gate-qa")
+
+
+def serve_accounting_page(site, *, close_handshake=None, close_http_token=None,
+                          close_session_token=None):
     """Host only the built accounting page on an ephemeral loopback port."""
     site = Path(site)
     if not (site / "accounting.html").is_file():
         raise FileNotFoundError("Run npm run build before launching accounting")
+    if len([v for v in (close_handshake, close_http_token,
+                       close_session_token) if v is not None]) not in (0,3):
+        raise ValueError('Native close requires both window and bridge session tokens')
+    if close_handshake is not None and (
+            type(close_http_token) is not str or
+            len(close_http_token) < 32 or not close_http_token.isascii() or
+            type(close_session_token) is not str or
+            len(close_session_token) < 32 or not close_session_token.isascii() or
+            close_session_token == close_http_token):
+        raise ValueError('Native close requires two distinct strong tokens')
+    close_prelude = (
+        '<script>window.__tarazNativeCloseToken=' +
+        json.dumps(close_http_token) + ';</script>'
+        if close_handshake is not None else '')
+    phase_c_trace_prelude = (
+        "<script>window.__phaseCBridgeTraceEnabled=true;</script>"
+        if _phase_c_private_trace_enabled() else "")
 
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -573,7 +667,8 @@ def serve_accounting_page(site):
                 return
             if pathname in ("/", "/accounting.html"):
                 content = (site / "accounting.html").read_text(encoding="utf-8")
-                content = content.replace("</head>", JS_BRIDGE + "</head>")
+                content = content.replace("</head>",
+                    close_prelude + phase_c_trace_prelude + JS_BRIDGE + "</head>")
                 encoded = content.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -586,6 +681,49 @@ def serve_accounting_page(site):
                 self.send_error(404, "Task manager not part of standalone accounting")
                 return
             super().do_GET()
+
+        def do_POST(self):
+            # Only this ephemeral GUI host accepts same-origin, per-window
+            # one-use native close consent. No cross-origin or LAN authority.
+            if (close_handshake is None or self.path not in (
+                    '/__taraz_native_close_v1/poll',
+                    '/__taraz_native_close_v1/respond')):
+                self.send_error(404)
+                return
+            origin='http://127.0.0.1:' + str(self.server.server_port)
+            if (self.headers.get('Host') != origin[7:] or
+                    self.headers.get('Origin') not in (None, origin) or
+                    not secrets.compare_digest(
+                        self.headers.get('X-Taraz-Close-Token',''),close_http_token) or
+                    not secrets.compare_digest(
+                        self.headers.get('X-Taraz-Close-Session-Token',''),
+                        close_session_token) or
+                    self.headers.get('Content-Type','').split(';')[0].strip().lower()
+                        != 'application/json' or
+                    self.headers.get('Transfer-Encoding') is not None):
+                self.send_error(403)
+                return
+            try:
+                size=int(self.headers.get('Content-Length','-1'))
+                if not 1 <= size <= 512:
+                    raise ValueError('Unexpected close request size')
+                payload=json.loads(self.rfile.read(size))
+                if self.path.endswith('/poll'):
+                    if payload != {}:
+                        raise ValueError('Unexpected fields in native poll')
+                    response=close_handshake.poll()
+                else:
+                    response=close_handshake.respond(payload)
+            except (ValueError,TypeError,UnicodeError,PermissionError):
+                self.send_error(403)
+                return
+            output=json.dumps(response,separators=(',',':')).encode('ascii')
+            self.send_response(200)
+            self.send_header('Content-Type','application/json')
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length',str(len(output)))
+            self.end_headers()
+            self.wfile.write(output)
 
         def log_message(self, *_args):
             return
@@ -732,6 +870,7 @@ def _run_company_session(data_dir, selected_company_name, args):
 
         close_gate=NativeAccountingCloseGate(window,api,backup_on_close,
             on_aborted_close=reset_aborted_close)
+        api._native_close_gate=close_gate
         window.events.closing += close_gate.closing
         webview.start()
     finally:

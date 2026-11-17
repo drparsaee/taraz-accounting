@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import sqlite3
 import stat
 import sys
@@ -1302,7 +1303,24 @@ def _run_authenticated_taraz_api(api):
         prepare_offline_accounting_on_launch(api, backups)
         backups.start()
         root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-        server = serve_accounting_page(root / "dist")
+        from taraz_native_close_handshake import TarazNativeCloseHandshake
+        close_handshake = TarazNativeCloseHandshake(timeout_seconds=12.0)
+        close_http_token = secrets.token_urlsafe(32)
+        close_session_token = secrets.token_urlsafe(32)
+        def native_close_bootstrap():
+            # A separate browser/local HTTP client can GET the served HTML and
+            # read its page token. A second capability is handed ONLY through
+            # the real pywebview native bridge of this authenticated session.
+            # If that JS->Python callback is broken, native close fails shut.
+            with api._lock:
+                api._require_authenticated()
+                if api._exit_backed_up:
+                    raise RuntimeError('Financial session is already closing')
+                return close_session_token
+        api.nativeCloseBootstrap = native_close_bootstrap
+        server = serve_accounting_page(root / "dist",
+            close_handshake=close_handshake,close_http_token=close_http_token,
+            close_session_token=close_session_token)
         Thread(target=server.serve_forever, daemon=True).start()
         import webview
         # PyWebView's EdgeChromium backend cancels every browser download
@@ -1316,33 +1334,56 @@ def _run_authenticated_taraz_api(api):
             # pywebview's EdgeChromiumCreationProperties only recognizes this
             # official internal setting, not an environment-only CDP flag.
             webview.settings['REMOTE_DEBUGGING_PORT'] = private_cdp_port
+        # Disposable-ONLY diagnostic, inert for ordinary Taraz profiles.
+        # The real bound methods are traced before pywebview receives the API.
+        from taraz_phase_c_startup_trace import install_private_trace
+        startup_trace = install_private_trace(api, data)
         window = webview.create_window(
             "\u062a\u0631\u0627\u0632 | \u062d\u0633\u0627\u0628\u062f\u0627\u0631\u06cc",
             f"http://127.0.0.1:{server.server_port}/accounting.html",
             width=1500,height=950,min_size=(920,640),js_api=api,
         )
+        if startup_trace is not None:
+            startup_trace.wrap_window(window)
+            startup_trace.event('__startup__', 'window_created')
         api._native_window = window
         exit_backed_up = False
+        failed_exit_backup = False
         def backup_on_close():
-            nonlocal exit_backed_up
+            nonlocal exit_backed_up,failed_exit_backup
             if exit_backed_up:
                 return True
             try:
                 with api._lock:
-                    backups.backup_now()
+                    from standalone_accounting_backup_manifest import verify_completion_manifest
+                    manifest=backups.backup_now()
+                    verify_completion_manifest(manifest)
                     api._exit_backed_up = True
                 exit_backed_up = True
+                failed_exit_backup = False
                 return True
             except Exception:
+                failed_exit_backup = True
                 return False
         def abort_close():
-            nonlocal exit_backed_up
-            if recover_native_editor_after_close_abort(window, api):
+            nonlocal exit_backed_up,failed_exit_backup
+            # No synchronous evaluate_js: keep host writes blocked until
+            # React explicitly acknowledges restoring its own inert editor.
+            with api._lock:
+                api._exit_backed_up = True
+            recovered = close_handshake.await_abort_ack(
+                warning_code='BACKUP_FAILED' if failed_exit_backup else None)
+            if recovered:
+                with api._lock:
+                    api._exit_backed_up = False
                 exit_backed_up = False
+                failed_exit_backup = False
                 return True
             return False
         close_gate = NativeAccountingCloseGate(window, api, backup_on_close,
-            on_aborted_close=abort_close)
+            on_aborted_close=abort_close,
+            decision_provider=close_handshake.await_close_consent)
+        api._native_close_gate = close_gate
         window.events.closing += close_gate.closing
         # An explicit private-QA native close intent must still travel through
         # the exact same financial JS confirmation and verified backup gate.
@@ -1369,8 +1410,12 @@ def _run_authenticated_taraz_api(api):
                 Path(os.environ["TARAZ_QA_REPORT"]).write_text(json.dumps(values,ensure_ascii=False,indent=2),encoding="utf-8")
             window.events.loaded += lambda: Thread(target=check_ui, daemon=True).start()
         try:
+            if startup_trace is not None:
+                startup_trace.event('__startup__', 'webview_start_enter')
             webview.start(gui="edgechromium", debug=False)
         finally:
+            if startup_trace is not None:
+                startup_trace.event('__startup__', 'webview_start_return')
             try:
                 backups.stop()
                 if not exit_backed_up:
