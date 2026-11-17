@@ -9,7 +9,7 @@
     "report": "docs/audits/TARAZ_P0_REMEDIATION_20261117_FA.md"
   },
   "execution": {
-    "activeTaskId": "TAR-05",
+    "activeTaskId": "TAR-06",
     "releaseStatus": "NO-GO",
     "oneActiveTaskOnly": true,
     "financialPostingAuthorized": false,
@@ -72,17 +72,23 @@
       "id": "TAR-05",
       "phase": "S1",
       "title": "پیاده‌سازی افتتاحیهٔ AR/AP و تسویهٔ واقعی",
-      "status": "active",
+      "status": "source_verified",
       "dependsOn": ["TAR-04"],
       "scope": "Implement host-controlled, atomic opening with source identity, party subledger reconciliation and no fake invoices.",
       "acceptance": ["همهٔ تست‌های RED مرحلهٔ قبل PASS شوند", "تطبیق جمع دفترکل و ریز ماندهٔ اشخاص صفر اختلاف داشته باشد", "دادهٔ واقعی استفاده نشود", "Rollback/Replay/Crash و مجوز مدیر آزموده شود"],
-      "evidence": []
+      "evidence": [
+        "commit:bf0866e0eb3829b235b31818f674bcfaaebdf663",
+        "tests/test_taraz_opening_ledger_20261117.py:13/13 PASS",
+        "tests/test_taraz_opening_contract_20261117.py:10/10 PASS",
+        "docs/audits/TAR_05_OPENING_LEDGER_QA_20261117_FA.md",
+        "LIMITATION: host-level Parsian provenance, company scope, frozen EXE and real posting NOT ACCEPTED"
+      ]
     },
     {
       "id": "TAR-06",
       "phase": "S2",
       "title": "موجودی منابع پارسیان و قرارداد تطبیق تمام سال‌ها",
-      "status": "queued",
+      "status": "active",
       "dependsOn": ["TAR-05"],
       "scope": "Read-only source inventory by financial year, account, counterparty, invoices, settlements and currency provenance.",
       "acceptance": ["منبع هر رکورد قابل ردگیری باشد", "گزارش پوشش سال‌ها و ماژول‌ها و داده‌های ناموجود ارائه شود", "هیچ اطلاعات شخصی وارد GitHub نشود"],
