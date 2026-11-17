@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "project": "Taraz Accounting Desktop",
+  "asOf": "2026-11-17",
+  "source": {
+    "branch": "feat/taraz-p0-accounting-gates-20261117",
+    "verifiedFixCommit": "d342275c6c00d96b50d299eb4c77373178884bf2",
+    "sourceBaselineCommit": "cf80829d57305cbcce9546d695d5d35f942ced0b",
+    "report": "docs/audits/TARAZ_P0_REMEDIATION_20261117_FA.md"
+  },
+  "execution": {
+    "activeTaskId": "TAR-04",
+    "releaseStatus": "NO-GO",
+    "oneActiveTaskOnly": true,
+    "financialPostingAuthorized": false,
+    "installedModificationAuthorized": false,
+    "productionDataAuthorized": false,
+    "defaultBranchMergeAuthorized": false
+  },
+  "phases": [
+    {"id": "S0", "title": "تثبیت خط مبنا و گیت‌های اصلاح‌شده"},
+    {"id": "S1", "title": "افتتاحیه و صحت حساب‌ها"},
+    {"id": "S2", "title": "مهاجرت پارسیان و تطبیق"},
+    {"id": "S3", "title": "مالیات و تمامیت دفترکل"},
+    {"id": "S4", "title": "بکاپ و بازیابی ایمن"},
+    {"id": "S5", "title": "رابط کاربر و تجربهٔ حسابدار"},
+    {"id": "S6", "title": "نسخه‌سازی، اجرای EXE و انتشار"}
+  ],
+  "tasks": [
+    {
+      "id": "TAR-01",
+      "phase": "S0",
+      "title": "کنترل برگشت/اصلاح فاکتور با اقساط فعال",
+      "status": "source_verified",
+      "dependsOn": [],
+      "scope": "Reject new reversal/return/correction while installment plan is active; keep legacy replay compatible.",
+      "acceptance": ["آزمون‌های برگشت خرید و فروش و اصلاح سند و بازپخش تاریخچه موفق باشد", "بدون اثر روی دفتر واقعی"],
+      "evidence": ["commit:d342275c6c00d96b50d299eb4c77373178884bf2", "tests/test_taraz_accounting_p0_guards_20261117.py:8/8 PASS"]
+    },
+    {
+      "id": "TAR-02",
+      "phase": "S0",
+      "title": "سیاست رمز جدید و حفظ بازیابی حساب‌های قدیمی",
+      "status": "source_verified",
+      "dependsOn": [],
+      "scope": "New and reset passwords min 10 characters, legacy accounts can authenticate only for safe transition; forced rotation still pending.",
+      "acceptance": ["رمز کوتاه جدید رد شود", "حساب قدیمی حذف یا قفل دائمی نشود"],
+      "evidence": ["commit:d342275c6c00d96b50d299eb4c77373178884bf2", "tests/test_taraz_password_policy_20261117.py:3/3 PASS"]
+    },
+    {
+      "id": "TAR-03",
+      "phase": "S0",
+      "title": "جلوگیری از شروع پیش‌فرض اشتباه اولین سال مالی",
+      "status": "source_verified",
+      "dependsOn": [],
+      "scope": "First fiscal close must have explicit startDate; older events remain replayable.",
+      "acceptance": ["شروع نامشخص برای اولین بستن سال رد شود", "رویداد قدیمی بدون تخریب بازپخش شود"],
+      "evidence": ["commit:d342275c6c00d96b50d299eb4c77373178884bf2", "tests/test_taraz_accounting_p0_guards_20261117.py:8/8 PASS"]
+    },
+    {
+      "id": "TAR-04",
+      "phase": "S1",
+      "title": "قرارداد افتتاحیهٔ بدهکاران و بستانکاران؛ مدل و سناریوهای رد",
+      "status": "active",
+      "dependsOn": ["TAR-01", "TAR-03"],
+      "scope": "Only analyze current accounting_core.py guards and design synthetic test cases; no posting implementation until contract is explicit.",
+      "acceptance": ["تعریف سند افتتاحیه مستقل از فاکتور جعلی، با شناسهٔ منبع، سال مالی و ارز صریح", "مشخص‌کردن ماندهٔ هر شخص و امکان تسویهٔ بعدی بدون مغایرت دفترکل", "سناریوهای رد: منبع تکراری، حساب نامعتبر، عدم توازن و ریال/تومان مبهم", "تهیهٔ تست‌های RED قابل اجرا روی دیتابیس مصنوعی و شواهد خط‌به‌خط سورس"],
+      "evidence": [],
+      "sourcePaths": ["accounting_core.py", "accounting_operational_extensions.py", "tests/test_taraz_accounting_p0_guards_20261117.py"]
+    },
+    {
+      "id": "TAR-05",
+      "phase": "S1",
+      "title": "پیاده‌سازی افتتاحیهٔ AR/AP و تسویهٔ واقعی",
+      "status": "queued",
+      "dependsOn": ["TAR-04"],
+      "scope": "Implement host-controlled, atomic opening with source identity, party subledger reconciliation and no fake invoices.",
+      "acceptance": ["همهٔ تست‌های RED مرحلهٔ قبل PASS شوند", "تطبیق جمع دفترکل و ریز ماندهٔ اشخاص صفر اختلاف داشته باشد", "دادهٔ واقعی استفاده نشود", "Rollback/Replay/Crash و مجوز مدیر آزموده شود"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-06",
+      "phase": "S2",
+      "title": "موجودی منابع پارسیان و قرارداد تطبیق تمام سال‌ها",
+      "status": "queued",
+      "dependsOn": ["TAR-05"],
+      "scope": "Read-only source inventory by financial year, account, counterparty, invoices, settlements and currency provenance.",
+      "acceptance": ["منبع هر رکورد قابل ردگیری باشد", "گزارش پوشش سال‌ها و ماژول‌ها و داده‌های ناموجود ارائه شود", "هیچ اطلاعات شخصی وارد GitHub نشود"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-07",
+      "phase": "S2",
+      "title": "پیش‌نمایش مهاجرت و گزارش مغایرت بدون نوشتن",
+      "status": "queued",
+      "dependsOn": ["TAR-06"],
+      "scope": "Map Parsian data to Taraz canonical entities; identify matched, missing, duplicate and ambiguous records.",
+      "acceptance": ["تطبیق دوطرفهٔ تعداد و مبلغ هر حساب و طرف‌حساب", "ثبت صریح واحد ریال/تومان و تبدیل مستند", "عدم قبول انتقال با مغایرت حل‌نشده"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-08",
+      "phase": "S2",
+      "title": "اجرای مهاجرت روی Clone و بازگشت ایمن",
+      "status": "queued",
+      "dependsOn": ["TAR-07"],
+      "scope": "Import only into disposable company clone with unique source mapping and atomic commit/rollback.",
+      "acceptance": ["مغایرت ماندهٔ کل و ریز حساب صفر", "تکرار import سند دوباره نسازد", "Backup→Restore→Replay و سناریوی Crash PASS"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-09",
+      "phase": "S3",
+      "title": "قواعد مالیات خرید، برگشت و تسویه",
+      "status": "queued",
+      "dependsOn": ["TAR-05"],
+      "scope": "Separate recoverable input tax from expense; versioned policy, exemption and corrections. Do not assume statutory rate.",
+      "acceptance": ["تست عددی بدهکار/بستانکار و خرید معاف/مشمول", "برگشت و اصلاح مالیات بدون دوباره‌ثبت", "نرخ قانونی فقط از سیاست صریح معتبر گرفته شود"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-10",
+      "phase": "S3",
+      "title": "یکتایی منبع، حفاظت تاریخچه و ضدبازپخش",
+      "status": "queued",
+      "dependsOn": ["TAR-05"],
+      "scope": "Source uniqueness inside accounting kernel, authenticated external hash anchor and rollback detection; assess compromised OS limitations.",
+      "acceptance": ["ثبت تکراری یک منبع رد شود", "تحریف یا بازگردانی نسخهٔ قدیمی در آزمون تشخیص داده شود", "کلید و Anchor کنار فایل DB قابل جعل نباشند"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-11",
+      "phase": "S4",
+      "title": "بکاپ یکپارچه و رمزگذاری‌شدهٔ کل شرکت",
+      "status": "queued",
+      "dependsOn": ["TAR-08", "TAR-10"],
+      "scope": "Versioned, encrypted, authenticated full-company backup including ledger, users, attachments, immutable receipts and grants.",
+      "acceptance": ["فهرست همهٔ منابع داده و نسخهٔ Backup کامل شود", "هیچ فایل حساس plaintext در خروجی نماند", "گیت فضای دیسک و آلودگی/خرابی اجرا شود"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-12",
+      "phase": "S4",
+      "title": "بازیابی روی سیستم دیگر و کنترل ابطال مجوزها",
+      "status": "queued",
+      "dependsOn": ["TAR-11"],
+      "scope": "Isolated cross-principal restore, recovery-key handling, no revoked grant resurrection and no rollback to unsafe authority.",
+      "acceptance": ["Restore روی Clone مستقل موفق و تطبیق هش/مانده کامل شود", "مجوز باطل‌شده زنده نشود", "Rollback ایمن و گزارش شکست وجود داشته باشد"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-13",
+      "phase": "S5",
+      "title": "رابط قابل‌استفادهٔ روزانهٔ حسابدار",
+      "status": "queued",
+      "dependsOn": ["TAR-08", "TAR-09", "TAR-12"],
+      "scope": "Company and party setup, invoice/credit note, receipts, account balances, migration preview, backup UI and print; simple/pro modes on same ledger.",
+      "acceptance": ["پنج گردش اصلی بدون CLI در GUI قابل انجام باشد", "ذخیره→بستن→بازکردن و PDF معتبر روی Clone", "عدم ثبت خودکار سند از پیشنهاد مدار یا AI"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-14",
+      "phase": "S6",
+      "title": "نسخه، CI و Builder واحد",
+      "status": "queued",
+      "dependsOn": ["TAR-12", "TAR-13"],
+      "scope": "Fix package/entrypoint drift, wire reproducible CI; preserve independent Taraz source identity.",
+      "acceptance": ["نسخهٔ واحد در metadata و EXE", "تمام تست‌های Python/JS و گیت امنیتی پس از هر Fix", "Build از Clone تازه بدون مسیر محلی خاص"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-15",
+      "phase": "S6",
+      "title": "آزمون Frozen GUI، خروج، Crash و دو سیستم",
+      "status": "queued",
+      "dependsOn": ["TAR-14"],
+      "scope": "Test real frozen EXE with consent, unsaved drafts, normal shutdown, backup, restart and LAN two-client reconcile.",
+      "acceptance": ["بدون Force Kill و دورزدن Close Guard", "هیچ انتظار نامحدود و هیچ اتلاف داده", "ثبت شواهد واقعی دو کلاینت و آزمون مهاجرت و چاپ"],
+      "evidence": []
+    },
+    {
+      "id": "TAR-16",
+      "phase": "S6",
+      "title": "گیت نهایی انتشار",
+      "status": "queued",
+      "dependsOn": ["TAR-15"],
+      "scope": "Independent read-only release audit and explicit user approval for installed update.",
+      "acceptance": ["همهٔ وابستگی‌ها تأییدشده باشند", "گزارش Build/QA/Restore و ریسک‌های باز مستند شود", "بدون تأیید انتشار، نسخهٔ نصب‌شده تغییر نکند"],
+      "evidence": []
+    }
+  ]
+}
