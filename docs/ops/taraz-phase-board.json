@@ -9,7 +9,7 @@
     "report": "docs/audits/TARAZ_P0_REMEDIATION_20261117_FA.md"
   },
   "execution": {
-    "activeTaskId": "TAR-09",
+    "activeTaskId": "TAR-10",
     "releaseStatus": "NO-GO",
     "oneActiveTaskOnly": true,
     "financialPostingAuthorized": false,
@@ -123,7 +123,7 @@
       "id": "TAR-09",
       "phase": "S3",
       "title": "قواعد مالیات خرید، برگشت و تسویه",
-      "status": "active",
+      "status": "blocked",
       "dependsOn": ["TAR-05"],
       "scope": "Separate recoverable input tax from expense; versioned policy, exemption and corrections. Do not assume statutory rate.",
       "acceptance": ["تست عددی بدهکار/بستانکار و خرید معاف/مشمول", "برگشت و اصلاح مالیات بدون دوباره‌ثبت", "نرخ قانونی فقط از سیاست صریح معتبر گرفته شود"],
@@ -131,14 +131,16 @@
         "commit:a048ef950718af4de448f19f63dda6766cce47d8",
         "tests/test_taraz_purchase_tax_contract_20261117.py:9/9 PASS",
         "docs/ops/TAR_09_PURCHASE_TAX_CONTRACT_20261117_FA.md",
-        "LIMITATION: policy source and legal eligibility unverified; GL tax posting not implemented"
-      ]
+        "LIMITATION: policy source and legal eligibility unverified; GL tax posting not implemented",
+        "docs/ops/TAR_09_TAX_POLICY_BLOCKER_20261117_FA.md"
+      ],
+      "blocker": "Company-approved dated purchase-tax policy, recoverability authority and GL tax-account treatment not independently verified. Do not invent statutory rates or post tax."
     },
     {
       "id": "TAR-10",
       "phase": "S3",
       "title": "یکتایی منبع، حفاظت تاریخچه و ضدبازپخش",
-      "status": "queued",
+      "status": "active",
       "dependsOn": ["TAR-05"],
       "scope": "Source uniqueness inside accounting kernel, authenticated external hash anchor and rollback detection; assess compromised OS limitations.",
       "acceptance": ["ثبت تکراری یک منبع رد شود", "تحریف یا بازگردانی نسخهٔ قدیمی در آزمون تشخیص داده شود", "کلید و Anchor کنار فایل DB قابل جعل نباشند"],

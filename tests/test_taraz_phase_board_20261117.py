@@ -24,21 +24,21 @@ class PhaseBoardTests(unittest.TestCase):
 
     def test_board_is_valid_and_not_release_ready(self):
         result = validate(self.board)
-        self.assertEqual(result["active"], "TAR-09")
+        self.assertEqual(result["active"], "TAR-10")
         self.assertEqual(result["verified"], 5)
-        self.assertEqual(result["blocked"], 1)
+        self.assertEqual(result["blocked"], 2)
         self.assertEqual(result["release"], "NO-GO")
         self.assertEqual(result["tasks"], 16)
 
     def test_second_active_task_fails_closed(self):
-        self.check_invalid(lambda b: b["tasks"][9].update(status="active"), "one matching active")
+        self.check_invalid(lambda b: b["tasks"][10].update(status="active"), "one matching active")
 
     def test_fake_pass_without_evidence_is_refused(self):
-        self.check_invalid(lambda b: b["tasks"][9].update(status="source_verified"),
+        self.check_invalid(lambda b: b["tasks"][10].update(status="source_verified"),
                            "no exact commit proof")
 
     def test_fake_pass_with_fake_test_is_refused(self):
-        self.check_invalid(lambda b: b["tasks"][9].update(
+        self.check_invalid(lambda b: b["tasks"][10].update(
             status="source_verified", evidence=["commit:" + "a" * 40]),
             "no passing test proof")
 
