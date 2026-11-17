@@ -1,5 +1,7 @@
 ﻿node_modules/
 dist/
+release/
+tests/output/
 taraz-dist/
 personal-dist/
 pyinstaller-work/
@@ -10,6 +12,13 @@ pyinstaller-spec/
 *.sqlite3
 *.sqlite3-*
 *.db
+*.exe
+*.zip
+*.7z
+*.pem
+*.key
+*.p12
+*.pfx
 *.BAK
 *.bak
 *.jsonl

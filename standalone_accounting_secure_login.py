@@ -83,7 +83,9 @@ class PremiumAccountingLogin:
                 state='normal',justify='right').pack(fill='x',ipady=4,pady=(0,9))
         for label,variable,secret in [
             ('نام کاربری',self.username,False),
-            ('رمز عبور (حداقل ۴ نویسه، رمز ۴ رقمی مجاز)',self.password,True),
+            (('رمز عبور جدید (حداقل ۱۰ نویسه؛ PIN چهاررقمی ممنوع)'
+              if self.setup else 'رمز عبور (برای حساب‌های قدیمی، رمز قبلی پذیرفته می‌شود)'),
+             self.password,True),
             *(([('تکرار رمز عبور',self.confirm_password,True)]) if self.setup else [])]:
             tk.Label(right,text=label,font=(PERSIAN_FACE,9,'bold'),bg=PAPER,
                      fg=INK,anchor='e').pack(fill='x',pady=(9,4))

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from contextlib import closing
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -26,6 +27,16 @@ def hashes(root):
 class LegacyMigrationRehearsalTests(unittest.TestCase):
     def setUp(self):
         qa_root = Path(__file__).resolve().parent / 'output'
+        # A fresh Git checkout does not include the empty QA output folder.
+        # Create ONLY this known tests/ child, never an arbitrary data root.
+        # Refuse symlinks/junctions and unknown file types before using it.
+        if os.path.lexists(qa_root):
+            attributes = getattr(qa_root.lstat(), 'st_file_attributes', 0)
+            if (not qa_root.is_dir() or qa_root.is_symlink() or
+                    attributes & 0x400):
+                self.fail('Unsafe synthetic QA output directory')
+        else:
+            qa_root.mkdir()
         self.assertTrue(qa_root.is_dir())
         handle = tempfile.TemporaryDirectory(prefix='taraz-legacy-synthetic-20261114-',
                                              dir=qa_root)

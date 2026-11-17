@@ -101,7 +101,7 @@ def manage_local_users(identity_store, administrator_token):
                 field('سطح دسترسی فنی نرم‌افزار',access,
                       choices=list(ACCESS),readonly=True)
             if not existing or only_password:
-                field('رمز عبور (حداقل ۴ نویسه، رمز ۴ رقمی مجاز است)',password,secret=True)
+                field('رمز عبور جدید (حداقل ۱۰ نویسه؛ PIN چهاررقمی ممنوع)',password,secret=True)
                 field('تکرار رمز عبور',again,secret=True)
 
             def commit():

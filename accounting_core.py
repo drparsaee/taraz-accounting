@@ -762,6 +762,55 @@ def _reverse(p, command, now):
     return {"reversedJournalId": journal_id, "journalId": entry["id"]}
 
 
+def _guard_active_installments_on_new_reversal(p, command):
+    """Fail closed for NEW reversals; don't invalidate historical event replay.
+
+    Older ledger events are replayed by _project/_run. Rejecting them inside
+    _reverse would make any already persisted legacy sequence unreadable.
+    Therefore this gate runs only for a new, authenticated host command, after
+    idempotent-event lookup and before mutating the in-memory projection.
+    """
+    kind = command.get("type")
+    if kind == "journal.reverse":
+        journal_id = command.get("journalId")
+        original = (p["entries"].get(journal_id)
+                    if type(journal_id) is str else None)
+        if original is None:
+            return  # Let _run reject the unknown journal normally.
+        source_type = original["sourceType"]
+        if source_type not in ("invoice.issue", "bill.issue"):
+            return
+        sales = source_type == "invoice.issue"
+        document_id = original["sourceId"]
+    elif kind in ("invoice.return", "invoice.correct", "bill.return", "bill.correct"):
+        sales = kind.startswith("invoice.")
+        document_id = command.get("invoiceId" if sales else "billId")
+    else:
+        return
+    collection = p["invoices"] if sales else p["bills"]
+    document = collection.get(document_id) if type(document_id) is str else None
+    if document is None:
+        return  # Original validation produces the proper missing-doc error.
+    direction = "receipt" if sales else "payment"
+    if any(plan["active"] and plan["documentId"] == document["id"]
+           and plan["direction"] == direction
+           for plan in p["installmentPlans"].values()):
+        raise ValueError("Cancel active instalment plan before reversing or correcting document")
+
+
+def _guard_explicit_first_fiscal_start(p, command):
+    """A new fiscal-year close cannot silently assume January 1.
+
+    The first fiscal start is a company policy choice, often not Gregorian.
+    Existing historical close events remain replayable via _project/_run.
+    After an initial close, the reducer already derives the next start date
+    from closedThrough, and verifies contiguity; leave that behavior intact.
+    """
+    if (command.get("type") == "fiscal.year.close"
+            and not p["fiscalYears"] and "startDate" not in command):
+        raise ValueError("Explicit startDate is required for the first fiscal-year close")
+
+
 def _partial_return(p, command, now, *, sales):
     """Post a linked, quantity-exact credit note; retain the original invoice."""
     doc_key = "invoiceId" if sales else "billId"
@@ -1478,6 +1527,8 @@ def apply_accounting_command(state, command, *, actor, accounts, now):
                 raise ValueError("Event ID reused with different actor or payload")
             return {"state": deepcopy(state), "changed": False,
                     "result": deepcopy(event["result"])}
+    _guard_active_installments_on_new_reversal(p, command)
+    _guard_explicit_first_fiscal_start(p, command)
     result = _run(p, command, role, timestamp, finance_edit=finance_edit)
     _check_party_balances(p)
     _check_operational_balances(p)

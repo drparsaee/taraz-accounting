@@ -64,9 +64,13 @@ def validate_identity_document(data):
     return data
 
 def _validate_password(password):
-    if (not isinstance(password,str) or len(password)<4 or len(password)>256 or
+    # New credentials must not be trivially enumerable four-digit PINs.
+    # Historical 4+ character accounts may still authenticate in login() so
+    # an upgrade does not strand the only administrator. Reset always applies
+    # the new policy; production UI must guide legacy users to rotate secrets.
+    if (not isinstance(password,str) or len(password)<10 or len(password)>256 or
             '\x00' in password):
-        raise IdentityError('رمز عبور باید حداقل ۴ نویسه (از جمله رمز ۴ رقمی) داشته باشد')
+        raise IdentityError('رمز عبور جدید باید حداقل ۱۰ نویسه داشته باشد؛ PIN چهاررقمی مجاز نیست')
 
 class LocalCompanyIdentity:
     def __init__(self,root):
