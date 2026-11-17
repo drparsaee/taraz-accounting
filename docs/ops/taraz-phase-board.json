@@ -144,7 +144,12 @@
       "dependsOn": ["TAR-05"],
       "scope": "Source uniqueness inside accounting kernel, authenticated external hash anchor and rollback detection; assess compromised OS limitations.",
       "acceptance": ["ثبت تکراری یک منبع رد شود", "تحریف یا بازگردانی نسخهٔ قدیمی در آزمون تشخیص داده شود", "کلید و Anchor کنار فایل DB قابل جعل نباشند"],
-      "evidence": []
+      "evidence": [
+        "commit:9e500c15448cd48ca4323789dac88d39caa3db78",
+        "tests/test_taraz_journal_source_audit_20261117.py:7/7 PASS",
+        "docs/ops/TAR_10_JOURNAL_SOURCE_AUDIT_20261117_FA.md",
+        "LIMITATION: read-only structural audit, not a kernel posting gate or tamper-proof external anchor"
+      ]
     },
     {
       "id": "TAR-11",
