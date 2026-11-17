@@ -9,7 +9,7 @@
     "report": "docs/audits/TARAZ_P0_REMEDIATION_20261117_FA.md"
   },
   "execution": {
-    "activeTaskId": "TAR-06",
+    "activeTaskId": "TAR-09",
     "releaseStatus": "NO-GO",
     "oneActiveTaskOnly": true,
     "financialPostingAuthorized": false,
@@ -88,11 +88,16 @@
       "id": "TAR-06",
       "phase": "S2",
       "title": "موجودی منابع پارسیان و قرارداد تطبیق تمام سال‌ها",
-      "status": "active",
+      "status": "blocked",
       "dependsOn": ["TAR-05"],
       "scope": "Read-only source inventory by financial year, account, counterparty, invoices, settlements and currency provenance.",
       "acceptance": ["منبع هر رکورد قابل ردگیری باشد", "گزارش پوشش سال‌ها و ماژول‌ها و داده‌های ناموجود ارائه شود", "هیچ اطلاعات شخصی وارد GitHub نشود"],
-      "evidence": []
+      "evidence": [
+        "tests/test_taraz_parsian_coverage_20261117.py:9/9 PASS",
+        "docs/ops/TAR_06_PARSIAN_SOURCE_BLOCKER_20261117_FA.md",
+        "LIMITATION: private authoritative fiscal-year/module inventory not verified"
+      ],
+      "blocker": "Authoritative Parsian source inventory and explicit permission to inspect a safe read-only clone are not yet established; no production data may be read or published."
     },
     {
       "id": "TAR-07",
@@ -118,7 +123,7 @@
       "id": "TAR-09",
       "phase": "S3",
       "title": "قواعد مالیات خرید، برگشت و تسویه",
-      "status": "queued",
+      "status": "active",
       "dependsOn": ["TAR-05"],
       "scope": "Separate recoverable input tax from expense; versioned policy, exemption and corrections. Do not assume statutory rate.",
       "acceptance": ["تست عددی بدهکار/بستانکار و خرید معاف/مشمول", "برگشت و اصلاح مالیات بدون دوباره‌ثبت", "نرخ قانونی فقط از سیاست صریح معتبر گرفته شود"],
